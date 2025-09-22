@@ -1,22 +1,21 @@
 ---
-name: User Story
-about: Describe this issue template's purpose here.
-title: ''
-labels: ''
-assignees: ''
-
+name: Sub-Task
+about: Create a smaller task that contributes to an Epic
+title: "[Sub-task] "
+labels: ["sub-task"]
 ---
 
-**Title:** [Feature Name]
-**Description:** What does the user want to achieve?  
+## Description
+A short description of the work to be done.
 
-**Acceptance Criteria:**  
+## Steps / Tasks
+- [ ] Step 1
+- [ ] Step 2
+- [ ] Step 3
 
-- [ ] Criterion 1  
-- [ ] Criterion 2 
+## Acceptance Criteria
+- [ ] Clear condition 1 that proves this task is complete
+- [ ] Clear condition 2
 
-**Definition of Done (DoD):**  
-
-- [ ] Code is reviewed  
-- [ ] Feature is tested  
-- [ ] Feature is deployed
+## Related Epic
+Relates to Epic #[ISSUE_NUMBER]
