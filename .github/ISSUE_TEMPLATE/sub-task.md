@@ -5,17 +5,17 @@ title: "[Sub-task] "
 labels: ["sub-task"]
 ---
 
-## Description
+**Description**
 A short description of the work to be done.
 
-## Steps / Tasks
+**Steps / Tasks**
 - [ ] Step 1
 - [ ] Step 2
 - [ ] Step 3
 
-## Acceptance Criteria
+**Acceptance Criteria**
 - [ ] Clear condition 1 that proves this task is complete
 - [ ] Clear condition 2
 
-## Related Epic
+**Related Epic**
 Relates to Epic #[ISSUE_NUMBER]
