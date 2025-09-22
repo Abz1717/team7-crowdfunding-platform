@@ -1,10 +1,10 @@
-
 ---
-
 name: Epic
 about: Create a new Epic (big feature/user story)
-title: "Epic: "
+title: 'Epic'
 labels: ["Epic"]
+assignees: ''
+
 ---
 
 ## User Story
