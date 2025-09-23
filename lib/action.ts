@@ -26,35 +26,48 @@ export async function login(formData: FormData) {
 
   console.log("Login success:", userData); // log success
   revalidatePath("/", "layout");
-  redirect("/account");
+  redirect("/");
 }
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
   const data = {
+    firstName: formData.get("firstName") as string,
+    lastName: formData.get("lastName") as string,
     email: formData.get("email") as string,
     password: formData.get("password") as string,
+    accountType: formData.get("accountType") as string, // "investor" or "business"
   };
 
-  console.log("Signup attempt:", data); // log input
+  console.log("Signup attempt:", data);
 
-  const { data: userData, error } = await supabase.auth.signUp(data);
+  // Sign up with Supabase Auth
+  const { data: userData, error } = await supabase.auth.signUp({
+    email: data.email,
+    password: data.password,
+  });
+
   if (error) {
-    console.error("Signup error:", error); // log error
+    console.error("Signup error:", error);
     redirect("/error");
   }
 
-   // 2️⃣ Insert email into your 'user' table
-  const { error: tableError } = await supabase
-    .from("user")
-    .insert([{ email: data.email }]);
+  // Insert user info into your 'user' table
+  const { error: tableError } = await supabase.from("user").insert([
+    {
+      first_name: data.firstName,
+      last_name: data.lastName,
+      email: data.email,
+      account_type: data.accountType,
+    },
+  ]);
 
   if (tableError) {
     console.error("Error inserting into user table:", tableError);
   }
 
-  console.log("Signup success:", userData); // log success
+  console.log("Signup success:", userData);
   revalidatePath("/", "layout");
-  redirect("/account");
+  redirect("/");
 }
