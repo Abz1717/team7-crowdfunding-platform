@@ -1,103 +1,190 @@
-import Image from "next/image";
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import Link from "next/link"
+import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3 } from "lucide-react"
 
-export default function Home() {
+export default function HomePage() {
+  //connect landing page to real data sources
+  // const 
+  // {totalFunded, activeInvestors, defaultRate} = usePlatformStats()
+  //  {featuredPitch} = useFeaturedPitch()
+  //  {testimonials} = useTestimonials()
+  //  {live} = useLiveData()
+  //  {maxReturn, minInvestment} = usePlatformConfig()
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className="flex flex-col min-h-screen">
+      <section className="relative h-screen overflow-hidden">
+        <div className="absolute inset-0">
+          <img
+            src="/LandingPageBusinessLounge.jpeg"
+            alt="investor"
+            className=" w-full h-full object-cover object-center"
+          />
+          <div className=" absolute inset-0 bg-black opacity-40 "></div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+        <div className="relative z-10 h-full flex items-center ">
+          <div className="container mx-auto px-4 ">
+            <div className="grid lg:grid-cols-2 gap-12 items-center h-full ">
+
+              <div className="max-w-xl">
+                <div className="mb-6">
+                  
+                  <Badge className="bg-blue-600 text-white border-blue-600 text-sm font-medium px-4 py-2 ">
+                    <Shield className="w-3 h-3 mr-1" />
+                    UK Investment Platform
+                  </Badge>
+
+                  <h1 className="text-5xl lg:text-6xl font-bold text-white mt-6 mb-6">
+                    Earn up to <span className="text-blue-400"> </span> returns investing in UK businesses
+                  </h1>
+
+                  <p className="text-xl text-white opacity-90">
+                    Direct investment opportunities in UK small businesses. Fixed returns, monthly payouts,
+                    full transparency.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3   gap-6 py-6">
+
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-white"></div>
+                    <div className="text-sm text-white opacity-70">Total Funded</div>
+                  </div>
+
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-white "></div>
+                    <div className="text-sm text-white opacity-70">Active Investors</div>
+                  </div>
+
+                  <div className="text-center">
+                      <div className="text-2xl font-bold text-white"></div>
+                      <div className="text-sm text-white opacity-70">Default/Late</div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-4">
+
+                  <Link href="/signup">
+                    <Button size="lg" className="text-lg px-8 bg-blue-600    hover:bg-blue-700">
+                      Start Investing
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </Button>
+                  </Link>
+
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="text-lg px-8 bg-black bg-opacity-20 text-white border-white border-opacity-30 hover:bg-black hover:bg-opacity-30"
+                  >
+                    <Play className="mr-2 h-5 w-5" 
+                    />
+                    Watch How It Works
+                  </Button>
+                </div>
+              </div>
+
+              <div className=" lg:ml-auto ">
+
+                <Card className="bg-white border-0 shadow-2xl max-w-sm ml-auto mb-4">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm font-medium text-gray-600">Live</span>
+                    </div>
+
+                    <div className="mb-3">
+
+                      <div className="text-3xl font-bold text-gray-900 mb-2"></div>
+                      <div className="text-sm text-green-600 font-medium mb-3"></div>
+                      <div className="flex  items-center gap-4 text-xs text-gray-500">
+                        <span></span>
+                        <span>•</span>
+                        <span>Monthly income: </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-white border-0 shadow-xl max-w-sm mb-4">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex  items-center gap-3 ">
+                        <div className="w-10 h-10    bg-green-500 rounded-lg flex items-center justify-center">
+                          <Building2 className="w-5 h-5 text-white " />
+                        </div>
+                        <div>
+                          <h3 className=" font-semibold text-gray-900"></h3>
+                          <p className="text-sm text-gray-500"></p>
+                        </div>
+                      </div>
+                      <Badge className="bg-green-100 text-green-700 border-green-200 text-xs"></Badge>
+                    </div>
+
+                    <div className="mb-4   grid grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-2xl font-bold text-gray-900"></div>
+                        <div className="text-xs text-gray-500">Interest Rate</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900"></div>
+                        <div className="text-xs  text-gray-500">Time Period</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-green-600"></div>
+                        <div className="text-xs  text-gray-500">Funded</div>
+                      </div>
+                    </div>
+
+                    <Progress value={0} className="h-2 mb-2" />
+                    <div className="text-xs text-gray-500"></div>
+                  </CardContent>
+                </Card>
+
+                <Card className="max-w-sm bg-white border-0 shadow-xl ml-auto">
+
+                  <CardContent  className="p-6">
+                    <div className=" text-center" >
+                      <div className="text-sm font-medium text-gray-600 mb-3">Investment Calculator</div>
+                      <div className="mb-4">
+                        <div className="text-lg  text-gray-700 mb-2">£ invested</div>
+                        <div className=" text-2xl text-green-600 font-bold mb-2">£</div>
+                        <div className="text-xs text-gray-500 ">After  at </div>
+                      </div>
+                      <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
+                        Calculate Your Returns
+                      </Button>
+                    </div>
+
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      <section className="">
+
+      </section>
+
+      <section className="">
+
+      </section>
+
+      <section className="">
+        
+      </section>
+
+
+
+      </section>
+
+      <footer className="border-t py-12 px-4 bg-white">
+
       </footer>
     </div>
-  );
+  )
 }
