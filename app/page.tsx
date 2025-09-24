@@ -78,7 +78,7 @@ export default function HomePage() {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="text-lg px-8 bg-black bg-opacity-20 text-white border-white border-opacity-30 hover:bg-black hover:bg-opacity-30"
+                    className="text-lg px-8 bg-black/20 text-white border-white/30 hover:bg-black/30"
                   >
                     <Play className="mr-2 h-5 w-5" 
                     />
@@ -89,7 +89,8 @@ export default function HomePage() {
 
               <div className=" space-y-4 lg:ml-auto ">
 
-                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4">                  <CardContent className="p-6">
+                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4">                  
+                  <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <span className="text-sm font-medium text-gray-600">Live</span>
