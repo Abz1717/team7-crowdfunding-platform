@@ -30,8 +30,8 @@ export default function HomePage() {
           <div className="container mx-auto px-4 ">
             <div className="grid lg:grid-cols-2 gap-12 items-center h-full ">
 
-              <div className="max-w-xl">
-                <div className="mb-6">
+              <div className=" space-y-8 max-w-xl">
+                <div className="space-y-6">
 
                   <Badge className="bg-blue-600 text-white border-blue-600 text-sm font-medium px-4 py-2 ">
                     <Shield className="w-3 h-3 mr-1" />
@@ -87,7 +87,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className=" lg:ml-auto ">
+              <div className=" space-y-4 lg:ml-auto ">
 
                 <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4">                  <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-4">
