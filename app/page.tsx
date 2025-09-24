@@ -23,7 +23,7 @@ export default function HomePage() {
             alt="investor"
             className=" w-full h-full object-cover object-center"
           />
-          <div className=" absolute inset-0 bg-black opacity-40 "></div>
+          <div className=" absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent "></div>
         </div>
 
         <div className="relative z-10 h-full flex items-center ">
@@ -32,17 +32,17 @@ export default function HomePage() {
 
               <div className="max-w-xl">
                 <div className="mb-6">
-                  
+
                   <Badge className="bg-blue-600 text-white border-blue-600 text-sm font-medium px-4 py-2 ">
                     <Shield className="w-3 h-3 mr-1" />
                     UK Investment Platform
                   </Badge>
 
-                  <h1 className="text-5xl lg:text-6xl font-bold text-white mt-6 mb-6">
+                  <h1 className="text-5xl lg:text-6xl font-bold text-white text-balance leading-tight">
                     Earn up to <span className="text-blue-400"> </span> returns investing in UK businesses
                   </h1>
 
-                  <p className="text-xl text-white opacity-90">
+                  <p className="text-xl text-white/90 text-pretty leading-relaxed">
                     Direct investment opportunities in UK small businesses. Fixed returns, monthly payouts,
                     full transparency.
                   </p>
@@ -89,8 +89,7 @@ export default function HomePage() {
 
               <div className=" lg:ml-auto ">
 
-                <Card className="bg-white border-0 shadow-2xl max-w-sm ml-auto mb-4">
-                  <CardContent className="p-6">
+                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4">                  <CardContent className="p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <span className="text-sm font-medium text-gray-600">Live</span>
@@ -144,7 +143,7 @@ export default function HomePage() {
                   </CardContent>
                 </Card>
 
-                <Card className="max-w-sm bg-white border-0 shadow-xl ml-auto">
+                <Card className="max-w-sm bg-white/95 backdrop-blur-sm border-0 shadow-xl ml-auto">
 
                   <CardContent  className="p-6">
                     <div className=" text-center" >
