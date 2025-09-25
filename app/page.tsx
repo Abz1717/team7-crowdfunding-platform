@@ -217,6 +217,64 @@ export default function HomePage() {
         </div>
       </section>
 
+    <section className="py-20 px-4 bg-gray-50">
+  <div className="container mx-auto">
+    <div className="text-center mb-12">
+      <h2 className="text-4xl">How We Work</h2>
+      <p className="text-xl">
+        A transparent, reliable process connecting businesses with investors
+      </p>
+    </div>
+
+    <div className="grid md:grid-cols-4 gap-8">
+      <div className="text-center">
+        <div className="mb-4">
+          <Building2 className="w-8 h-8 mx-auto" />
+        </div>
+        <h3 className="text-lg mb-3">Business Application</h3>
+        <p>
+          UK businesses submit funding requests for growth projects and equipment purchases
+          </p>
+      </div>
+
+      <div className="text-center">
+        <div className="mb-4">
+          <Shield className="w-8 h-8 mx-auto" />
+        </div>
+        <h3 className="text-lg mb-3">Due Diligence</h3>
+        <p>
+          Multi-stage due diligence ensures only quality projects advance
+        </p>
+      </div>
+
+      <div className="text-center">
+        <div className="mb-4">
+          <BarChart3 className="w-8 h-8 mx-auto" />
+        </div>
+        <h3 className="text-lg mb-3">Risk Assessment</h3>
+        <p>
+          Risk assessments conducted in full compliance with UK regulatory standards
+        </p>
+      </div>
+
+      <div className="text-center">
+        <div className="mb-4">
+          <Users className="w-8 h-8 mx-auto" />
+        </div>
+        <h3 className="text-lg mb-3">Investor Funding</h3>
+        <p>
+          Investors provide funding to verified projects, starting from just £50
+        </p>
+      </div>
+    </div>
+  </div>
+
+</section>
+      
+
+
+      
+
 
 
       <footer className="border-t py-12 px-4 bg-white">
