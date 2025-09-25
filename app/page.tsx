@@ -169,20 +169,20 @@ export default function HomePage() {
       </section>
 
       <section className="py-20 px-4 bg-white">
-        <div className="container">
-          <div className="text-center">
-            <h2 className="text-4xl">Why Invest With Us?</h2>
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl mb-4">Why Invest With Us?</h2>
             <p className="text-xl">
               Transparent, reliable, and designed to support investors and businesses
               </p>
           </div>
 
-          <div className="grid md:grid-cols-3">
-            <Card className="text-center">
-              <div>
+          <div className="grid md:grid-cols-3 gap-6">
+            <Card className="text-center p-6">
+              <div className="mb-4">
                 <BadgePoundSterling className="w-8 h-8" />
               </div>
-              <div className="text-3xl">0%</div>
+              <div className="text-3xl mb-2">0%</div>
               <div>fueling businesses, rewarding investors</div>
               <h3 className="text-xl">Capital Meets Vision</h3>
               <p>
@@ -190,11 +190,11 @@ export default function HomePage() {
               </p>
             </Card>
 
-            <Card className="text-center">
-              <div>
+            <Card className="text-center p-6">
+              <div className="mb-4">
                 <TrendingUp className="w-8 h-8" />
               </div>
-              <div className="text-3xl"></div>
+              <div className="text-3xl mb-2"></div>
               <div>invest with confidence</div>
               <h3 className="text-xl">Spot the Next Big Thing</h3>
               <p>
@@ -203,10 +203,10 @@ export default function HomePage() {
             </Card>
 
             <Card className="text-center p-6">
-              <div>
+              <div className="mb-4">
                 <BarChart3 className="w-8 h-8" />
               </div>
-              <div className="text-3xl"></div>
+              <div className="text-3xl mb-2"></div>
               <div>funding made simple</div>
               <h3 className="text-xl">Get Funded Faster</h3>
               <p>
@@ -217,59 +217,174 @@ export default function HomePage() {
         </div>
       </section>
 
-    <section className="py-20 px-4 bg-gray-50">
-  <div className="container mx-auto">
-    <div className="text-center mb-12">
-      <h2 className="text-4xl">How We Work</h2>
-      <p className="text-xl">
-        A transparent, reliable process connecting businesses with investors
-      </p>
-    </div>
+      <section className="py-20 px-4 bg-gray-50">
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl">How We Work</h2>
+            <p className="text-xl">
+              A transparent, reliable process connecting businesses with investors
+            </p>
+          </div>
 
-    <div className="grid md:grid-cols-4 gap-8">
-      <div className="text-center">
-        <div className="mb-4">
-          <Building2 className="w-8 h-8 mx-auto" />
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="mb-4">
+                <Building2 className="w-8 h-8 mx-auto" />
+              </div>
+              <h3 className="text-lg mb-3">Business Application</h3>
+              <p>
+                UK businesses submit funding requests for growth projects and equipment purchases
+                </p>
+            </div>
+
+            <div className="text-center">
+              <div className="mb-4">
+                <Shield className="w-8 h-8 mx-auto" />
+              </div>
+              <h3 className="text-lg mb-3">Due Diligence</h3>
+              <p>
+                Multi-stage due diligence ensures only quality projects advance
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="mb-4">
+                <BarChart3 className="w-8 h-8 mx-auto" />
+              </div>
+              <h3 className="text-lg mb-3">Risk Assessment</h3>
+              <p>
+                Risk assessments conducted in full compliance with UK regulatory standards
+              </p>
+            </div>
+
+            <div className="text-center">
+              <div className="mb-4">
+                <Users className="w-8 h-8 mx-auto" />
+              </div>
+              <h3 className="text-lg mb-3">Investor Funding</h3>
+              <p>
+                Investors provide funding to verified projects, starting from just £50
+              </p>
+            </div>
+          </div>
         </div>
-        <h3 className="text-lg mb-3">Business Application</h3>
-        <p>
-          UK businesses submit funding requests for growth projects and equipment purchases
-          </p>
-      </div>
+      </section>
 
-      <div className="text-center">
-        <div className="mb-4">
-          <Shield className="w-8 h-8 mx-auto" />
+      <section className="py-20 px-4 bg-white">
+
+        <div className="container mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl">What Our Investors Say</h2>
+            <p className="text-xl">
+              Fake stories from investors earning consistent returns with us
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+
+            <Card className="p-6">
+              <div className="mb-4">
+                <div className="flex mb-4">
+
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-5 h-5" viewBox="0 0 20 20">
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                    </svg>
+                  ))}
+
+                </div>
+                <p className="mb-4">
+                  "Great platform with consistent returns. I've been investing for 6 months and very happy with the results."
+                </p>
+              </div>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white mr-4">
+                  IC
+                </div>
+                <div>
+                  <div>Iker Casillas</div>
+                  <div className="text-sm">Portfolio: £2,500 • Returns: 8.5%</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="mb-4">
+                <div className="flex mb-4">
+
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-5 h-5" viewBox="0 0 20 20">
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                    </svg>
+                  ))}
+
+                </div>
+                <p className="mb-4">
+                  "Transparent process and monthly payouts as promised. Excellent customer service team."
+                </p>
+              </div>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center text-white mr-4">
+                  CR
+                </div>
+                <div>
+                  <div>Cristiano Ronaldo</div>
+                  <div className="text-sm">Portfolio: £5,000 • Returns: 9.2%</div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="mb-4">
+                <div className="flex mb-4">
+
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-5 h-5" viewBox="0 0 20 20">
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                    </svg>
+                  ))}
+
+                </div>
+                <p className="mb-4">
+                  "Started with £50 to test the platform. Now investing much more after seeing the consistent results."
+                  </p>
+              </div>
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white mr-4">
+                  RB
+                </div>
+                <div>
+                  <div>Roberto Baggio</div>
+                  <div className="text-sm">Portfolio: £1,200 • Returns: 7.8%</div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <div className="text-center mt-12">
+            <div className="flex justify-center gap-8 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <span>4.8/5 average rating</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span>215+ active investors</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                <span>130+ successfully funded</span>
+              </div>
+            </div>
+          </div>
+
         </div>
-        <h3 className="text-lg mb-3">Due Diligence</h3>
-        <p>
-          Multi-stage due diligence ensures only quality projects advance
-        </p>
-      </div>
+      </section>
 
-      <div className="text-center">
-        <div className="mb-4">
-          <BarChart3 className="w-8 h-8 mx-auto" />
-        </div>
-        <h3 className="text-lg mb-3">Risk Assessment</h3>
-        <p>
-          Risk assessments conducted in full compliance with UK regulatory standards
-        </p>
-      </div>
 
-      <div className="text-center">
-        <div className="mb-4">
-          <Users className="w-8 h-8 mx-auto" />
-        </div>
-        <h3 className="text-lg mb-3">Investor Funding</h3>
-        <p>
-          Investors provide funding to verified projects, starting from just £50
-        </p>
-      </div>
-    </div>
-  </div>
 
-</section>
       
 
 
