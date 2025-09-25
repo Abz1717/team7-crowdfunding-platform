@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3 } from "lucide-react"
+import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3, BadgePoundSterling } from "lucide-react"
 
 export default function HomePage() {
   //connect landing page to real data sources
@@ -166,21 +166,58 @@ export default function HomePage() {
           </div>
         </div>
 
-      <section className="">
-
       </section>
 
-      <section className="">
+      <section className="py-20 px-4 bg-white">
+        <div className="container">
+          <div className="text-center">
+            <h2 className="text-4xl">Why Invest With Us?</h2>
+            <p className="text-xl">
+              Transparent, reliable, and designed to support investors and businesses
+              </p>
+          </div>
 
+          <div className="grid md:grid-cols-3">
+            <Card className="text-center">
+              <div>
+                <BadgePoundSterling className="w-8 h-8" />
+              </div>
+              <div className="text-3xl">0%</div>
+              <div>fueling businesses, rewarding investors</div>
+              <h3 className="text-xl">Capital Meets Vision</h3>
+              <p>
+                Businesses get funded, investors back the next big thing — with full transparency.
+              </p>
+            </Card>
+
+            <Card className="text-center">
+              <div>
+                <TrendingUp className="w-8 h-8" />
+              </div>
+              <div className="text-3xl"></div>
+              <div>invest with confidence</div>
+              <h3 className="text-xl">Spot the Next Big Thing</h3>
+              <p>
+                Back promising businesses early and grow your wealth with predictable, transparent returns.
+              </p>
+            </Card>
+
+            <Card className="text-center p-6">
+              <div>
+                <BarChart3 className="w-8 h-8" />
+              </div>
+              <div className="text-3xl"></div>
+              <div>funding made simple</div>
+              <h3 className="text-xl">Get Funded Faster</h3>
+              <p>
+                Create pitches, connect with motivated investors, and secure the capital your business needs to grow.
+              </p>
+            </Card>
+          </div>
+        </div>
       </section>
 
-      <section className="">
-        
-      </section>
 
-
-
-      </section>
 
       <footer className="border-t py-12 px-4 bg-white">
 
