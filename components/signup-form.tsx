@@ -21,9 +21,25 @@ export function SignUpForm() {
     password: "",
     confirmPassword: "",
   });
+  const [error, setError] = useState<string>("");
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setError(""); // clear error on input change
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (formData.password.length < 6) {
+      e.preventDefault();
+      setError("Password should be at least 6 characters.");
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      e.preventDefault();
+      setError("Passwords do not match.");
+      return;
+    }
+    // allow form submit
   };
 
   return (
@@ -61,7 +77,11 @@ export function SignUpForm() {
       </CardHeader>
 
       <CardContent>
-        <form action={signup} className="space-y-4">
+        {error && (
+          <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
+        )}
+        <form action={signup} className="space-y-4" onSubmit={handleSubmit}>
+          <input type="hidden" name="accountType" value={accountType} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
