@@ -171,7 +171,7 @@ export default function HomePage() {
       <section className="py-20 px-4 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl mb-4">Why Invest With Us?</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Why Invest With Us?</h2>
             <p className="text-xl">
               Transparent, reliable, and designed to support investors and businesses
               </p>
@@ -393,7 +393,13 @@ export default function HomePage() {
 
 
       <footer className="border-t py-12 px-4 bg-white">
-
+        <div className="container mx-auto text-center">
+          <div className="text-2xl font-bold text-blue-600 mb-4">Our Name</div>
+            <p className="text-slate-600 mb-4">UK investment platform connecting businesses with investors</p>
+            <p className="text-sm text-slate-500">
+              © 2025
+            </p>
+        </div>
       </footer>
     </div>
   )
