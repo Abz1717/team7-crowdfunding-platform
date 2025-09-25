@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { login } from "@/lib/action"; // import your server action
+import { createClient } from "@/utils/supabase/client";
 
 export function SignInForm() {
+  const [error, setError] = useState<string>("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -47,7 +49,46 @@ export function SignInForm() {
       </CardHeader>
 
       <CardContent>
-        <form action={login} className="space-y-4">
+        {error && (
+          <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
+        )}
+        <form className="space-y-4" onSubmit={async (e) => {
+          e.preventDefault();
+          
+          if (!formData.email || !formData.password) {
+            setError("Please enter both email and password.");
+            return;
+          }
+          const supabase = createClient();
+
+          const { error } = await supabase.auth.signInWithPassword({
+            email: formData.email,
+            password: formData.password,
+          });
+
+          if (error) {
+            setError("Invalid email or password.");
+            return;
+          }
+          const { data: userDetails, error: userError } = await supabase
+            .from("user")
+            .select("account_type")
+            .eq("email", formData.email)
+            .single();
+
+          if (userError || !userDetails) {
+            setError("Account type not found.");
+            return;
+          }
+
+          if (userDetails.account_type === "investor") {
+            window.location.href = "/investor";
+          } else if (userDetails.account_type === "business") {
+            window.location.href = "/business";
+          } else {
+            setError("Unknown account type.");
+          }
+        }}>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

@@ -20,14 +20,29 @@ export async function login(formData: FormData) {
   );
 
   if (error) {
-    console.error("Login error:", error); // log error
     redirect("/error");
   }
 
-  console.log("Login success:", userData); // log success
-  revalidatePath("/", "layout");
-  redirect("/");
+  const { data: userDetails, error: userError } = await supabase
+    .from("user")
+    .select("account_type")
+    .eq("email", data.email)
+    .single();
+
+  if (userError || !userDetails) {
+    redirect("/error");
+  }
+
+  if (userDetails.account_type === "investor") {
+    redirect("/investor");
+  } else if (userDetails.account_type === "business") {
+    redirect("/business");
+  } else {
+    redirect("/error");
+  }
 }
+
+
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
@@ -69,5 +84,12 @@ export async function signup(formData: FormData) {
 
   console.log("Signup success:", userData);
   revalidatePath("/", "layout");
-  redirect("/");
+
+  if (data.accountType === "investor") {
+    redirect("/investor");
+  } else if (data.accountType === "business") {
+    redirect("/business");
+  } else {
+    redirect("/");
+  }
 }
