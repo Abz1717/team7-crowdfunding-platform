@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
-import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3, BadgePoundSterling } from "lucide-react"
+import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3, BadgePoundSterling, HeartHandshake } from "lucide-react"
 
 export default function HomePage() {
   //connect landing page to real data sources
@@ -170,46 +170,47 @@ export default function HomePage() {
 
       <section className="py-20 px-4 bg-white">
         <div className="container mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4 text-slate-900">Why Invest With Us?</h2>
-            <p className="text-xl">
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
               Transparent, reliable, and designed to support investors and businesses
               </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6">
-            <Card className="text-center p-6">
-              <div className="mb-4">
-                <BadgePoundSterling className="w-8 h-8" />
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+
+            <Card className="text-center p-8 shadow-lg hover:shadow-xl transition-shadow border-slate-200">
+              <div className="mb-6 flex items-center justify-center mx-auto bg-green-100 rounded-full w-16 h-16">
+                <BadgePoundSterling className="w-8 h-8 text-green-600" />
               </div>
-              <div className="text-3xl mb-2">0%</div>
-              <div>fueling businesses, rewarding investors</div>
-              <h3 className="text-xl">Capital Meets Vision</h3>
-              <p>
+              <div className="text-3xl mb-2">0% fees</div>
+              <div className ="text-slate-500 mb-4">fueling businesses, rewarding investors</div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Capital Meets Vision</h3>
+              <p className ="text-slate-600 leading-relaxed">
                 Businesses get funded, investors back the next big thing — with full transparency.
               </p>
             </Card>
 
-            <Card className="text-center p-6">
-              <div className="mb-4">
-                <TrendingUp className="w-8 h-8" />
+            <Card className="text-center p-8 shadow-lg hover:shadow-xl transition-shadow border-slate-200 ">
+              <div className="mb-4 flex items-center justify-center mx-auto bg-purple-100 rounded-full w-16 h-16">
+                <TrendingUp className="w-8 h-8 text-purple-600" />
               </div>
               <div className="text-3xl mb-2"></div>
-              <div>invest with confidence</div>
-              <h3 className="text-xl">Spot the Next Big Thing</h3>
-              <p>
+              <div className ="text-slate-500 mb-4">invest with confidence</div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Spot the Next Big Thing</h3>
+              <p className="text-slate-600 leading-relaxed">
                 Back promising businesses early and grow your wealth with predictable, transparent returns.
               </p>
             </Card>
 
-            <Card className="text-center p-6">
-              <div className="mb-4">
-                <BarChart3 className="w-8 h-8" />
+            <Card className="text-center p-8 shadow-lg hover:shadow-xl transition-shadow border-slate-200">
+              <div className="mb-4 flex items-center justify-center mx-auto bg-blue-100 rounded-full w-16 h-16">
+                <BarChart3 className="w-8 h-8 text-blue-600" />
               </div>
               <div className="text-3xl mb-2"></div>
-              <div>funding made simple</div>
-              <h3 className="text-xl">Get Funded Faster</h3>
-              <p>
+              <div className ="text-slate-500 mb-4">funding made simple</div>
+              <h3 className="text-xl font-semibold text-slate-900 mb-3" >Get Funded Faster</h3>
+              <p className="text-slate-600 leading-relaxed">
                 Create pitches, connect with motivated investors, and secure the capital your business needs to grow.
               </p>
             </Card>
