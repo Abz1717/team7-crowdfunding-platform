@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/utils/supabase/server";
+import { CreatePitchData, Pitch, UpdatePitchData } from "@/lib/types/pitch";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -70,4 +71,221 @@ export async function signup(formData: FormData) {
   console.log("Signup success:", userData);
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+// Pitch-related actions
+export async function createPitch(
+  pitchData: CreatePitchData
+): Promise<{ success: boolean; data?: Pitch; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Get business_id from the businessuser table
+    const { data: businessUser, error: businessError } = await supabase
+      .from("businessuser")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (businessError || !businessUser) {
+      return { success: false, error: "Business user not found" };
+    }
+
+    // Generate a unique ID for the pitch
+    const pitchId = `pitch_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+
+    // Insert the pitch
+    const { data: pitch, error: pitchError } = await supabase
+      .from("pitches")
+      .insert([
+        {
+          id: pitchId,
+          title: pitchData.title,
+          elevator_pitch: pitchData.elevator_pitch,
+          detailed_pitch: pitchData.detailed_pitch,
+          target_amount: pitchData.target_amount,
+          profit_share: pitchData.profit_share,
+          end_date: pitchData.end_date,
+          investment_tiers: pitchData.investment_tiers,
+          ai_analysis: pitchData.ai_analysis || null,
+          supporting_media: pitchData.supporting_media || [],
+          business_id: businessUser.id,
+          status: "draft",
+        },
+      ])
+      .select()
+      .single();
+
+    if (pitchError) {
+      console.error("Error creating pitch:", pitchError);
+      return { success: false, error: pitchError.message };
+    }
+
+    revalidatePath("/business/my-pitches");
+    return { success: true, data: pitch };
+  } catch (error) {
+    console.error("Unexpected error creating pitch:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function getPitches(): Promise<{
+  success: boolean;
+  data?: Pitch[];
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { success: false, error: "User not authenticated" };
+    }
+    console.log("User:", user);
+
+    // Get business_id from the businessuser table
+    const { data: businessUser, error: businessError } = await supabase
+      .from("businessuser")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (businessError || !businessUser) {
+      return { success: false, error: "Business user not found" };
+    }
+
+    // Fetch pitches for this business user
+    const { data: pitches, error: pitchesError } = await supabase
+      .from("pitches")
+      .select("*")
+      .eq("business_id", businessUser.id)
+      .order("created_at", { ascending: false });
+
+    if (pitchesError) {
+      console.error("Error fetching pitches:", pitchesError);
+      return { success: false, error: pitchesError.message };
+    }
+
+    return { success: true, data: pitches || [] };
+  } catch (error) {
+    console.error("Unexpected error fetching pitches:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function updatePitch(
+  pitchId: string,
+  updateData: UpdatePitchData
+): Promise<{ success: boolean; data?: Pitch; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Get business_id from the businessuser table
+    const { data: businessUser, error: businessError } = await supabase
+      .from("businessuser")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (businessError || !businessUser) {
+      return { success: false, error: "Business user not found" };
+    }
+
+    // Update the pitch
+    const { data: pitch, error: pitchError } = await supabase
+      .from("pitches")
+      .update({
+        ...updateData,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", pitchId)
+      .eq("business_id", businessUser.id)
+      .select()
+      .single();
+
+    if (pitchError) {
+      console.error("Error updating pitch:", pitchError);
+      return { success: false, error: pitchError.message };
+    }
+
+    revalidatePath("/business/my-pitches");
+    return { success: true, data: pitch };
+  } catch (error) {
+    console.error("Unexpected error updating pitch:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function deletePitch(
+  pitchId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Get business_id from the businessuser table
+    const { data: businessUser, error: businessError } = await supabase
+      .from("businessuser")
+      .select("id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (businessError || !businessUser) {
+      return { success: false, error: "Business user not found" };
+    }
+
+    // Delete the pitch
+    const { error: pitchError } = await supabase
+      .from("pitches")
+      .delete()
+      .eq("id", pitchId)
+      .eq("business_id", businessUser.id);
+
+    if (pitchError) {
+      console.error("Error deleting pitch:", pitchError);
+      return { success: false, error: pitchError.message };
+    }
+
+    revalidatePath("/business/my-pitches");
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error deleting pitch:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
 }
