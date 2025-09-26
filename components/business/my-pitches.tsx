@@ -23,9 +23,6 @@ export function MyPitches() {
   useEffect(() => {
     loadPitches(); // Smart caching - only fetches if needed
   }, [loadPitches]);
-  const handlePitchCreated = (newPitch: Pitch) => {
-    // The pitch is automatically added to the context via the hook
-  };
 
   const handleEditPitch = (pitchId: string) => {
     const pitch = pitches.find((p) => p.id === pitchId);
@@ -69,7 +66,7 @@ export function MyPitches() {
                 Manage your investment opportunities and track funding progress
               </p>
             </div>
-            <CreatePitchDialog onCreated={handlePitchCreated} />
+            <CreatePitchDialog/>
           </div>
           <div className="flex items-center justify-center py-24">
             <div className="flex items-center gap-3">
@@ -95,7 +92,7 @@ export function MyPitches() {
                 Manage your investment opportunities and track funding progress
               </p>
             </div>
-            <CreatePitchDialog onCreated={handlePitchCreated} />
+            <CreatePitchDialog/>
           </div>
           <div className="text-center py-24">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-full mb-6">
@@ -130,7 +127,7 @@ export function MyPitches() {
               Manage your investment opportunities and track funding progress
             </p>
           </div>
-          <CreatePitchDialog onCreated={handlePitchCreated} />
+          <CreatePitchDialog/>
         </div>
 
         {pitches.length === 0 ? (
@@ -145,7 +142,7 @@ export function MyPitches() {
               Create your first investment pitch to start attracting investors
               and building your business.
             </p>
-            <CreatePitchDialog onCreated={handlePitchCreated} />
+            <CreatePitchDialog/>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">

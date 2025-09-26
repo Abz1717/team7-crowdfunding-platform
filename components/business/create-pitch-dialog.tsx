@@ -49,9 +49,11 @@ import { toast } from "sonner";
 import { usePitchActions } from "@/hooks/usePitchActions";
 import type { PitchFormData, AIAnalysis } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
+import { generatePitchAnalysisDirect } from "@/lib/ai/gemini-direct";
+import { AIAnalysisDisplay } from "@/components/business/ai-analysis-display";
 
 export interface CreatePitchDialogProps {
-  onCreated?: (pitch: any) => void;
+  onCreated?: (pitch: unknown) => void;
 }
 
 export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
@@ -109,12 +111,14 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
     }
   };
 
-  const nextStep = () => {
+  const nextStep = async () => {
     if (currentStep < totalSteps && isStepValid(currentStep)) {
       if (currentStep === 5) {
-        generateAiAnalysis();
+        setCurrentStep(currentStep + 1);
+        await generateAiAnalysis();
+      } else {
+        setCurrentStep(currentStep + 1);
       }
-      setCurrentStep(currentStep + 1);
     }
   };
 
@@ -272,35 +276,18 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
     return uploadedUrls;
   };
 
-  const generateAiAnalysis = () => {
+  const generateAiAnalysis = async () => {
     setIsAnalyzing(true);
-    setTimeout(() => {
-      const mockAnalysis: AIAnalysis = {
-        overallScore: Math.floor(Math.random() * 30) + 70, // 70-100
-        strengths: [
-          "Clear value proposition and market opportunity",
-          "Well-defined target audience and customer segments",
-          "Realistic financial projections and funding requirements",
-          "Strong competitive differentiation strategy",
-        ],
-        improvements: [
-          "Consider adding more detailed market size analysis",
-          "Include customer acquisition cost and lifetime value metrics",
-          "Provide more specific timeline milestones",
-          "Add risk mitigation strategies",
-        ],
-        marketPotential: Math.random() > 0.3 ? "High" : "Medium",
-        riskLevel: Math.random() > 0.5 ? "Low" : "Medium",
-        recommendations: [
-          "Focus on customer validation and early traction metrics",
-          "Consider strategic partnerships to accelerate growth",
-          "Develop a clear go-to-market strategy",
-          "Prepare for due diligence with detailed financial models",
-        ],
-      };
-      setAiAnalysis(mockAnalysis);
+    try {
+      const analysis = await generatePitchAnalysisDirect(formData);
+      setAiAnalysis(analysis);
+      toast.success("AI analysis completed successfully!");
+    } catch (error) {
+      console.error("Error generating AI analysis:", error);
+      toast.error("Failed to generate AI analysis. Please try again.");
+    } finally {
       setIsAnalyzing(false);
-    }, 3000);
+    }
   };
 
   const stepTitles = [
@@ -809,126 +796,32 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                     </div>
                   </div>
                 ) : aiAnalysis ? (
-                  <div className="space-y-6">
-                    {/* Overall Score */}
-                    <Card className="border border-gray-200 shadow-sm">
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-gray-800 font-semibold">
-                          <TrendingUp className="h-5 w-5 text-blue-500" />
-                          Overall Pitch Score
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex items-center gap-4">
-                          <div className="text-3xl font-bold text-gray-900">
-                            {aiAnalysis.overallScore}/100
-                          </div>
-                          <div className="flex-1">
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-500 h-2 rounded-full transition-all duration-1000"
-                                style={{ width: `${aiAnalysis.overallScore}%` }}
-                              />
-                            </div>
-                            <p className="text-sm text-gray-500 mt-1">
-                              {aiAnalysis.overallScore >= 85
-                                ? "Excellent pitch with strong potential"
-                                : aiAnalysis.overallScore >= 70
-                                ? "Good pitch with room for improvement"
-                                : "Needs significant improvements"}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      {/* Strengths */}
-                      <Card className="border border-gray-200 shadow-sm">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-green-700 font-semibold">
-                            <ThumbsUp className="h-4 w-4" />
-                            Key Strengths
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="space-y-3">
-                            {aiAnalysis.strengths.map(
-                              (strength: string, index: number) => (
-                                <li
-                                  key={index}
-                                  className="flex items-start gap-2 text-sm text-gray-700"
-                                >
-                                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
-                                  <span>{strength}</span>
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </CardContent>
-                      </Card>
-
-                      {/* Improvements */}
-                      <Card className="border border-gray-200 shadow-sm">
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2 text-amber-700 font-semibold">
-                            <Lightbulb className="h-4 w-4" />
-                            Suggested Improvements
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <ul className="space-y-3">
-                            {aiAnalysis.improvements.map(
-                              (improvement: string, index: number) => (
-                                <li
-                                  key={index}
-                                  className="flex items-start gap-2 text-sm text-gray-700"
-                                >
-                                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                                  <span>{improvement}</span>
-                                </li>
-                              )
-                            )}
-                          </ul>
-                        </CardContent>
-                      </Card>
-                    </div>
-
-                    {/* Market Analysis */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Card className="border border-gray-200 shadow-sm">
-                        <CardContent className="pt-6 text-center">
-                          <div className="text-2xl font-bold text-gray-900 mb-1">
-                            {aiAnalysis.marketPotential}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Market Potential
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card className="border border-gray-200 shadow-sm">
-                        <CardContent className="pt-6 text-center">
-                          <div className="text-2xl font-bold text-gray-900 mb-1">
-                            {aiAnalysis.riskLevel}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Risk Level
-                          </div>
-                        </CardContent>
-                      </Card>
-                      <Card className="border border-gray-200 shadow-sm">
-                        <CardContent className="pt-6 text-center">
-                          <div className="text-2xl font-bold text-gray-900 mb-1">
-                            {aiAnalysis.recommendations.length}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            Recommendations
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                  <AIAnalysisDisplay
+                    analysis={aiAnalysis}
+                    showRegenerateButton={true}
+                    onRegenerate={generateAiAnalysis}
+                    isRegenerating={isAnalyzing}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Brain className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                      Ready for AI Analysis
+                    </h4>
+                    <p className="text-gray-600 mb-6">
+                      Get intelligent feedback and recommendations for your
+                      pitch
+                    </p>
+                    <Button
+                      onClick={generateAiAnalysis}
+                      disabled={isAnalyzing}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Brain className="h-4 w-4 mr-2" />
+                      Generate AI Analysis
+                    </Button>
                   </div>
-                ) : null}
+                )}
               </div>
             )}
           </div>
