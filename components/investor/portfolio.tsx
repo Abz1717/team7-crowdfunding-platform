@@ -5,75 +5,105 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
-import {getInvestmentsByInvestorId, getPitchById, calculateROI, getAccountBalance, updateAccountBalance,} from "@/lib/data"
+import { getInvestmentsByInvestorId, getPitchById, calculateROI, getAccountBalance, updateAccountBalance, getTotalInvested, getInvestmentsByPitchId, getTotalReturns, getOverallROI, getProfitDistributionsByPitchId, getInvestorPayoutsByDistributionId} from "@/lib/data"
 import type { Investment } from "@/lib/types"
 import { useToast } from "@/hooks/use-toast"
 import Link from "next/link"
 import { DollarSign, TrendingUp, Calendar, Wallet, ArrowUpRight, ArrowDownLeft, PieChart, Target } from "lucide-react"
+import { toast } from "@/hooks/use-toast";
+function formatDate(date: string | Date): string {
+  const d = typeof date === "string" ? new Date(date) : date
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+}
+
 
 export function Portfolio() {
   // current user and toast noti's, users invesments, account balance and widthdrawal status
   const { user } = useAuth()
-  const { toast } = useToast()
-  const [investments, setInvestments] = useState<Investment[]>([])
   const [accountBalance, setAccountBalance] = useState(0)
-  const [isWithdrawing, setIsWithdrawing] = useState(false)
+  const [totalInvested, setTotalInvested] = useState(0)
+  const [totalReturns, setTotalReturns] = useState(0)
+  const [overallROI, setOverallROI] = useState(0)
+  const [investments, setInvestments] = useState<Investment[]>([])
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+
+
 
   useEffect(() => {
     if (user) {
-      const userInvestments = getInvestmentsByInvestorId(user.id)
-      setInvestments(userInvestments)
-      setAccountBalance(getAccountBalance(user.id))
+      getTotalInvested(user.id).then(setTotalInvested);
+      getTotalReturns(user.id).then(setTotalReturns);
+      getOverallROI(user.id).then(setOverallROI);
+      getAccountBalance(user.id).then(setAccountBalance);
+      getInvestmentsByInvestorId(user.id).then(setInvestments);
     }
-  }, [user])
+  }, [user]);
 
-  // calculating total invested amount
-  const totalInvested = investments.reduce((sum, investment) => sum + investment.amount, 0)
 
-  // calcualting total returns from all investments
-  const totalReturns = investments.reduce((sum, investment) => {
-    const returns = investment.returns.reduce((returnSum, distribution) => {
-      const payout = distribution.investorPayouts.find((p) => p.investorId === user?.id)
-      return returnSum + (payout?.amount || 0)
-    }, 0)
-    return sum + returns
-  }, 0)
+  // Helper to fetch pitch and returns for each investment
+  const [investmentDetails, setInvestmentDetails] = useState<
+    { investment: Investment; pitch: any; investmentReturns: number; roi: number }[]
+  >([])
+useEffect(() => {
+  async function fetchDetails() {
+    if (!investments.length) {
+      setInvestmentDetails([])
+      return
+    }
+    const details = await Promise.all(
+      investments.map(async (investment: Investment) => {
+        const pitch = await getPitchById(investment.pitch_id)
+        const distributions = await getProfitDistributionsByPitchId(investment.pitch_id)
+        let investmentReturns = 0
+        for (const dist of distributions) {
+          const payouts = await getInvestorPayoutsByDistributionId(dist.id)
+          payouts.forEach((payout) => {
+            if (payout.investor_id === user?.id) investmentReturns += payout.amount
+          })
+        }
+        const roi = investment.investment_amount > 0 ? (investmentReturns / investment.investment_amount) * 100 : 0
+        return { investment, pitch, investmentReturns, roi }
+      })
+    )
+    setInvestmentDetails(details)
+  }
+  if (user && investments.length) fetchDetails()
+}, [user, investments])
 
-  //calculating overall roi 
-  const overallROI = totalInvested > 0 ? (totalReturns / totalInvested) * 100 : 0
-
-  //wthdrawal logic
+  
   const handleWithdraw = async (amount: number) => {
     if (!user || amount > accountBalance) return
 
     setIsWithdrawing(true)
 
-    // mock withdrawal 
-    setTimeout(() => {
-      updateAccountBalance(user.id, -amount)
-      setAccountBalance((prev) => prev - amount)
+    const newBalance = accountBalance - amount
 
-      toast({
-        title: "Withdrawal successful",
-        description: `$${amount.toLocaleString()} has been transferred to your bank account`,
-      })
-
+    setTimeout(async () => {
+      const success = await updateAccountBalance(user.id, newBalance)
+      if (success) {
+        setAccountBalance(newBalance)
+        toast({
+          title: "Withdrawal successful",
+          description: `$${amount.toLocaleString()} has been transferred to your bank account`,
+        })
+      } else {
+        toast({
+          title: "Withdrawal failed",
+          description: "Could not update your account balance.",
+          variant: "destructive",
+        })
+      }
       setIsWithdrawing(false)
     }, 1500)
   }
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(date)
-  }
-
-  const getInvestmentWithPitch = (investment: Investment) => {
-    const pitch = getPitchById(investment.pitchId)
-    return { investment, pitch }
-  }
+   console.log("Portfolio user:", user)
+  console.log("Portfolio accountBalance:", accountBalance)
+  console.log("Portfolio totalInvested:", totalInvested)
+  console.log("Portfolio totalReturns:", totalReturns)
+  console.log("Portfolio overallROI:", overallROI)
+  console.log("Portfolio investments:", investments)
+  console.log("Portfolio investmentDetails:", investmentDetails)
 
   return (
     <div className="space-y-6">
@@ -87,14 +117,15 @@ export function Portfolio() {
           <CardContent>
             <div className="text-2xl font-bold">${accountBalance.toLocaleString()}</div>
             <div className="flex gap-2 mt-2">
-              <Button
+                <Button
                 size="sm"
                 variant="outline"
-                onClick={() => handleWithdraw(1000)}
-                disabled={isWithdrawing || accountBalance < 1000}
+                onClick={() => handleWithdraw(15)}
+                disabled={isWithdrawing || accountBalance < 15}
               >
-                {isWithdrawing ? "Processing..." : "Withdraw $1K"}
+                {isWithdrawing ? "Processing..." : "Withdraw $15"}
               </Button>
+              
             </div>
           </CardContent>
         </Card>
@@ -106,9 +137,6 @@ export function Portfolio() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">${totalInvested.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">
-              Across {investments.length} investment{investments.length !== 1 ? "s" : ""}
-            </p>
           </CardContent>
         </Card>
 
@@ -165,23 +193,16 @@ export function Portfolio() {
             </div>
           ) : (
             <div className="space-y-4">
-              {investments.map((investment) => {
-                const { pitch } = getInvestmentWithPitch(investment)
-                const roi = calculateROI(investment)
-                const investmentReturns = investment.returns.reduce((sum, distribution) => {
-                  const payout = distribution.investorPayouts.find((p) => p.investorId === user?.id)
-                  return sum + (payout?.amount || 0)
-                }, 0)
-
+              {investmentDetails.map(({ investment, pitch, investmentReturns, roi }) => {
                 if (!pitch) return null
-
+                console.log("investmentDetails", investmentDetails)
                 return (
                   <Card key={investment.id} className="bg-muted/30">
                     <CardContent className="pt-6">
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <h4 className="font-semibold text-lg">{pitch.productTitle}</h4>
-                          <p className="text-sm text-muted-foreground">{pitch.elevatorPitch}</p>
+                          <h4 className="font-semibold text-lg">{pitch.title}</h4>
+                          <p className="text-sm text-muted-foreground">{pitch.elevator_pitch}</p>
                         </div>
                         <Badge variant="outline">{investment.tier.name} Tier</Badge>
                       </div>
@@ -189,7 +210,7 @@ export function Portfolio() {
                       <div className="grid md:grid-cols-5 gap-4">
                         <div>
                           <div className="text-sm text-muted-foreground">Investment Amount</div>
-                          <div className="font-semibold">${investment.amount.toLocaleString()}</div>
+                          <div className="font-semibold">${investment.investment_amount.toLocaleString()}</div>
                         </div>
 
                         <div>
@@ -201,7 +222,7 @@ export function Portfolio() {
 
                         <div>
                           <div className="text-sm text-muted-foreground">Investment Date</div>
-                          <div className="font-semibold">{formatDate(investment.investedAt)}</div>
+                          <div className="font-semibold">{formatDate(investment.invested_at)}</div>
                         </div>
 
                         <div>
@@ -253,23 +274,20 @@ export function Portfolio() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {investments.slice(0, 3).map((investment) => {
-              const pitch = getPitchById(investment.pitchId)
-              return (
-                <div key={investment.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <ArrowDownLeft className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">Invested in {pitch?.productTitle}</div>
-                    <div className="text-sm text-muted-foreground">
-                      ${investment.amount.toLocaleString()} • {formatDate(investment.investedAt)}
-                    </div>
-                  </div>
-                  <Badge variant="outline">{investment.tier.name}</Badge>
+            {investmentDetails.slice(0, 3).map(({ investment, pitch }) => (
+              <div key={investment.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                  <ArrowDownLeft className="h-4 w-4 text-primary" />
                 </div>
-              )
-            })}
+                <div className="flex-1">
+                  <div className="font-medium">Invested in {pitch?.title}</div>
+                  <div className="text-sm text-muted-foreground">
+                    ${investment.investment_amount.toLocaleString()} • {formatDate(investment.invested_at)}
+                  </div>
+                </div>
+                <Badge variant="outline">{investment.tier.name}</Badge>
+              </div>
+            ))}
 
             {investments.length === 0 && (
               <div className="text-center py-4 text-muted-foreground">No recent activity</div>
