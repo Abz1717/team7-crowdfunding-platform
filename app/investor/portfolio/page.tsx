@@ -4,6 +4,8 @@ import { useAuth } from "@/lib/auth"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
 import { Portfolio } from "@/components/investor/portfolio"
+import { Navbar } from "@/components/layout/navbar"
+
 
 export default function PortfolioPage() {
 //  const { user, isLoading } = useAuth()
@@ -24,6 +26,8 @@ export default function PortfolioPage() {
 //}
 
   return (
+    <div>
+      <Navbar />
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Investment Portfolio</h1>
@@ -31,6 +35,7 @@ export default function PortfolioPage() {
       </div>
 
       <Portfolio />
+    </div>
     </div>
   )
 }

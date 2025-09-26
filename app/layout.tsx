@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VentureFlow - Crowdfunding Platform",
+  title: "VentureFL",
   description: "Connect businesses with investors",
 };
 
