@@ -57,6 +57,7 @@ export async function signup(formData: FormData) {
 
   console.log("Signup attempt:", data);
 
+
   // Sign up with Supabase Auth
   const { data: userData, error } = await supabase.auth.signUp({
     email: data.email,
@@ -68,13 +69,23 @@ export async function signup(formData: FormData) {
     redirect("/error");
   }
 
-  // Insert user info into your 'user' table
+  // Insert user info into your 'user' table with correct id
+  const supabaseUserId = userData?.user?.id;
+  if (!supabaseUserId) {
+    console.error("No Supabase user id found after signup");
+    redirect("/error");
+  }
+
+
+  // Mess with this to test or set up default values.
   const { error: tableError } = await supabase.from("user").insert([
     {
+      id: supabaseUserId,
       first_name: data.firstName,
       last_name: data.lastName,
       email: data.email,
       account_type: data.accountType,
+      account_balance: 20,
     },
   ]);
 
