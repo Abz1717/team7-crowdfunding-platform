@@ -367,7 +367,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                 {s < 6 && (
                   <div
                     className={cn(
-                      "absolute top-5 left-12 w-24 h-0.5 transition-colors duration-300",
+                      "absolute top-5 left-13 w-30 h-0.5 transition-colors duration-300",
                       s < currentStep ? "bg-blue-600" : "bg-gray-300"
                     )}
                   />

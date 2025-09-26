@@ -48,13 +48,6 @@ export function MyPitches() {
 
   const handleDeletePitch = async (pitchId: string) => {
     if (deletingPitchId) return;
-
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this pitch? This action cannot be undone."
-    );
-
-    if (!confirmDelete) return;
-
     setDeletingPitchId(pitchId);
     try {
       await deleteExistingPitch(pitchId);
