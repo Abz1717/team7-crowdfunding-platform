@@ -1,176 +1,156 @@
-// mock data store
+
+import { createClient } from "@/utils/supabase/client";
+
+import type { Pitch, Investment, InvestmentTier, ProfitDistribution, InvestorPayout } from "./types"
 
 
-
-
-
-
-import type { Pitch, Investment, InvestmentTier, ProfitDistribution } from "./types"
-
-// default investment tiers
-export const defaultTiers: InvestmentTier[] = [
-  { name: "Bronze", minAmount: 100, maxAmount: 999, multiplier: 1.0 },
-  { name: "Silver", minAmount: 1000, maxAmount: 4999, multiplier: 1.2 },
-  { name: "Gold", minAmount: 5000, maxAmount: 19999, multiplier: 1.5 },
-  { name: "Platinum", minAmount: 20000, maxAmount: Number.POSITIVE_INFINITY, multiplier: 2.0 },
-]
-
-// mock pitches data
-export const mockPitches: Pitch[] = [
-  {
-    id: "1",
-    businessId: "1",
-    productTitle: "EcoTech Smart Garden",
-    elevatorPitch:
-      "Revolutionary indoor gardening system that uses AI to optimize plant growth while reducing water usage by 70%",
-    detailedPitch:
-      "Our smart garden system combines IoT sensors, machine learning, and sustainable design to create the perfect growing environment for herbs and vegetables. Target customers include urban dwellers, restaurants, and eco-conscious consumers. We project 300% revenue growth over 3 years with expansion into commercial markets.",
-    supportingMedia: ["/smart-garden-system.png"],
-    targetAmount: 50000,
-    investmentWindowEnd: new Date("2025-03-15"),
-    profitSharePercentage: 15,
-    investmentTiers: defaultTiers,
-    currentAmount: 23500,
-    status: "active",
-    createdAt: new Date("2025-01-01"),
-    updatedAt: new Date("2025-01-15"),
-  },
-  {
-    id: "2",
-    businessId: "1",
-    productTitle: "Local Food Delivery App",
-    elevatorPitch: "Connecting local restaurants with customers through sustainable delivery methods",
-    detailedPitch:
-      "A hyperlocal food delivery platform focusing on bicycle and electric vehicle delivery within 3-mile radius. Partnering with 50+ local restaurants to provide faster, cheaper, and more sustainable delivery options.",
-    supportingMedia: [],
-    targetAmount: 75000,
-    investmentWindowEnd: new Date("2025-04-01"),
-    profitSharePercentage: 12,
-    investmentTiers: defaultTiers,
-    currentAmount: 0,
-    status: "draft",
-    createdAt: new Date("2025-01-10"),
-    updatedAt: new Date("2025-01-10"),
-  },
-]
-
-// mock investments data
-export const mockInvestments: Investment[] = [
-  {
-    id: "1",
-    investorId: "2",
-    pitchId: "1",
-    amount: 5000,
-    tier: defaultTiers[2], // gold tier
-    investedAt: new Date("2025-01-05"),
-    returns: [],
-  },
-  {
-    id: "2",
-    investorId: "2",
-    pitchId: "1",
-    amount: 2500,
-    tier: defaultTiers[1], // silver tier
-    investedAt: new Date("2025-01-10"),
-    returns: [],
-  },
-]
-
-// Mock profit distributions
-export const mockProfitDistributions: ProfitDistribution[] = [
-  {
-    id: "1",
-    pitchId: "1",
-    totalProfit: 15000,
-    distributionDate: new Date("2024-12-31"),
-    investorPayouts: [
-      {
-        investorId: "2",
-        amount: 1687.5, // based on investment amount, tier multiplier, and profit share
-        percentage: 11.25,
-      },
-    ],
-  },
-]
-
-export function getPitchesByBusinessId(businessId: string): Pitch[] {
-  return mockPitches.filter((pitch) => pitch.businessId === businessId)
+export async function getPitchesByBusinessId(businessId: string): Promise<Pitch[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("pitch")
+    .select("*")
+    .eq("business_id", businessId);
+  return data ?? [];
 }
 
-export function getPitchById(id: string): Pitch | undefined {
-  return mockPitches.find((pitch) => pitch.id === id)
+export async function getPitchById(id: string): Promise<Pitch | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("pitch")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return data ?? null;
 }
 
-export function getActivePitches(): Pitch[] {
-  return mockPitches.filter((pitch) => pitch.status === "active")
+export async function getActivePitches(): Promise<Pitch[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("pitch")
+    .select("*")
+    .eq("status", "active");
+  return data ?? [];
 }
 
-export function getInvestmentsByInvestorId(investorId: string): Investment[] {
-  return mockInvestments.filter((investment) => investment.investorId === investorId)
+export async function getInvestmentsByInvestorId(investorId: string): Promise<Investment[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("investment")
+    .select("*")
+    .eq("investor_id", investorId);
+  return data ?? [];
 }
 
-export function getInvestmentsByPitchId(pitchId: string): Investment[] {
-  return mockInvestments.filter((investment) => investment.pitchId === pitchId)
+export async function getInvestmentsByPitchId(pitchId: string): Promise<Investment[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("investment")
+    .select("*")
+    .eq("pitch_id", pitchId);
+  return data ?? [];
 }
 
-export function getProfitDistributionsByPitchId(pitchId: string): ProfitDistribution[] {
-  return mockProfitDistributions.filter((distribution) => distribution.pitchId === pitchId)
+export async function getProfitDistributionsByPitchId(pitchId: string): Promise<ProfitDistribution[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("profit_distribution")
+    .select("*")
+    .eq("pitch_id", pitchId);
+  return data ?? [];
 }
 
-export function updatePitch(id: string, updates: Partial<Pitch>): boolean {
-  const index = mockPitches.findIndex((pitch) => pitch.id === id)
-  if (index !== -1) {
-    mockPitches[index] = { ...mockPitches[index], ...updates, updatedAt: new Date() }
-    return true
-  }
-  return false
+export async function updatePitch(id: string, updates: Partial<Pitch>): Promise<boolean> {
+  const supabase = createClient();
+  const {error} = await supabase
+    .from("pitch")
+    .update(updates)
+    .eq("id", id);
+  return !error;
 }
 
-export function createPitch(pitch: Omit<Pitch, "id" | "createdAt" | "updatedAt">): Pitch {
-  const newPitch: Pitch = {
-    ...pitch,
-    id: Date.now().toString(),
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
-  mockPitches.push(newPitch)
-  return newPitch
+export async function createPitch(pitch: Omit<Pitch, "id" | "createdAt" | "updatedAt">): Promise<Pitch | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("pitch")
+    .insert([pitch])
+    .single();
+  return data ?? null;
 }
 
-export function createInvestment(investment: Omit<Investment, "id" | "investedAt" | "returns">): Investment {
-  const newInvestment: Investment = {
-    ...investment,
-    id: Date.now().toString(),
-    investedAt: new Date(),
-    returns: [],
-  }
-  mockInvestments.push(newInvestment)
-
-  const pitch = getPitchById(investment.pitchId)
-  if (pitch) {
-    updatePitch(pitch.id, { currentAmount: pitch.currentAmount + investment.amount })
-  }
-
-  return newInvestment
+export async function createInvestment(investment: Omit<Investment, "id" | "investedAt" | "returns">): Promise <Investment | null> {
+  const supabase = createClient();
+  const {data, error} = await supabase
+    .from("investment")
+    .insert([investment])
+    .select()
+    .single();
+  return data ?? null;
 }
 
-export function calculateROI(investment: Investment): number {
-  const totalReturns = investment.returns.reduce((sum, distribution) => {
-    const payout = distribution.investorPayouts.find((p) => p.investorId === investment.investorId)
-    return sum + (payout?.amount || 0)
-  }, 0)
+export async function calculateROI(userId: string): Promise<number> {
+  const invested = await getTotalInvested(userId);
+  const returns = await getTotalReturns(userId);
 
-  return investment.amount > 0 ? (totalReturns / investment.amount) * 100 : 0
+  return invested > 0 ? (returns / invested) * 100 : 0;
+
 }
 
-export const mockAccountBalances: Record<string, number> = {
-  "2": 25000, 
+export async function getAccountBalance(userId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("user")
+    .select("account_balance")
+    .eq("id", userId)
+    .single();
+  return data?.account_balance ?? 0;
 }
 
-export function getAccountBalance(userId: string): number {
-  return mockAccountBalances[userId] || 0
+export async function updateAccountBalance(userId: string, newBalance: number): Promise<boolean> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("user")
+    .update({ account_balance: newBalance })
+    .eq("id", userId);
+  return !error;
 }
 
-export function updateAccountBalance(userId: string, amount: number): void {
-  mockAccountBalances[userId] = (mockAccountBalances[userId] || 0) + amount
+
+
+export async function getTotalInvested(userId: string): Promise<number> {
+  
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("investment")
+    .select("investment_amount")
+    .eq("investor_id", userId);
+
+  if (error || !data) return 0;
+  return data.reduce((sum: number, inv: { investment_amount: number }) => sum + inv.investment_amount, 0);
+}
+
+export async function getTotalReturns(userId: string): Promise<number> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("investor_payout")
+    .select("amount")
+    .eq("investor_id", userId);
+
+  if (error || !data) return 0;
+  return data.reduce((sum: number, payout: { amount: number }) => sum + payout.amount, 0);
+}
+
+export async function getInvestorPayoutsByDistributionId(distributionId: string): Promise<InvestorPayout[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("investor_payout")
+    .select("*")
+    .eq("distribution_id", distributionId);
+  return data ?? [];
+}
+
+export async function getOverallROI(userId: string): Promise<number> {
+
+  const invested = await getTotalInvested(userId);
+  const returns = await getTotalReturns(userId);
+  return invested > 0 ? (returns / invested) * 100 : 0;
 }
