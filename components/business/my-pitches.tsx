@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 export function MyPitches() {
   const { pitches, loading, error } = usePitch();
-  const { loadPitches, refreshPitches, deleteExistingPitch, updateExistingPitch } =
+  const { loadPitches, deleteExistingPitch, updateExistingPitch } =
     usePitchActions();
   const [deletingPitchId, setDeletingPitchId] = useState<string | null>(null);
   const [editingPitch, setEditingPitch] = useState<Pitch | null>(null);
