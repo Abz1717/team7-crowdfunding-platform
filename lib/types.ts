@@ -104,5 +104,3 @@ export interface User {
   total_returns: number
   overall_roi: number
 }
-
-
