@@ -2,6 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { usePathname } from "next/navigation";
+import { Settings } from "lucide-react";
+import Link from "next/link";
 
 export function BusinessNavbar() {
   const pathname = usePathname();
@@ -18,7 +20,12 @@ export function BusinessNavbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <h1 className="text-xl font-bold text-blue-600">CrowdFund Pro</h1>
+            <Link href="/business" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-lg">Y</span>
+              </div>
+              <span className="text-xl font-bold text-gray-900">Your Idea</span>
+            </Link>
           </div>
 
           {/* Navigation Links */}
@@ -60,9 +67,16 @@ export function BusinessNavbar() {
 
           {/* Right side */}
           <div className="flex items-center">
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-              Business Account
-            </Button>
+            <Link href="/business/settings">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

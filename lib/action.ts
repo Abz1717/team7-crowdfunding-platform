@@ -5,6 +5,12 @@ import { redirect } from "next/navigation";
 
 import { createClient } from "@/utils/supabase/server";
 import { CreatePitchData, Pitch, UpdatePitchData } from "@/lib/types/pitch";
+import {
+  User,
+  BusinessUser,
+  UpdateUserData,
+  UpdateBusinessUserData,
+} from "@/lib/types/user";
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -508,6 +514,176 @@ export async function getPitchById(pitchId: string): Promise<{
     return { success: true, data: transformedPitch };
   } catch (error) {
     console.error("Unexpected error fetching pitch:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// User and Business Profile Management Functions
+
+// Get current user profile
+export async function getCurrentUser(): Promise<{
+  success: boolean;
+  data?: User;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current authenticated user
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Fetch user profile from the user table
+    const { data: user, error: userError } = await supabase
+      .from("user")
+      .select("*")
+      .eq("id", authUser.id)
+      .single();
+
+    if (userError) {
+      console.error("Error fetching user profile:", userError);
+      return { success: false, error: userError.message };
+    }
+
+    return { success: true, data: user };
+  } catch (error) {
+    console.error("Unexpected error fetching user profile:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// Get current business user profile
+export async function getCurrentBusinessUser(): Promise<{
+  success: boolean;
+  data?: BusinessUser;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current authenticated user
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Fetch business user profile from the businessuser table
+    const { data: businessUser, error: businessError } = await supabase
+      .from("businessuser")
+      .select("*")
+      .eq("user_id", authUser.id)
+      .single();
+
+    if (businessError) {
+      console.error("Error fetching business user profile:", businessError);
+      return { success: false, error: businessError.message };
+    }
+
+    return { success: true, data: businessUser };
+  } catch (error) {
+    console.error("Unexpected error fetching business user profile:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// Update user profile
+export async function updateUserProfile(
+  userData: UpdateUserData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current authenticated user
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Update user profile in the user table
+    const { error: updateError } = await supabase
+      .from("user")
+      .update(userData)
+      .eq("id", authUser.id);
+
+    if (updateError) {
+      console.error("Error updating user profile:", updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error updating user profile:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// Update business user profile
+export async function updateBusinessUserProfile(
+  businessData: UpdateBusinessUserData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    // Get the current authenticated user
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Update business user profile in the businessuser table
+    const { error: updateError } = await supabase
+      .from("businessuser")
+      .update(businessData)
+      .eq("user_id", authUser.id);
+
+    if (updateError) {
+      console.error("Error updating business user profile:", updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error updating business user profile:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// Sign out function
+export async function signOut(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Error signing out:", error);
+      return { success: false, error: error.message };
+    }
+
+    revalidatePath("/", "layout");
+    redirect("/signin");
+  } catch (error) {
+    console.error("Unexpected error signing out:", error);
     return { success: false, error: "An unexpected error occurred" };
   }
 }
