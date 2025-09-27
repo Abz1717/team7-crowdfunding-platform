@@ -8,22 +8,22 @@ import { Navbar } from "@/components/layout/navbar"
 
 
 export default function PortfolioPage() {
-//  const { user, isLoading } = useAuth()
-//  const router = useRouter()
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
 
-//  useEffect(() => {
-//    if (!isLoading && (!user || user.role !== "investor")) {
-//      router.push("/signin")
-//    }
-//  }, [user, isLoading, router])
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== "investor")) {
+      router.push("/signin")
+    }
+  }, [user, isLoading, router])
 
-///  if (isLoading) {
-//    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
-//  }
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
 
- // if (!user || user.role !== "investor") {
- //   return null
-//}
+ if (!user || user.role !== "investor") {
+    return null
+}
 
   return (
     <div>
