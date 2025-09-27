@@ -62,6 +62,7 @@ export function SignUpForm() {
 
       <CardContent>
         <form action={signup} className="space-y-4">
+          <input type="hidden" name="accountType" value={accountType} />
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName">First Name</Label>
