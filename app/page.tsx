@@ -1,18 +1,20 @@
+"use client";
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3, BadgePoundSterling, HeartHandshake } from "lucide-react"
+import { useAuth } from "@/lib/auth"
 
 export default function HomePage() {
-  //connect landing page to real data sources
-  // const 
-  // {totalFunded, activeInvestors, defaultRate} = usePlatformStats()
-  //  {featuredPitch} = useFeaturedPitch()
-  //  {testimonials} = useTestimonials()
-  //  {live} = useLiveData()
-  //  {maxReturn, minInvestment} = usePlatformConfig()
+  const { user, isLoading } = useAuth();
+
+  let startInvestingHref = "/signup";
+  if (!isLoading && user) {
+    startInvestingHref = user.role === "business" ? "/business" : "/investor";
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -67,21 +69,21 @@ export default function HomePage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4">
-
-                  <Link href="/signup">
-                    <Button size="lg" className="text-lg px-8 bg-blue-600    hover:bg-blue-700">
-                      Start Investing
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </Button>
-                  </Link>
+                  {isLoading ? null : (
+                    <Link href={startInvestingHref}>
+                      <Button size="lg" className="text-lg px-8 bg-blue-600 hover:bg-blue-700">
+                        Start Investing
+                        <ArrowRight className="ml-2 h-5 w-5" />
+                      </Button>
+                    </Link>
+                  )}
 
                   <Button
                     variant="outline"
                     size="lg"
                     className="text-lg px-8 bg-black/20 text-white border-white/30 hover:bg-black/30"
                   >
-                    <Play className="mr-2 h-5 w-5" 
-                    />
+                    <Play className="mr-2 h-5 w-5" />
                     Watch How It Works
                   </Button>
                 </div>
