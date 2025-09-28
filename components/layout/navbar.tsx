@@ -31,10 +31,23 @@ export function Navbar() {
             <>
               <div className="hidden md:flex items-center gap-4">
                 {user.role === "business" ? (
-                  <Link href="/business" 
-                        className="text-sm text-muted-foreground hover:text-foreground">
-                    Dashboard
-                  </Link>
+                  <>
+                    <Link href="/business" 
+                                className= "text-sm text-muted-foreground hover:text-foreground">
+                      Dashboard
+                    </Link>
+                    <Link href="/business/my-pitches" 
+                                className= "text-sm text-muted-foreground hover:text-foreground">
+                      My pitches
+                    </Link>
+                    <Link href="/business" 
+                            className="text-sm text-muted-foreground hover:text-foreground">
+                      Other pitches
+                    </Link>
+                  </>
+                  
+
+                  
                 ) : (
                   <>
                     <Link href="/investor" 

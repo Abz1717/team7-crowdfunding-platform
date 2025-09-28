@@ -1,19 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
-  Target,
-  BarChart3,
-  Activity,
-  ArrowUpRight,
-  Eye
-} from "lucide-react";
+"use client"
 
-export default function BusinessPage() {
+import { Navbar } from "@/components/layout/navbar"
+
+export default function InvestorPage() {
   return (
-    <>
-    </>
-  );
+    <div>
+    <Navbar />
+    
+    <div>
+      <h1>Investor Dashboard</h1>
+      <p>Welcome to your investor dashboard.</p>
+    </div>
+    </div>
+  )
 }

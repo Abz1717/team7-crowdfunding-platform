@@ -1,4 +1,4 @@
-import { BusinessNavbar } from "@/components/business/business-navbar";
+import { Navbar } from "@/components/layout/navbar";
 import { PitchProvider } from "@/context/PitchContext";
 
 export default function BusinessLayout({
@@ -9,7 +9,6 @@ export default function BusinessLayout({
   return (
     <PitchProvider>
       <div className="min-h-screen bg-gray-50">
-        <BusinessNavbar />
         {children}
       </div>
     </PitchProvider>
