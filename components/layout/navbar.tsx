@@ -69,9 +69,21 @@ export function Navbar() {
                     </div>
                   </DropdownMenuItem>
                   {user.role === "business" ? (
-                    <DropdownMenuItem asChild>
-                      <Link href="/business">Business Portal</Link>
-                    </DropdownMenuItem>
+                                        <>
+                      <DropdownMenuItem asChild>
+                      <Link href="/business">Dashboard</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/business/my-pitches">My Pitches</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/business/other-pitches">Other Pitches</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/business/settings">Settings</Link>
+                      </DropdownMenuItem>
+                    </>
+
                   ) : (
                     <>
                       <DropdownMenuItem asChild>
@@ -82,6 +94,9 @@ export function Navbar() {
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/investor/portfolio">Portfolio</Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/investor/settings">Settings</Link>
                       </DropdownMenuItem>
                     </>
                   )}

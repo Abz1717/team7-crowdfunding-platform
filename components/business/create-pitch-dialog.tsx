@@ -313,10 +313,10 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2">
-          <Plus className="h-4 w-4" />
-          Create New Pitch
-        </Button>
+          <Button className="gap-2 bg-black hover:bg-gray-900 text-white font-medium px-4 py-2">
+            <Plus className="h-4 w-4" />
+            Create New Pitch
+          </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-6">

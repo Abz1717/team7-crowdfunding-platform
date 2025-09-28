@@ -21,7 +21,7 @@ export function MyPitches() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
-    loadPitches(); // Smart caching - only fetches if needed
+    loadPitches(); 
   }, [loadPitches]);
 
   const handleEditPitch = (pitchId: string) => {
