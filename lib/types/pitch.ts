@@ -35,12 +35,12 @@ export interface Pitch {
   end_date: string;
   status: "draft" | "active" | "funded" | "closed";
   ai_rating: string | null;
-  ai_feedback: any;
+  ai_feedback: unknown;
   ai_analysis: AIAnalysis | null;
   created_at: string;
   updated_at: string;
   business_id: string | null;
-  supporting_media: any[];
+  supporting_media: string[];
   investment_tiers: InvestmentTier[];
 }
 
@@ -53,7 +53,7 @@ export interface CreatePitchData {
   end_date: string;
   investment_tiers: InvestmentTier[];
   ai_analysis?: AIAnalysis;
-  supporting_media?: any[];
+  supporting_media?: string[];
 }
 
 export interface UpdatePitchData {
@@ -65,6 +65,6 @@ export interface UpdatePitchData {
   end_date?: string;
   investment_tiers?: InvestmentTier[];
   ai_analysis?: AIAnalysis;
-  supporting_media?: any[];
+  supporting_media?: string[];
   status?: "draft" | "active" | "funded" | "closed";
 }
