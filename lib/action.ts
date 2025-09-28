@@ -81,7 +81,7 @@ export async function signup(formData: FormData) {
   // Mess with this to test or set up default values.
   const { error: tableError } = await supabase.from("user").insert([
     {
-      id: supabaseUserId,
+      id: userData.user?.id,
       first_name: data.firstName,
       last_name: data.lastName,
       email: data.email,
@@ -96,7 +96,68 @@ export async function signup(formData: FormData) {
 
   console.log("Signup success:", userData);
   revalidatePath("/", "layout");
-  redirect("/");
+  
+    if (data.accountType === "business") {
+    redirect("/business-setup");
+  } else {
+    redirect("/");
+  }
+
+  
+}
+
+
+export async function createBusinessUser(formData: FormData) {
+  const supabase = await createClient();
+
+  // Get the current user
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    console.error("User not authenticated:", userError);
+    redirect("/error");
+  }
+
+  const data = {
+    businessName: formData.get("businessName") as string,
+    description: formData.get("description") as string,
+    website: formData.get("website") as string,
+    logoUrl: formData.get("logoUrl") as string,
+    phoneNumber: formData.get("phoneNumber") as string,
+    location: formData.get("location") as string,
+  };
+
+  console.log("Business user creation attempt:", data);
+
+  // Insert business user info into the 'businessuser' table
+  const { error: businessUserError } = await supabase
+    .from("businessuser")
+    .insert([
+      {
+        user_id: user.id,
+        business_name: data.businessName,
+        description: data.description,
+        website: data.website || null,
+        logo_url: data.logoUrl || null,
+        phone_number: data.phoneNumber || null,
+        location: data.location,
+      },
+    ]);
+
+  if (businessUserError) {
+    console.error(
+      "Error inserting into businessuser table:",
+      businessUserError
+    );
+    redirect("/error");
+  }
+
+  console.log("Business user creation success");
+  revalidatePath("/", "layout");
+  redirect("/business");
 }
 
 // Pitch-related actions
@@ -134,7 +195,7 @@ export async function createPitch(
 
     // Insert the pitch
     const { data: pitch, error: pitchError } = await supabase
-      .from("pitches")
+      .from("pitch")
       .insert([
         {
           id: pitchId,
@@ -199,7 +260,7 @@ export async function getPitches(): Promise<{
 
     // Fetch pitches for this business user
     const { data: pitches, error: pitchesError } = await supabase
-      .from("pitches")
+      .from("pitch")
       .select("*")
       .eq("business_id", businessUser.id)
       .order("created_at", { ascending: false });
@@ -246,7 +307,7 @@ export async function updatePitch(
 
     // Update the pitch
     const { data: pitch, error: pitchError } = await supabase
-      .from("pitches")
+      .from("pitch")
       .update({
         ...updateData,
         updated_at: new Date().toISOString(),
@@ -275,7 +336,6 @@ export async function deletePitch(
   try {
     const supabase = await createClient();
 
-    // Get the current user
     const {
       data: { user },
       error: userError,
@@ -285,7 +345,6 @@ export async function deletePitch(
       return { success: false, error: "User not authenticated" };
     }
 
-    // Get business_id from the businessuser table
     const { data: businessUser, error: businessError } = await supabase
       .from("businessuser")
       .select("id")
@@ -296,9 +355,8 @@ export async function deletePitch(
       return { success: false, error: "Business user not found" };
     }
 
-    // Delete the pitch
     const { error: pitchError } = await supabase
-      .from("pitches")
+      .from("pitch")
       .delete()
       .eq("id", pitchId)
       .eq("business_id", businessUser.id);
@@ -312,6 +370,83 @@ export async function deletePitch(
     return { success: true };
   } catch (error) {
     console.error("Unexpected error deleting pitch:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function getPitchById(pitchId: string): Promise<{
+  success: boolean;
+  data?: Pitch & {
+    business_name?: string;
+    business_description?: string | null;
+    business_website?: string | null;
+    business_logo_url?: string | null;
+    business_location?: string | null;
+    is_owner?: boolean;
+  };
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    let currentUserBusinessId: string | null = null;
+
+    if (!userError && user) {
+      const { data: businessUser } = await supabase
+        .from("businessuser")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (businessUser) {
+        currentUserBusinessId = businessUser.id;
+      }
+    }
+
+    const { data: pitch, error: pitchError } = await supabase
+      .from("pitch")
+      .select(
+        `
+        *,
+        businessuser!inner(
+          business_name,
+          description,
+          website,
+          logo_url,
+          location
+        )
+      `
+      )
+      .eq("id", pitchId)
+      .single();
+
+    if (pitchError) {
+      console.error("Error fetching pitch:", pitchError);
+      return { success: false, error: pitchError.message };
+    }
+
+    if (!pitch) {
+      return { success: false, error: "Pitch not found" };
+    }
+
+    const transformedPitch = {
+      ...pitch,
+      business_name: pitch.businessuser?.business_name || "Unknown Business",
+      business_description: pitch.businessuser?.description || null,
+      business_website: pitch.businessuser?.website || null,
+      business_logo_url: pitch.businessuser?.logo_url || null,
+      business_location: pitch.businessuser?.location || null,
+      is_owner: currentUserBusinessId === pitch.business_id,
+    };
+
+    return { success: true, data: transformedPitch };
+  } catch (error) {
+    console.error("Unexpected error fetching pitch:", error);
     return { success: false, error: "An unexpected error occurred" };
   }
 }
