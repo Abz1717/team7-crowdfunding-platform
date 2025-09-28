@@ -27,8 +27,8 @@ export default function InvestorDashboard() {
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Investor Portal</h1>
-        <p className="text-muted-foreground">Discover investment opportunities and manage your portfolio</p>
+        <h1 className="text-3xl font-bold">Browse Pitches</h1>
+        <p className="text-muted-foreground">Discover new investment opportunities</p>
       </div>
 
       <PitchBrowser />

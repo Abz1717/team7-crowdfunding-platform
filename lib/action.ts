@@ -107,7 +107,7 @@ export async function signup(formData: FormData) {
     if (data.accountType === "business") {
     redirect("/business-setup");
   } else {
-    redirect("/");
+    redirect("/investor");
   }
 
   

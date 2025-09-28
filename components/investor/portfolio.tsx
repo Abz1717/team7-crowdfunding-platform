@@ -187,7 +187,7 @@ useEffect(() => {
               <p className="text-muted-foreground mb-4">
                 Start investing in promising businesses to build your portfolio
               </p>
-              <Link href="/investor">
+              <Link href="/investor/browse-pitches">
                 <Button>Browse Opportunities</Button>
               </Link>
             </div>

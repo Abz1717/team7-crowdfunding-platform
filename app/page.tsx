@@ -22,7 +22,7 @@ export default function HomePage() {
     return remaining > 0 ? `${remaining.toFixed(2)}%` : "0%";
   }
 
-  let startInvestingHref = "/signup";
+  let startInvestingHref = "/signin";
   if (!isLoading && user) {
     startInvestingHref = user.role === "business" ? "/business" : "/investor";
   }
@@ -125,7 +125,7 @@ useEffect(() => {
                     <div className="text-sm text-white/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Active Investors</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white">5%</div>
+                    <div className="text-2xl font-bold text-white">5.11%</div>
                     <div className="text-sm text-white opacity-70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Avg ROI</div>
                   </div>
                 </div>
@@ -286,7 +286,7 @@ useEffect(() => {
       <section className="py-20 px-4 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-slate-900">Why Invest With Us?</h2>
+            <h2 className="text-4xl font-bold mb-4 text-slate-900">Why Invest at invex?</h2>
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">
               Transparent, reliable, and designed to support investors and businesses
               </p>
@@ -336,7 +336,7 @@ useEffect(() => {
       <section className="py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl">How We Work</h2>
+            <h2 className="text-4xl">How invex Works</h2>
             <p className="text-xl">
               A transparent, reliable process connecting businesses with investors
             </p>
@@ -507,10 +507,13 @@ useEffect(() => {
 
       <footer className="border-t py-12 px-4 bg-white">
         <div className="container mx-auto text-center">
-          <div className="text-2xl font-bold text-blue-600 mb-4">Invex</div>
+          <div className="flex items-center justify-center text-2xl font-bold mb-4 gap-2 -ml-2">
+            <img src="/logo_invex.ico" alt="Invex Logo" className="w-7 h-7" />
+            invex
+          </div>
             <p className="text-slate-600 mb-4">UK investment platform connecting businesses with investors</p>
             <p className="text-sm text-slate-500">
-              Invex © 2025
+              invex © 2025
             </p>
         </div>
       </footer>
