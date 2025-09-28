@@ -1,3 +1,4 @@
+
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -633,4 +634,18 @@ export async function getRandomPitch() {
 
   if (error) return { success: false, error: error.message };
   return { success: true, data };
+}
+
+export async function getActivePitchCount(): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("pitch")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active");
+    if (error) return { success: false, error: error.message };
+    return { success: true, count: count ?? 0 };
+  } catch (error) {
+    return { success: false, error: "Unexpected error" };
+  }
 }

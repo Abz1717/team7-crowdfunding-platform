@@ -1,9 +1,6 @@
 "use client";
 
 import type { Pitch } from "@/lib/types";
-
-
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -31,15 +28,14 @@ export default function HomePage() {
   }
 
   const [randomPitch, setRandomPitch] = useState<Pitch | null>(null);
+  const [liveCount, setLiveCount] = useState<number | null>(null);
 
-  // Helper to format date
   function formatDate(dateStr?: string) {
     if (!dateStr) return "-";
     const d = new Date(dateStr);
     return d.toLocaleDateString();
   }
 
-  // Helper to calculate days left
   function getDaysLeft(endDate?: string) {
     if (!endDate) return "-";
     const end = new Date(endDate);
@@ -49,16 +45,19 @@ export default function HomePage() {
   }
   
 useEffect(() => {
-  async function fetchPitch() {
-    const result = await getRandomPitch();
-    if (result.success && result.data) {
-      setRandomPitch(result.data);
-      console.log("Fetched pitch:", result.data); // Debug output
-    } else {
-      console.log("No pitch found or error:", result);
-    }
+  async function fetchPitchAndCount() {
+    const [pitchResult, countResult] = await Promise.all([
+      getRandomPitch(),
+      (await import("@/lib/action")).getActivePitchCount()
+    ]);
+      if (pitchResult.success && pitchResult.data) {
+        setRandomPitch(pitchResult.data);
+      }
+      if (countResult.success && typeof countResult.count === "number") {
+        setLiveCount(countResult.count);
+      }
   }
-  fetchPitch();
+  fetchPitchAndCount();
 }, []);
 
 
@@ -110,7 +109,7 @@ useEffect(() => {
 
                   <div className="text-center">
                       <div className="text-2xl font-bold text-white"></div>
-                      <div className="text-sm text-white opacity-70">Default/Late</div>
+                      <div className="text-sm text-white opacity-70">Avg. ROI</div>
                   </div>
                 </div>
 
@@ -137,21 +136,23 @@ useEffect(() => {
 
               <div className=" space-y-4 lg:ml-auto ">
 
-                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4 scale-90 origin-top-left">                  
-                                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-sm font-medium text-gray-600">Live</span>
-                    </div>
+                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4 scale-90 origin-top-left h-42">
+                  <CardContent className="p-4">
+                    <div className="scale-80 origin-top-left">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xl font-bold text-gray-700">
+                          Live
+                        </span>
+                      </div>
 
-                    <div className="mb-3">
-
-                      <div className="text-3xl font-bold text-gray-900 mb-2"></div>
-                      <div className="text-sm text-green-600 font-medium mb-3"></div>
-                      <div className="flex  items-center gap-4 text-xs text-gray-500">
-                        <span></span>
-                        <span>•</span>
-                        <span>Monthly income: </span>
+                      <div className="mb-2 pl-4">
+                        <div className="text-4xl font-extrabold text-blue-700 mb-1">
+                          {liveCount !== null ? liveCount : '-'}
+                        </div>
+                        <div className="text-lg text-green-600 font-semibold">
+                          Investment Opportunities
+                        </div>
                       </div>
                     </div>
                   </CardContent>
