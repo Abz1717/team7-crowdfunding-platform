@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VentureFL",
+  title: "Invex",
   description: "Connect businesses with investors",
 };
 

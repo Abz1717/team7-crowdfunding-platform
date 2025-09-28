@@ -1,5 +1,9 @@
 "use client";
 
+import type { Pitch } from "@/lib/types";
+
+
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,14 +11,56 @@ import { Progress } from "@/components/ui/progress"
 import Link from "next/link"
 import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3, BadgePoundSterling, HeartHandshake } from "lucide-react"
 import { useAuth } from "@/lib/auth"
+import { useState, useEffect } from "react";
+import { getRandomPitch } from "@/lib/action";
 
 export default function HomePage() {
   const { user, isLoading } = useAuth();
+
+  function getProfitShareRemaining(pitch: Pitch | null) {
+    if (!pitch || pitch.profit_share === undefined || pitch.current_amount === undefined || pitch.target_amount === undefined) {
+      return "-";
+    }
+    const remaining = pitch.profit_share * (1 - (pitch.current_amount / pitch.target_amount));
+    return remaining > 0 ? `${remaining.toFixed(2)}%` : "0%";
+  }
 
   let startInvestingHref = "/signup";
   if (!isLoading && user) {
     startInvestingHref = user.role === "business" ? "/business" : "/investor";
   }
+
+  const [randomPitch, setRandomPitch] = useState<Pitch | null>(null);
+
+  // Helper to format date
+  function formatDate(dateStr?: string) {
+    if (!dateStr) return "-";
+    const d = new Date(dateStr);
+    return d.toLocaleDateString();
+  }
+
+  // Helper to calculate days left
+  function getDaysLeft(endDate?: string) {
+    if (!endDate) return "-";
+    const end = new Date(endDate);
+    const now = new Date();
+    const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  }
+  
+useEffect(() => {
+  async function fetchPitch() {
+    const result = await getRandomPitch();
+    if (result.success && result.data) {
+      setRandomPitch(result.data);
+      console.log("Fetched pitch:", result.data); // Debug output
+    } else {
+      console.log("No pitch found or error:", result);
+    }
+  }
+  fetchPitch();
+}, []);
+
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -91,8 +137,8 @@ export default function HomePage() {
 
               <div className=" space-y-4 lg:ml-auto ">
 
-                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4">                  
-                  <CardContent className="p-6">
+                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4 scale-90 origin-top-left">                  
+                                  <CardContent className="p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <span className="text-sm font-medium text-gray-600">Live</span>
@@ -111,44 +157,56 @@ export default function HomePage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-0 shadow-xl max-w-sm mb-4">
-                  <CardContent className="p-6">
+                <Card className="bg-white border-0 shadow-xl max-w-sm mb-4 scale-90 origin-top-left">
+                                  <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex  items-center gap-3 ">
-                        <div className="w-10 h-10    bg-green-500 rounded-lg flex items-center justify-center">
-                          <Building2 className="w-5 h-5 text-white " />
+                        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                          <Building2 className="w-15 h-7 text-white" />
                         </div>
-                        <div>
-                          <h3 className=" font-semibold text-gray-900"></h3>
-                          <p className="text-sm text-gray-500"></p>
-                        </div>
+                     <div>
+                          <h3 className="font-semibold text-gray-900">{randomPitch?.title || '-'}</h3>
+                          <p className="text-sm text-gray-500">{
+                            randomPitch?.elevator_pitch
+                              ? randomPitch.elevator_pitch.split('. ')[0] + (randomPitch.elevator_pitch.includes('.') ? '.' : '')
+                              : '-'
+                          }</p>
+                    </div>
                       </div>
-                      <Badge className="bg-green-100 text-green-700 border-green-200 text-xs"></Badge>
+                      <Badge className="bg-green-100 text-green-700 border-green-200 text-xs px-3 py-1 rounded-full">
+                        {randomPitch?.status || ''}
+                      </Badge>
+                      </div>
+
+                    <div className="mb-4 grid grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-2xl font-bold text-gray-900">  {randomPitch ? getProfitShareRemaining(randomPitch) : "-"}</div>
+                        <div className="text-xs text-gray-500">Share Remaining</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-gray-900">{randomPitch?.end_date ? `${getDaysLeft(randomPitch.end_date)} days left` : '-'}</div>
+                        <div className="text-xs text-gray-500">Funding Period</div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-green-600">{randomPitch?.current_amount !== undefined && randomPitch?.target_amount ? `${Math.round((randomPitch.current_amount / randomPitch.target_amount) * 100)}%` : '-'}</div>
+                        <div className="text-xs text-gray-500">Funded</div>
+                      </div>
                     </div>
 
-                    <div className="mb-4   grid grid-cols-3 gap-4">
-                      <div>
-                        <div className="text-2xl font-bold text-gray-900"></div>
-                        <div className="text-xs text-gray-500">Interest Rate</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-gray-900"></div>
-                        <div className="text-xs  text-gray-500">Time Period</div>
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold text-green-600"></div>
-                        <div className="text-xs  text-gray-500">Funded</div>
-                      </div>
-                    </div>
-
-                    <Progress value={0} className="h-2 mb-2" />
+                    <Progress
+                    value={randomPitch?.current_amount !== undefined && randomPitch?.target_amount
+                      ? Math.round((randomPitch.current_amount / randomPitch.target_amount) * 100)
+                        : 0
+                    }
+                    className="h-2 mb-2"
+                    />
                     <div className="text-xs text-gray-500"></div>
                   </CardContent>
                 </Card>
 
-                <Card className="max-w-sm bg-white/95 backdrop-blur-sm border-0 shadow-xl ml-auto">
+                <Card className="max-w-sm bg-white/95 backdrop-blur-sm border-0 shadow-xl ml-auto scale-90 origin-top-left">
 
-                  <CardContent  className="p-6">
+                                  <CardContent  className="p-4">
                     <div className=" text-center" >
                       <div className="text-sm font-medium text-gray-600 mb-3">Investment Calculator</div>
                       <div className="mb-4">
@@ -397,10 +455,10 @@ export default function HomePage() {
 
       <footer className="border-t py-12 px-4 bg-white">
         <div className="container mx-auto text-center">
-          <div className="text-2xl font-bold text-blue-600 mb-4">Our Name</div>
+          <div className="text-2xl font-bold text-blue-600 mb-4">Invex</div>
             <p className="text-slate-600 mb-4">UK investment platform connecting businesses with investors</p>
             <p className="text-sm text-slate-500">
-              © 2025
+              Invex © 2025
             </p>
         </div>
       </footer>
