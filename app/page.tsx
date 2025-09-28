@@ -29,6 +29,13 @@ export default function HomePage() {
 
   const [randomPitch, setRandomPitch] = useState<Pitch | null>(null);
   const [liveCount, setLiveCount] = useState<number | null>(null);
+  const [activeInvestors, setActiveInvestors] = useState<number | null>(null);
+  const [totalFunded, setTotalFunded] = useState<number | null>(null);
+
+  // Calculator state
+  const [calcAmount, setCalcAmount] = useState(1000);
+  const [calcDuration, setCalcDuration] = useState(3);
+  const [calcResult, setCalcResult] = useState<number | null>(null);
 
   function formatDate(dateStr?: string) {
     if (!dateStr) return "-";
@@ -45,19 +52,28 @@ export default function HomePage() {
   }
   
 useEffect(() => {
-  async function fetchPitchAndCount() {
-    const [pitchResult, countResult] = await Promise.all([
+  async function fetchStats() {
+    const action = await import("@/lib/action");
+    const [pitchResult, liveCountResult, investorResult, fundedResult] = await Promise.all([
       getRandomPitch(),
-      (await import("@/lib/action")).getActivePitchCount()
+      action.getActivePitchCount(),
+      action.getActiveInvestorCount(),
+      action.getTotalFunded()
     ]);
-      if (pitchResult.success && pitchResult.data) {
-        setRandomPitch(pitchResult.data);
-      }
-      if (countResult.success && typeof countResult.count === "number") {
-        setLiveCount(countResult.count);
-      }
+    if (pitchResult.success && pitchResult.data) {
+      setRandomPitch(pitchResult.data);
+    }
+    if (liveCountResult.success && typeof liveCountResult.count === "number") {
+      setLiveCount(liveCountResult.count);
+    }
+    if (investorResult.success && typeof investorResult.count === "number") {
+      setActiveInvestors(investorResult.count);
+    }
+    if (fundedResult.success && typeof fundedResult.total === "number") {
+      setTotalFunded(fundedResult.total);
+    }
   }
-  fetchPitchAndCount();
+  fetchStats();
 }, []);
 
 
@@ -86,30 +102,31 @@ useEffect(() => {
                   </Badge>
 
                   <h1 className="text-5xl lg:text-6xl font-bold text-white text-balance leading-tight">
-                    Earn up to <span className="text-blue-400"> </span> returns investing in UK businesses
+                    Earn up to <span className="text-white-600"> 25% </span> returns investing in UK businesses
                   </h1>
 
                   <p className="text-xl text-white/90 text-pretty leading-relaxed">
-                    Direct investment opportunities in UK small businesses. Fixed returns, monthly payouts,
+                    Direct investment opportunities in UK small businesses. Returns, monthly payouts,
                     full transparency.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-3   gap-6 py-6">
-
+                <div className="grid grid-cols-3 gap-6 py-6">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white"></div>
-                    <div className="text-sm text-white opacity-70">Total Funded</div>
+                    <div className="text-2xl font-bold text-white">
+                      {totalFunded !== null ? `£${totalFunded.toLocaleString()}` : '-'}
+                    </div>
+                    <div className="text-sm text-white opacity-70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Total Funded</div>
                   </div>
-
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white "></div>
-                    <div className="text-sm text-white opacity-70">Active Investors</div>
+                    <div className="text-2xl font-bold text-white">
+                      {activeInvestors !== null ? activeInvestors : '-'}
+                    </div>
+                    <div className="text-sm text-white/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Active Investors</div>
                   </div>
-
                   <div className="text-center">
-                      <div className="text-2xl font-bold text-white"></div>
-                      <div className="text-sm text-white opacity-70">Avg. ROI</div>
+                    <div className="text-2xl font-bold text-white">5%</div>
+                    <div className="text-sm text-white opacity-70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Avg ROI</div>
                   </div>
                 </div>
 
@@ -136,7 +153,7 @@ useEffect(() => {
 
               <div className=" space-y-4 lg:ml-auto ">
 
-                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4 scale-90 origin-top-left h-42">
+                <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-2xl max-w-sm ml-auto mb-4 scale-90 origin-top-left h-40">
                   <CardContent className="p-4">
                     <div className="scale-80 origin-top-left">
                       <div className="flex items-center gap-2 mb-3">
@@ -147,7 +164,7 @@ useEffect(() => {
                       </div>
 
                       <div className="mb-2 pl-4">
-                        <div className="text-4xl font-extrabold text-blue-700 mb-1">
+                        <div className="text-4xl font-extrabold text-black-700 mb-1">
                           {liveCount !== null ? liveCount : '-'}
                         </div>
                         <div className="text-lg text-green-600 font-semibold">
@@ -158,7 +175,7 @@ useEffect(() => {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-white border-0 shadow-xl max-w-sm mb-4 scale-90 origin-top-left">
+                <Card className="bg-white border-0 shadow-xl max-w-sm mb-4 scale-90 origin-top-left ml-auto ">
                                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex  items-center gap-3 ">
@@ -205,23 +222,60 @@ useEffect(() => {
                   </CardContent>
                 </Card>
 
-                <Card className="max-w-sm bg-white/95 backdrop-blur-sm border-0 shadow-xl ml-auto scale-90 origin-top-left">
-
-                                  <CardContent  className="p-4">
-                    <div className=" text-center" >
+                <Card className="max-w-sm bg-white/95 backdrop-blur-sm border-0 shadow-xl ml-auto scale-90 origin-top-left mb-4 mt-[-8px] h-79">
+                  <CardContent  className="p-4">
+                    <div className="text-center">
                       <div className="text-sm font-medium text-gray-600 mb-3">Investment Calculator</div>
-                      <div className="mb-4">
-                        <div className="text-lg  text-gray-700 mb-2">£ invested</div>
-                        <div className=" text-2xl text-green-600 font-bold mb-2">£</div>
-                        <div className="text-xs text-gray-500 ">After  at </div>
-                      </div>
-                      <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700">
-                        Calculate Your Returns
-                      </Button>
-                    </div>
+                      {calcResult !== null && (
+                        <div className="text-2xl font-bold text-green-600 mb-2">£{calcResult.toLocaleString()}</div>
+                      )}
 
+                      <form
+                        className="mb-4 flex flex-col gap-0 items-center"
+                        onSubmit={e => {
+                          e.preventDefault();
+                          // assuming a 5% yearly return
+                          const rate = 0.05;
+                          const result = Math.round(calcAmount * Math.pow(1 + rate, calcDuration));
+                          setCalcResult(result);
+                        }}
+                      >
+                        <div className="w-full">
+                          <label htmlFor="amount" className="block text-xs text-gray-900 mb-1 text-left">Investment Amount (£)</label>
+                          <input
+                            id="amount"
+                            type="range"
+                            min="50"
+                            max="10000"
+                            step="50"
+                            className="w-full accent-black"
+                            value={calcAmount}
+                            onChange={e => setCalcAmount(Number(e.target.value))}
+                          />
+                          <div className="text-lg text-black mt-1 text-center font-bold leading-tight">£{calcAmount.toLocaleString()}</div>
+                        </div>
+                        <div className="w-full">
+                          <label htmlFor="duration" className="block text-xs text-gray-900 mb-1 text-left">Duration (years)</label>
+                          <input
+                            id="duration"
+                            type="range"
+                            min="1"
+                            max="10"
+                            step="1"
+                            className="w-full accent-black"
+                            value={calcDuration}
+                            onChange={e => setCalcDuration(Number(e.target.value))}
+                          />
+                          <div className="text-lg text-black mt-1 text-center font-bold leading-tight">{calcDuration} year{calcDuration > 1 ? 's' : ''}</div>
+                        </div>
+                        <Button size="sm" className="w-full bg-black hover:bg-gray-700 text-gray-200 mt-2" type="submit">
+                          Calculate Your Returns
+                        </Button>
+                      </form>
+                    </div>
                   </CardContent>
                 </Card>
+
               </div>
             </div>
           </div>
@@ -445,9 +499,6 @@ useEffect(() => {
         </div>
       </section>
 
-
-
-      
 
 
       

@@ -1,4 +1,3 @@
-
 "use server";
 
 import { revalidatePath } from "next/cache";
@@ -646,6 +645,38 @@ export async function getActivePitchCount(): Promise<{ success: boolean; count?:
     if (error) return { success: false, error: error.message };
     return { success: true, count: count ?? 0 };
   } catch (error) {
+    return { success: false, error: "Unexpected error" };
+  }
+}
+
+
+export async function getActiveInvestorCount(): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("user")
+      .select("id", { count: "exact", head: true })
+      .eq("account_type", "investor");
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, count: count ?? 0 };
+  } catch (error) {
+
+    return { success: false, error: "Unexpected error" };
+  }
+}
+export async function getTotalFunded(): Promise<{ success: boolean; total?: number; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("pitch")
+      .select("current_amount");
+      
+    if (error) return { success: false, error: error.message };
+    const total = Array.isArray(data) ? data.reduce((sum, p) => sum + (p.current_amount || 0), 0) : 0;
+    return { success: true, total };
+  } catch (error) {
+
     return { success: false, error: "Unexpected error" };
   }
 }
