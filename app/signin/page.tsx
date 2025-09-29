@@ -1,7 +1,23 @@
+"use client";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { SignInForm } from "@/components/signin-form";
 import Link from "next/link";
 
 export default function SignInPage() {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && user) {
+      router.replace("/"); 
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading) return null;
+  if (user) return null;
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
@@ -11,9 +27,7 @@ export default function SignInPage() {
             Sign in to your account to continue
           </p>
         </div>
-
         <SignInForm />
-
         <div className="text-center text-sm">
           <span className="text-muted-foreground">Don't have an account? </span>
           <Link
