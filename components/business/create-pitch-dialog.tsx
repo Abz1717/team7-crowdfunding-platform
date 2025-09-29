@@ -336,9 +336,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                   className={cn(
                     "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200",
                     s === currentStep
-                      ? "border-blue-600 bg-blue-600 text-white shadow-lg"
+                      ? "border-black bg-black text-white shadow-lg"
                       : s < currentStep
-                      ? "border-blue-600 bg-blue-600 text-white"
+                      ? "border-black bg-black text-white"
                       : "border-gray-300 bg-white text-gray-400"
                   )}
                 >
@@ -355,7 +355,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                   <div
                     className={cn(
                       "absolute top-5 left-13 w-30 h-0.5 transition-colors duration-300",
-                      s < currentStep ? "bg-blue-600" : "bg-gray-300"
+                      s < currentStep ? "bg-black" : "bg-gray-300"
                     )}
                   />
                 )}
@@ -389,7 +389,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         setFormData({ ...formData, title: e.target.value })
                       }
                       placeholder="e.g., EcoTech Smart Home Solutions"
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      className="border-gray-300 focus:border-black focus:ring-black"
                     />
                   </div>
                   <div className="space-y-2">
@@ -491,7 +491,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                             })
                           }
                           placeholder="250000"
-                          className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          className="border-gray-300 focus:border-black focus:ring-black"
                         />
                         <p className="text-xs text-gray-500">
                           Enter the total amount you want to raise (minimum £1)
@@ -559,7 +559,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                             })
                           }
                           placeholder="25"
-                          className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                          className="border-gray-300 focus:border-black focus:ring-black"
                         />
                         <p className="text-xs text-gray-500">
                           Percentage of profits to share with investors (1-100%)
@@ -616,7 +616,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                                 ? "5000"
                                 : "15000"
                             }
-                            className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            className="border-gray-300 focus:border-black focus:ring-black"
                           />
                         </div>
                         <div className="space-y-2">
@@ -638,7 +638,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                                 ? "14999"
                                 : "50000"
                             }
-                            className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            className="border-gray-300 focus:border-black focus:ring-black"
                           />
                         </div>
                         <div className="space-y-2">
@@ -657,7 +657,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                             placeholder={
                               index === 0 ? "1.0" : index === 1 ? "1.2" : "1.5"
                             }
-                            className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                            className="border-gray-300 focus:border-black focus:ring-black"
                           />
                         </div>
                       </CardContent>
@@ -700,7 +700,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                     <Button
                       type="button"
                       disabled={isUploading}
-                      className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-md"
+                      className="cursor-pointer bg-black hover:bg-gray-900 text-white font-medium px-4 py-2 rounded-md"
                       asChild
                     >
                       <span>
@@ -815,7 +815,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                     <Button
                       onClick={generateAiAnalysis}
                       disabled={isAnalyzing}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      className="bg-black hover:bg-gray-900 text-white"
                     >
                       <Brain className="h-4 w-4 mr-2" />
                       Generate AI Analysis
@@ -840,7 +840,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
               <Button
                 onClick={nextStep}
                 disabled={!isStepValid(currentStep)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-black hover:bg-gray-900 text-white"
               >
                 {currentStep === 5 ? "Analyze Pitch" : "Next Step"}
                 <ArrowRight className="h-4 w-4 ml-2" />
