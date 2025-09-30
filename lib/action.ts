@@ -680,3 +680,106 @@ export async function getTotalFunded(): Promise<{ success: boolean; total?: numb
     return { success: false, error: "Unexpected error" };
   }
 }
+
+
+export async function declareProfits(pitchId: string, profitAmount: number){
+
+}
+
+export async function fetchProfitDistributions(pitchId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("profit_distribution")
+      .select("*")
+      .eq("pitch_id", pitchId)
+      .order("distributed_at", { ascending: false });
+    if (error) {
+      console.error("Error fetching profit distributions:", error);
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, data: data || [] };
+  } catch (error) {
+    console.error("Unexpected error fetching profit distributions:", error);
+    return { success: false, error: "Unexpected error" };
+  }
+}
+
+export async function previewProfitDistribution(pitchId: string, profitAmount: number): Promise<{ success: boolean; data?: any; error?: string }> {
+  
+  try {
+    const supabase = await createClient();
+    const { data: pitch, error: pitchError } = await supabase
+      .from("pitch")
+      .select("*")
+      .eq("id", pitchId)
+      .single();
+    if (pitchError || !pitch) {
+      return { success: false, error: "Pitch not found" };
+    }
+
+    
+    const { data: investments, error: invError } = await supabase
+      .from("investment")
+      .select("*")
+      .eq("pitch_id", pitchId);
+    if (invError) {
+      return { success: false, error: "Error fetching investments" };
+    }
+
+    const profitShare = pitch.profit_share ?? 0;
+    const profitShareAmount = profitAmount * (profitShare / 100);
+
+    const weightedInvestments = investments.map((inv) => {
+      let tierMultiplier = 1;
+      let tierName = "";
+      if (Array.isArray(pitch.investment_tiers)) {
+        const tier = pitch.investment_tiers.find((t: any) => t.name === inv.tier?.name);
+        if (tier) {
+          tierMultiplier = Number(tier.multiplier) || 1;
+          tierName = tier.name;
+        }
+      }
+      return {
+
+        investor_id: inv.investor_id,
+        investment_amount: inv.investment_amount,
+        tier_name: tierName,
+        tier_multiplier: tierMultiplier,
+        weighted: inv.investment_amount * tierMultiplier,
+      };
+    });
+    const totalWeighted = weightedInvestments.reduce((sum, w) => sum + w.weighted, 0);
+    const investorPayouts = weightedInvestments.map((w) => {
+
+      const payoutAmount = totalWeighted > 0 ? (w.weighted / totalWeighted) * profitShareAmount : 0;
+      return {
+      
+        investor_id: w.investor_id,
+        investment_amount: w.investment_amount,
+        tier_name: w.tier_name,
+        tier_multiplier: w.tier_multiplier,
+        amount: payoutAmount,
+        percentage: profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
+      };
+    });
+    const totalInvested = investments.reduce((sum, inv) => sum + (inv.investment_amount || 0), 0);
+    const businessKeeps = profitAmount - profitShareAmount;
+    const preview = {
+
+      total_profit: profitAmount,
+      total_to_investors: profitShareAmount,
+      business_keeps: businessKeeps,
+      profit_share_percentage: profitShare,
+      investor_count: investments.length,
+      total_invested: totalInvested,
+      investor_payouts: investorPayouts,
+    };
+    return { success: true, data: preview };
+  } catch (error) {
+    console.error("Unexpected error previewing profit distribution:", error);
+    return { success: false, error: "Unexpected error" };
+  }
+
+}

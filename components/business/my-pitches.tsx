@@ -11,14 +11,21 @@ import { usePitch } from "@/context/PitchContext";
 import { usePitchActions } from "@/hooks/usePitchActions";
 import type { Pitch } from "@/lib/types/pitch";
 import { toast } from "sonner";
+import { DeclareProfitsDialog } from "@/components/business/declare-profits-dialog";
 
 export function MyPitches() {
   const { pitches, loading, error } = usePitch();
-  const { loadPitches, deleteExistingPitch, updateExistingPitch } =
-    usePitchActions();
+  const { loadPitches, deleteExistingPitch, updateExistingPitch } = usePitchActions();
   const [deletingPitchId, setDeletingPitchId] = useState<string | null>(null);
   const [editingPitch, setEditingPitch] = useState<Pitch | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [profitsDialogOpen, setProfitsDialogOpen] = useState(false);
+  const [declaringProfitsPitch, setDeclaringProfitsPitch] = useState<Pitch | null>(null);
+
+  const handleDeclareProfits = (pitch: Pitch) => {
+    setDeclaringProfitsPitch(pitch);
+    setProfitsDialogOpen(true);
+  };
 
   useEffect(() => {
     loadPitches(); 
@@ -122,6 +129,10 @@ export function MyPitches() {
   const funded = pitches.filter(p => p.status === "funded" || (p.current_amount >= p.target_amount));
 
   const handlePublishPitch = async (pitchId: string) => {
+  const handleDeclareProfits = (pitch: Pitch) => {
+    setDeclaringProfitsPitch(pitch);
+    setProfitsDialogOpen(true);
+  };
     try {
       await updateExistingPitch(pitchId, { status: "active" });
       toast.success("Pitch published and moved to Active");
@@ -200,14 +211,22 @@ export function MyPitches() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
             {funded.map((pitch) => (
-              <PitchCard
-                key={pitch.id}
-                pitch={pitch}
-                onEdit={handleEditPitch}
-                onDelete={handleDeletePitch}
-                onStatusToggle={() => {}} 
-                isDeleting={deletingPitchId === pitch.id}
-              />
+              <div key={pitch.id}>
+                <PitchCard
+                  pitch={pitch}
+                  onEdit={handleEditPitch}
+                  onDelete={handleDeletePitch}
+                  onStatusToggle={() => {}} 
+                  isDeleting={deletingPitchId === pitch.id}
+                />
+                <Button
+                  className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => handleDeclareProfits(pitch)}
+                  variant="default"
+                >
+                  Declare Profits
+                </Button>
+              </div>
             ))}
           </div>
         )}
@@ -232,11 +251,15 @@ export function MyPitches() {
         )}
 
         <EditPitchDialog
-
           pitch={editingPitch}
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           onDelete={handleDeletePitch}
+        />
+        <DeclareProfitsDialog
+          pitch={declaringProfitsPitch}
+          open={profitsDialogOpen}
+          onOpenChange={setProfitsDialogOpen}
         />
       </div>
     </div>
