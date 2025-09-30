@@ -682,8 +682,116 @@ export async function getTotalFunded(): Promise<{ success: boolean; total?: numb
 }
 
 
-export async function declareProfits(pitchId: string, profitAmount: number){
+export async function declareProfits(pitchId: string, profitAmount: number): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
 
+    //
+    const { data: profitDist, error: profitDistError } = await supabase
+      .from("profit_distribution")
+      .insert({ pitch_id: pitchId, total_profit: profitAmount, distribution_date: new Date().toISOString() })
+      .select()
+      .single();
+    if (profitDistError || !profitDist) {
+      console.error("Error declaring profits:", profitDistError);
+      return { success: false, error: profitDistError?.message || "Error declaring profits" };
+    }
+    //
+    const { data: pitch, error: pitchError } = await supabase
+      .from("pitch")
+      .select("*")
+      .eq("id", pitchId)
+      .single();
+    if (pitchError || !pitch) {
+      return { success: false, error: "Pitch not found" };
+    }
+    //
+    const { data: investments, error: invError } = await supabase
+      .from("investment")
+      .select("*")
+      .eq("pitch_id", pitchId);
+
+    if (invError) {
+      return { success: false, error: "Error fetching investments" };
+    }
+
+  const profitShare = pitch.profit_share ?? 0;
+  const profitShareAmount = profitAmount * (profitShare / 100);
+
+    const weightedInvestments = investments.map((inv: any) => {
+      let tierMultiplier = 1;
+      if (Array.isArray(pitch.investment_tiers)) {
+        const tier = pitch.investment_tiers.find((t: any) => t.name === inv.tier?.name);
+        if (tier) {
+          tierMultiplier = Number(tier.multiplier) || 1;
+        }
+      }
+      return {
+        investor_id: inv.investor_id,
+        investment_amount: inv.investment_amount,
+        weighted: inv.investment_amount * tierMultiplier,
+      };
+    });
+
+    const totalWeighted = weightedInvestments.reduce((sum, w) => sum + w.weighted, 0);
+    const payouts = weightedInvestments.map((w) => {
+      const payoutAmount = totalWeighted > 0 ? (w.weighted / totalWeighted) * profitShareAmount : 0;
+      
+      const payoutObj = {
+        distribution_id: profitDist.id,
+        investor_id: w.investor_id,
+        amount: payoutAmount,
+        percentage: profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
+        investment_amount: w.investment_amount,
+        weighted: w.weighted,
+        totalWeighted,
+        profitShareAmount,
+        profitShare,
+        profitAmount
+      };
+      console.log('[declareProfits] Computed payout:', payoutObj);
+      return {
+        distribution_id: payoutObj.distribution_id,
+        investor_id: payoutObj.investor_id,
+        amount: payoutObj.amount,
+        percentage: payoutObj.percentage
+      };
+    });
+
+    for (const payout of payouts) {
+      const { error: payoutError } = await supabase.from("investor_payout").insert(payout);
+      
+      if (payoutError) {
+        console.error(`[declareProfits] Error inserting payout for investor ${payout.investor_id}:`, payoutError);
+      } else {
+        console.log(`[declareProfits] Payout inserted for investor ${payout.investor_id}: $${payout.amount.toFixed(2)}`);
+      }
+
+      const { data: user, error: userError } = await supabase
+        .from("user")
+        .select("account_balance")
+        .eq("id", payout.investor_id)
+        .single();
+
+      if (!userError && user) {
+        const newBalance = (user.account_balance || 0) + payout.amount;
+        const { error: updateError } = await supabase.from("user").update({ account_balance: newBalance }).eq("id", payout.investor_id);
+        if (updateError) {
+          console.error(`[declareProfits] Error updating account balance for investor ${payout.investor_id}:`, updateError);
+        } else {
+          console.log(`[declareProfits] Account balance updated for investor ${payout.investor_id}: $${newBalance.toFixed(2)}`);
+        }
+      } else {
+        console.error(`[declareProfits] Error fetching user for investor ${payout.investor_id}:`, userError);
+      }
+    }
+
+    console.log(`[declareProfits] All payouts processed for pitch ${pitchId}, profitAmount $${profitAmount}`);
+    return { success: true };
+  } catch (error) {
+    console.error("Unexpected error declaring profits:", error);
+    return { success: false, error: "Unexpected error" };
+  }
 }
 
 export async function fetchProfitDistributions(pitchId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
