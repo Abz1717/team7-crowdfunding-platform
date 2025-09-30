@@ -706,10 +706,38 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
       return { success: false, error: "Pitch not found" };
     }
 
-    //validation - checking if pitch is fully funded
     if (typeof pitch.current_amount === "number" && typeof pitch.target_amount === "number") {
       if (pitch.current_amount < pitch.target_amount) {
         return { success: false, error: "Pitch is not fully funded. Cannot declare profits." };
+      }
+    }
+
+    // interval and end_date for profit declaration
+
+    const { data: distributions, error: distError } = await supabase
+      .from("profit_distribution")
+      .select("distribution_date")
+      .eq("pitch_id", pitchId)
+      .order("distribution_date", { ascending: false });
+    if (distError) {
+      return { success: false, error: "Error checking previous profit distributions." };
+    }
+
+    const now = new Date();
+    const intervalMonths = 0; // CHANGE THIS TO ADJUST PROFIT DECLARATION INTERVAL 3 or 12 months
+    if (!distributions || distributions.length === 0) {
+    if (pitch.end_date) {
+        const endDate = new Date(pitch.end_date);
+        if (now < endDate) {
+          return { success: false, error: `First profit can only be declared after pitch end date (${endDate.toLocaleDateString()})` };
+        }
+      }
+    } else {
+      const lastDist = new Date(distributions[0].distribution_date);
+      const nextAllowed = new Date(lastDist);
+      nextAllowed.setMonth(nextAllowed.getMonth() + intervalMonths);
+      if (now < nextAllowed) {
+        return { success: false, error: `Next profit can only be declared after ${nextAllowed.toLocaleDateString()}` };
       }
     }
     //
