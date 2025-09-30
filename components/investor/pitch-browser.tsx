@@ -222,7 +222,7 @@ export function PitchBrowser() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Link href={`/investor/pitch/${pitch.id}`}>
+                    <Link href={`/investor/browse-pitches/${pitch.id}`}>
                       <Button>View Details & Invest</Button>
                     </Link>
                     <Button variant="outline">Save for Later</Button>
