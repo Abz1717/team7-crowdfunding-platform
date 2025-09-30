@@ -79,12 +79,30 @@ export async function createPitch(pitch: Omit<Pitch, "id" | "createdAt" | "updat
 
 export async function createInvestment(investment: Omit<Investment, "id" | "investedAt" | "returns">): Promise <Investment | null> {
   const supabase = createClient();
-  const {data, error} = await supabase
+
+  const { data, error } = await supabase
     .from("investment")
     .insert([investment])
     .select()
     .single();
-  return data ?? null;
+
+  if (!data || error) return null;
+
+  const { data: pitchData, error: pitchError } = await supabase
+    .from("pitch")
+    .select("current_amount")
+    .eq("id", investment.pitch_id)
+    .single();
+
+  if (pitchData && !pitchError) {
+    const newAmount = (pitchData.current_amount ?? 0) + investment.investment_amount;
+    await supabase
+      .from("pitch")
+      .update({ current_amount: newAmount })
+      .eq("id", investment.pitch_id);
+  }
+
+  return data;
 }
 
 export async function calculateROI(userId: string): Promise<number> {
