@@ -15,16 +15,13 @@ export function DeclareProfitsDialog({ pitch, open, onOpenChange }: DeclareProfi
   return (
 
     <Dialog open={open} onOpenChange={onOpenChange}>
-
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-xl">
         <DialogHeader>
           <DialogTitle>Declare Profits for {pitch.title}</DialogTitle>
           <DialogDescription>
             Distribute returns to investors based on their investment tiers and profit share percentage
           </DialogDescription>
         </DialogHeader>
-        
         <ProfitDeclarationForm
           pitch={pitch}
           onSuccess={() => {

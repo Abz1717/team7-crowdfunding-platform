@@ -1,7 +1,7 @@
 "use client"
 
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { previewProfitDistribution, declareProfits } from "@/lib/action"
+import { getProfitDistributionsByPitchId } from "@/lib/data"
 import type { Pitch } from "@/lib/types/pitch"
 import { DollarSign, TrendingUp, Users, Calculator, CheckCircle, AlertTriangle } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 
 
 
@@ -21,11 +23,42 @@ interface ProfitDeclarationFormProps {
 
 export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFormProps) {
 
+
   const [profitAmount, setProfitAmount] = useState<string>("")
   const [preview, setPreview] = useState<any>(null)
-
   const [isCalculating, setIsCalculating] = useState(false)
   const [isDeclaring, setIsDeclaring] = useState(false)
+  const [showResultModal, setShowResultModal] = useState(false)
+  const [resultInfo, setResultInfo] = useState<{success: boolean, message: string}|null>(null)
+  const [lastDistribution, setLastDistribution] = useState<Date|null>(null)
+  const [nextDistribution, setNextDistribution] = useState<Date|null>(null)
+  const [firstAllowed, setFirstAllowed] = useState<Date|null>(null)
+
+  useEffect(() => {
+    async function fetchDistributions() {
+      const dists = await getProfitDistributionsByPitchId(pitch.id);
+      
+      if (dists && dists.length > 0) {
+        dists.sort((a, b) => new Date(b.distribution_date).getTime() - new Date(a.distribution_date).getTime());
+        const last = new Date(dists[0].distribution_date);
+        setLastDistribution(last);
+        const next = new Date(last);
+        next.setMonth(next.getMonth() + 0);   // CHANGE THIS TO DISPLAY PROFIT DECLARATION INTERVAL 3 or 12 months after editing in action.ts
+        setNextDistribution(next);
+        setFirstAllowed(null);
+      } else {
+
+        if (pitch.end_date) {
+          setFirstAllowed(new Date(pitch.end_date));
+        } else {
+          setFirstAllowed(null);
+        }
+        setLastDistribution(null);
+        setNextDistribution(null);
+      }
+    }
+    fetchDistributions();
+  }, [pitch.id, pitch.end_date]);
 
   const handlePreview = async () => {
     const amount = Number.parseFloat(profitAmount)
@@ -51,7 +84,7 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
     }
   }
 
-const handleDeclare = async () => {
+  const handleDeclare = async () => {
     if (!preview) return
 
     setIsDeclaring(true)
@@ -59,30 +92,75 @@ const handleDeclare = async () => {
       const profitToDeclare = preview.total_profit ?? Number.parseFloat(profitAmount)
       const result = await declareProfits(pitch.id, profitToDeclare)
       if (result.success) {
-        toast.success(`Profits declared successfully! $${preview.total_to_investors?.toLocaleString?.() ?? profitToDeclare} distributed to ${preview.investor_count ?? "?"} investor${preview.investor_count !== 1 ? "s" : ""}`)
-        if (onSuccess) onSuccess()
+        setResultInfo({
+          success: true,
+          message: `Profits declared successfully! $${preview.total_to_investors?.toLocaleString?.() ?? profitToDeclare} distributed to ${preview.investor_count ?? "?"} investor${preview.investor_count !== 1 ? "s" : ""}`
+        });
+        setShowResultModal(true);
       } else {
-        toast.error(result.error || "Unable to declare profits. Please try again.")
+        setResultInfo({
+          success: false,
+          message: result.error || "Unable to declare profits. Please try again."
+        });
+        setShowResultModal(true);
       }
     } catch (error) {
       console.error("[v0] Error declaring profits:", error)
-      toast.error("Unable to declare profits. Please try again.")
+      setResultInfo({
+        success: false,
+        message: "Unable to declare profits. Please try again."
+      });
+      setShowResultModal(true);
     } finally {
       setIsDeclaring(false)
     }
   }
 
   return (
+  <>
+    <Dialog open={showResultModal} onOpenChange={(open) => {
+      if (!open) {
+        setShowResultModal(false);
+        if (resultInfo?.success && onSuccess) onSuccess();
+      }
+    }}>
+
+      <DialogContent className="rounded-xl">
+        <DialogHeader>
+          <DialogTitle>{resultInfo?.success ? "Success" : "Error"}</DialogTitle>
+          <DialogDescription>{resultInfo?.message}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button onClick={() => {
+            setShowResultModal(false);
+            if (resultInfo?.success && onSuccess) onSuccess();
+          }}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <div className="space-y-6">
       <Card>
         <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Declare Profits
-            </CardTitle>
-            <CardDescription>
-              Enter the total profit amount to distribute to investors based on their investment tiers
-            </CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Declare Profits
+          </CardTitle>
+          <CardDescription>
+            Enter the total profit amount to distribute to investors based on their investment tiers
+          </CardDescription>
+          <div className="mt-4 space-y-1">
+            <div>
+              <span className="font-medium">Last Profit Distribution: </span>
+              {lastDistribution ? lastDistribution.toLocaleDateString() : "None yet"}
+            </div>
+            <div>
+              <span className="font-medium">Next Allowed Profit Distribution: </span>
+              {lastDistribution && nextDistribution ? nextDistribution.toLocaleDateString() : firstAllowed ? firstAllowed.toLocaleDateString() : "N/A"}
+            </div>
+            {!lastDistribution && firstAllowed && new Date() < firstAllowed && (
+              <div className="text-sm text-red-600">First profit can only be declared after {firstAllowed.toLocaleDateString()}</div>
+            )}
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -211,11 +289,6 @@ const handleDeclare = async () => {
         </CardContent>
       </Card>
     </div>
-
-
-
-
-
-
+  </>
   )
 }
