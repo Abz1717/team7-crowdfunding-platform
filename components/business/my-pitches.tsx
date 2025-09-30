@@ -147,8 +147,9 @@ export function MyPitches() {
         </div>
 
         <SectionHeading title="Drafts" />
+        <SubcategoryDescription text="Draft pitches are not visible to investors. Publish when ready." />
         {drafts.length === 0 ? (
-          <EmptySection message="No draft pitches. Create a new pitch to get started." />
+          <EmptySection message="No draft pitches. Create a new pitch." />
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
             {drafts.map((pitch) => (
@@ -175,6 +176,7 @@ export function MyPitches() {
         )}
 
         <SectionHeading title="Active" />
+        <SubcategoryDescription text="Active pitches are open for investment and visible to investors." />
         {active.length === 0 ? (
           <EmptySection message="No active pitches." />
         ) : (
@@ -192,6 +194,7 @@ export function MyPitches() {
           </div>
         )}
         <SectionHeading title="Funded" />
+       <SubcategoryDescription text="Funded pitches have reached their target and are ready for profit distribution." />
         {funded.length === 0 ? (
           <EmptySection message="No funded pitches yet." />
         ) : (
@@ -210,6 +213,7 @@ export function MyPitches() {
         )}
 
         <SectionHeading title="Closed" />
+        <SubcategoryDescription text="Closed pitches are no longer accepting investments." />
         {closed.length === 0 ? (
           <EmptySection message="No closed pitches." />
         ) : (
@@ -240,9 +244,12 @@ export function MyPitches() {
 function SectionHeading({ title }: { title: string }) {
   return <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-8">{title}</h2>;
 }
+function SubcategoryDescription({ text }: { text: string }) {
+  return <p className="text-gray-500 mb-4">{text}</p>;
+}
 
 function EmptySection({ message }: { message: string }) {
-  
+
   return (
     <div className="text-center py-8">
       <p className="text-gray-500">{message}</p>
