@@ -375,37 +375,47 @@ export function EditPitchDialog({
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label
-                      htmlFor="edit-status"
-                      className="text-sm font-medium text-gray-700"
-                    >
-                      Status
-                    </Label>
-                    <Select
-                      value={formData.status}
-                      onValueChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          status: value as
-                            | "draft"
-                            | "active"
-                            | "funded"
-                            | "closed",
-                        })
-                      }
-                    >
-                      <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="funded">Funded</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {formData.status === "active" ? (
+                    <div className="space-y-2">
+
+                      <Label
+                        htmlFor="edit-status"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Status
+                      </Label>
+                      
+                      <Select
+                        value={formData.status}
+                        onValueChange={(value) =>
+                          setFormData({
+                            ...formData,
+                            status: value as "active" | "closed",
+                          })
+                        }
+                      >
+                        <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="closed">Closed</SelectItem>
+                        </SelectContent>
+                        
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <Input
+                        value={formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+                        disabled
+                        readOnly
+                        className="border-gray-300 bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">

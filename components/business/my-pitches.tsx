@@ -11,14 +11,21 @@ import { usePitch } from "@/context/PitchContext";
 import { usePitchActions } from "@/hooks/usePitchActions";
 import type { Pitch } from "@/lib/types/pitch";
 import { toast } from "sonner";
+import { DeclareProfitsDialog } from "@/components/business/declare-profits-dialog";
 
 export function MyPitches() {
   const { pitches, loading, error } = usePitch();
-  const { loadPitches, deleteExistingPitch, updateExistingPitch } =
-    usePitchActions();
+  const { loadPitches, deleteExistingPitch, updateExistingPitch } = usePitchActions();
   const [deletingPitchId, setDeletingPitchId] = useState<string | null>(null);
   const [editingPitch, setEditingPitch] = useState<Pitch | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [profitsDialogOpen, setProfitsDialogOpen] = useState(false);
+  const [declaringProfitsPitch, setDeclaringProfitsPitch] = useState<Pitch | null>(null);
+
+  const handleDeclareProfits = (pitch: Pitch) => {
+    setDeclaringProfitsPitch(pitch);
+    setProfitsDialogOpen(true);
+  };
 
   useEffect(() => {
     loadPitches(); 
@@ -115,6 +122,26 @@ export function MyPitches() {
     );
   }
 
+  const drafts = pitches.filter(p => p.status === "draft");
+  const active = pitches.filter(p => p.status === "active");
+  const closed = pitches.filter(p => p.status === "closed");
+
+  const funded = pitches.filter(p => p.status === "funded" || (p.current_amount >= p.target_amount));
+
+  const handlePublishPitch = async (pitchId: string) => {
+  const handleDeclareProfits = (pitch: Pitch) => {
+    setDeclaringProfitsPitch(pitch);
+    setProfitsDialogOpen(true);
+  };
+    try {
+      await updateExistingPitch(pitchId, { status: "active" });
+      toast.success("Pitch published and moved to Active");
+      loadPitches();
+    } catch (error) {
+      toast.error("Failed to publish pitch");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -130,29 +157,93 @@ export function MyPitches() {
           <CreatePitchDialog/>
         </div>
 
-        {pitches.length === 0 ? (
-          <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-100 rounded-full mb-8">
-              <BarChart3 className="h-10 w-10 text-gray-400" />
-            </div>
-            <h3 className="text-2xl font-semibold text-gray-900 mb-4">
-              No pitches yet
-            </h3>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto text-pretty">
-              Create your first investment pitch to start attracting investors
-              and building your business.
-            </p>
-            <CreatePitchDialog/>
-          </div>
+        <SectionHeading title="Drafts" />
+        <SubcategoryDescription text="Draft pitches are not visible to investors. Publish when ready." />
+        {drafts.length === 0 ? (
+          <EmptySection message="No draft pitches. Create a new pitch." />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
-            {pitches.map((pitch) => (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+            {drafts.map((pitch) => (
+              <div key={pitch.id}>
+
+                <PitchCard
+                  pitch={pitch}
+                  onEdit={handleEditPitch}
+                  onDelete={handleDeletePitch}
+                  onStatusToggle={() => {}} 
+                  isDeleting={deletingPitchId === pitch.id}
+                />
+
+                <Button
+                  className="mt-2 w-full"
+                  onClick={() => handlePublishPitch(pitch.id)}
+                  variant="default"
+                >
+                  Publish Pitch
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <SectionHeading title="Active" />
+        <SubcategoryDescription text="Active pitches are open for investment and visible to investors." />
+        {active.length === 0 ? (
+          <EmptySection message="No active pitches." />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+            {active.map((pitch) => (
               <PitchCard
                 key={pitch.id}
                 pitch={pitch}
                 onEdit={handleEditPitch}
                 onDelete={handleDeletePitch}
                 onStatusToggle={handleStatusToggle}
+                isDeleting={deletingPitchId === pitch.id}
+              />
+            ))}
+          </div>
+        )}
+        <SectionHeading title="Funded" />
+       <SubcategoryDescription text="Funded pitches have reached their target and are ready for profit distribution." />
+        {funded.length === 0 ? (
+          <EmptySection message="No funded pitches yet." />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+            {funded.map((pitch) => (
+              <div key={pitch.id}>
+                <PitchCard
+                  pitch={pitch}
+                  onEdit={handleEditPitch}
+                  onDelete={handleDeletePitch}
+                  onStatusToggle={() => {}} 
+                  isDeleting={deletingPitchId === pitch.id}
+                />
+                <Button
+                  className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => handleDeclareProfits(pitch)}
+                  variant="default"
+                >
+                  Declare Profits
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <SectionHeading title="Closed" />
+        <SubcategoryDescription text="Closed pitches are no longer accepting investments." />
+        {closed.length === 0 ? (
+          <EmptySection message="No closed pitches." />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+            {closed.map((pitch) => (
+              <PitchCard
+                key={pitch.id}
+                pitch={pitch}
+                onEdit={handleEditPitch}
+                onDelete={handleDeletePitch}
+                onStatusToggle={() => {}} 
                 isDeleting={deletingPitchId === pitch.id}
               />
             ))}
@@ -165,7 +256,27 @@ export function MyPitches() {
           onOpenChange={setEditDialogOpen}
           onDelete={handleDeletePitch}
         />
+        <DeclareProfitsDialog
+          pitch={declaringProfitsPitch}
+          open={profitsDialogOpen}
+          onOpenChange={setProfitsDialogOpen}
+        />
       </div>
     </div>
   );
+function SectionHeading({ title }: { title: string }) {
+  return <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-8">{title}</h2>;
+}
+function SubcategoryDescription({ text }: { text: string }) {
+  return <p className="text-gray-500 mb-4">{text}</p>;
+}
+
+function EmptySection({ message }: { message: string }) {
+
+  return (
+    <div className="text-center py-8">
+      <p className="text-gray-500">{message}</p>
+    </div>
+  );
+}
 }

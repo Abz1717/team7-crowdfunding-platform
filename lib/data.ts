@@ -80,6 +80,19 @@ export async function createPitch(pitch: Omit<Pitch, "id" | "createdAt" | "updat
 export async function createInvestment(investment: Omit<Investment, "id" | "investedAt" | "returns">): Promise <Investment | null> {
   const supabase = createClient();
 
+  const { data: pitchData, error: pitchError } = await supabase
+    .from("pitch")
+    .select("current_amount, target_amount")
+    .eq("id", investment.pitch_id)
+    .single();
+
+  if (!pitchData || pitchError) return null;
+
+  const { current_amount = 0, target_amount = 0 } = pitchData;
+  if (current_amount + investment.investment_amount > target_amount) {
+    return null;
+  }
+
   const { data, error } = await supabase
     .from("investment")
     .insert([investment])
@@ -88,19 +101,11 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
 
   if (!data || error) return null;
 
-  const { data: pitchData, error: pitchError } = await supabase
+  const newAmount = current_amount + investment.investment_amount;
+  await supabase
     .from("pitch")
-    .select("current_amount")
-    .eq("id", investment.pitch_id)
-    .single();
-
-  if (pitchData && !pitchError) {
-    const newAmount = (pitchData.current_amount ?? 0) + investment.investment_amount;
-    await supabase
-      .from("pitch")
-      .update({ current_amount: newAmount })
-      .eq("id", investment.pitch_id);
-  }
+    .update({ current_amount: newAmount })
+    .eq("id", investment.pitch_id);
 
   return data;
 }
