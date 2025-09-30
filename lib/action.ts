@@ -705,6 +705,13 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
     if (pitchError || !pitch) {
       return { success: false, error: "Pitch not found" };
     }
+
+    //validation - checking if pitch is fully funded
+    if (typeof pitch.current_amount === "number" && typeof pitch.target_amount === "number") {
+      if (pitch.current_amount < pitch.target_amount) {
+        return { success: false, error: "Pitch is not fully funded. Cannot declare profits." };
+      }
+    }
     //
     const { data: investments, error: invError } = await supabase
       .from("investment")
@@ -760,7 +767,7 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
 
     for (const payout of payouts) {
       const { error: payoutError } = await supabase.from("investor_payout").insert(payout);
-      
+
       if (payoutError) {
         console.error(`[declareProfits] Error inserting payout for investor ${payout.investor_id}:`, payoutError);
       } else {
