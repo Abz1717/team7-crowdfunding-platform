@@ -100,10 +100,14 @@ export async function signup(formData: FormData) {
   console.log("Signup success:", userData);
   revalidatePath("/", "layout");
 
-  if (data.accountType === "business") {
-    redirect("/business-setup");
+  if (!userData.session) {
+    redirect("/signin?confirm=1");
   } else {
-    redirect("/investor");
+    if (data.accountType === "business") {
+      redirect("/business-setup");
+    } else {
+      redirect("/investor");
+    }
   }
 }
 
