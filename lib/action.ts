@@ -89,7 +89,7 @@ export async function signup(formData: FormData) {
       last_name: data.lastName,
       email: data.email,
       account_type: data.accountType,
-      account_balance: 20,
+      account_balance: 0,
     },
   ]);
 

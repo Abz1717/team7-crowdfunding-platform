@@ -1,17 +1,29 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { DollarSign, CreditCard, Wallet, TrendingUp } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useToast } from "@/hooks/use-toast"
-import { useAuth } from "@/lib/auth"
-import { createInvestment, getAccountBalance, updateAccountBalance } from "@/lib/data"
-import type { Pitch, InvestmentTier } from "@/lib/types"
+import { useState, useEffect } from "react";
+import { DollarSign, CreditCard, Wallet, TrendingUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth";
+import {
+  createInvestment,
+  getAccountBalance,
+  updateAccountBalance,
+} from "@/lib/data";
+import type { Pitch, InvestmentTier } from "@/lib/types";
+import { InsufficientBalanceDialog } from "./insufficient-balance-dialog";
+import { InvestmentValidationDialog } from "./investment-validation-dialog";
 
 interface InvestmentFormProps {
   pitch: Pitch;
@@ -19,16 +31,25 @@ interface InvestmentFormProps {
   canInvest?: boolean;
 }
 
-export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }: InvestmentFormProps) {
-
+export function InvestmentForm({
+  pitch,
+  onInvestmentComplete,
+  canInvest = true,
+}: InvestmentFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [investmentAmount, setInvestmentAmount] = useState<number>(0);
-  const [fundingMethod, setFundingMethod] = useState<"balance" | "bank">("balance");
+  const [fundingMethod, setFundingMethod] = useState<"balance" | "bank">(
+    "balance"
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [accountBalance, setAccountBalance] = useState(0);
-
-
+  const [insufficientBalanceDialogOpen, setInsufficientBalanceDialogOpen] =
+    useState(false);
+  const [validationDialogOpen, setValidationDialogOpen] = useState(false);
+  const [validationDialogType, setValidationDialogType] = useState<
+    "below_minimum" | "above_maximum"
+  >("below_minimum");
 
   useEffect(() => {
     async function fetchBalance() {
@@ -40,18 +61,25 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
     fetchBalance();
   }, [user]);
 
-  const normalizedTiers = (pitch.investment_tiers as any[]).map(tier => ({
+  const normalizedTiers = (pitch.investment_tiers as any[]).map((tier) => ({
     ...tier,
-    min_amount: typeof tier.min_amount === "number" ? tier.min_amount : Number(tier.minAmount ?? 0),
-    max_amount: typeof tier.max_amount === "number" ? tier.max_amount : Number(tier.maxAmount ?? 0),
-    multiplier: typeof tier.multiplier === "number" ? tier.multiplier : Number(tier.multiplier ?? 1),
+    min_amount:
+      typeof tier.min_amount === "number"
+        ? tier.min_amount
+        : Number(tier.minAmount ?? 0),
+    max_amount:
+      typeof tier.max_amount === "number"
+        ? tier.max_amount
+        : Number(tier.maxAmount ?? 0),
+    multiplier:
+      typeof tier.multiplier === "number"
+        ? tier.multiplier
+        : Number(tier.multiplier ?? 1),
     name: tier.name,
   }));
 
   const getInvestmentTier = (amount: number): InvestmentTier | null => {
-    
-    for (const tier of normalizedTiers) 
-    {
+    for (const tier of normalizedTiers) {
       if (amount >= tier.min_amount && amount <= tier.max_amount) {
         return tier;
       }
@@ -59,27 +87,62 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
     return null;
   };
 
+  const getMinimumInvestmentAmount = (): number => {
+    if (normalizedTiers.length === 0) return 0;
+    return Math.min(...normalizedTiers.map((tier) => tier.min_amount));
+  };
+
+  const getMaximumInvestmentAmount = (): number => {
+    if (normalizedTiers.length === 0) return 0;
+    return Math.max(...normalizedTiers.map((tier) => tier.max_amount));
+  };
+
+  const getHighestTier = (): InvestmentTier | null => {
+    if (normalizedTiers.length === 0) return null;
+    return normalizedTiers.reduce((highest, current) =>
+      current.max_amount > highest.max_amount ? current : highest
+    );
+  };
+
   const selectedTier = getInvestmentTier(investmentAmount);
-  const projectedReturns = selectedTier ? investmentAmount * (pitch.profit_share / 100) * selectedTier.multiplier: 0;
+  const projectedReturns = selectedTier
+    ? investmentAmount * (pitch.profit_share / 100) * selectedTier.multiplier
+    : 0;
 
   const handleInvestment = async () => {
-    if (!user || !selectedTier) return;
+    if (!user) return;
 
-    if (investmentAmount < (pitch.investment_tiers[0] as InvestmentTier).min_amount) {
+    const minAmount = getMinimumInvestmentAmount();
+    const maxAmount = getMaximumInvestmentAmount();
+
+    // Check if investment amount is below minimum
+    if (investmentAmount < minAmount) {
+      setValidationDialogType("below_minimum");
+      setValidationDialogOpen(true);
+      return;
+    }
+
+    // Check if investment amount is above maximum
+    if (investmentAmount > maxAmount) {
+      setValidationDialogType("above_maximum");
+      setValidationDialogOpen(true);
+      return;
+    }
+
+    // Check if no valid tier found
+    if (!selectedTier) {
       toast({
-        title: "Investment too small",
-        description: `Minimum investment is $${(pitch.investment_tiers[0] as InvestmentTier).min_amount.toLocaleString()}`,
+        title: "Invalid Investment Amount",
+        description:
+          "Please enter a valid investment amount within the available tiers",
         variant: "destructive",
       });
       return;
     }
 
+    // Check for insufficient balance
     if (fundingMethod === "balance" && investmentAmount > accountBalance) {
-      toast({
-        title: "Insufficient balance",
-        description: "Please add funds to your account or use bank transfer",
-        variant: "destructive",
-      });
+      setInsufficientBalanceDialogOpen(true);
       return;
     }
 
@@ -100,8 +163,10 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
         setAccountBalance(accountBalance - investmentAmount);
       }
       toast({
-         title: "Investment successful!",
-         description: `You've invested $${investmentAmount.toLocaleString()} in ${pitch.title}`,
+        title: "Investment successful!",
+        description: `You've invested $${investmentAmount.toLocaleString()} in ${
+          pitch.title
+        }`,
       });
 
       setIsProcessing(false);
@@ -111,11 +176,15 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
     }, 2000);
   };
 
-
+  const handleDepositSuccess = async () => {
+    if (user) {
+      const balance = await getAccountBalance(user.id);
+      setAccountBalance(balance);
+    }
+  };
 
   return (
     <Card>
-
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
@@ -135,8 +204,10 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
             type="number"
             placeholder="Enter amount"
             value={investmentAmount || ""}
-            onChange={(e) => setInvestmentAmount(Number.parseInt(e.target.value) || 0)}
-            min={pitch.investment_tiers[0]?.minAmount}
+            onChange={(e) =>
+              setInvestmentAmount(Number.parseInt(e.target.value) || 0)
+            }
+            min={0}
           />
           <div className="flex gap-2 flex-wrap">
             {normalizedTiers.map((tier) => (
@@ -147,7 +218,11 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
                 onClick={() => setInvestmentAmount(tier.min_amount)}
                 disabled={typeof tier.min_amount !== "number"}
               >
-                ${typeof tier.min_amount === "number" ? tier.min_amount.toLocaleString() : "N/A"} ({tier.name})
+                $
+                {typeof tier.min_amount === "number"
+                  ? tier.min_amount.toLocaleString()
+                  : "N/A"}{" "}
+                ({tier.name})
               </Button>
             ))}
           </div>
@@ -158,7 +233,9 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-2">
                 <Badge variant="default">{selectedTier.name} Tier</Badge>
-                <span className="text-sm font-medium">{selectedTier.multiplier}x Multiplier</span>
+                <span className="text-sm font-medium">
+                  {selectedTier.multiplier}x Multiplier
+                </span>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -171,8 +248,12 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
                   </div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground">Projected Annual Returns</div>
-                  <div className="font-medium text-green-600">${projectedReturns.toLocaleString()}</div>
+                  <div className="text-muted-foreground">
+                    Projected Annual Returns
+                  </div>
+                  <div className="font-medium text-green-600">
+                    ${projectedReturns.toLocaleString()}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -182,20 +263,20 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
         {user && user.role === "investor" && (
           <div className="space-y-4">
             <Label>Funding Method</Label>
-            <RadioGroup value={fundingMethod} onValueChange={(value) => setFundingMethod(value as "balance" | "bank")}>
+            <RadioGroup
+              value={fundingMethod}
+              onValueChange={(value) =>
+                setFundingMethod(value as "balance" | "bank")
+              }
+            >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="balance" id="balance" />
-                <Label htmlFor="balance" className="flex items-center gap-2 cursor-pointer">
+                <Label
+                  htmlFor="balance"
+                  className="flex items-center gap-2 cursor-pointer"
+                >
                   <Wallet className="h-4 w-4" />
                   Account Balance (${accountBalance.toLocaleString()} available)
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="bank" id="bank" />
-                <Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer">
-                  <CreditCard className="h-4 w-4" />
-                  Bank Transfer (Mock Integration)
                 </Label>
               </div>
             </RadioGroup>
@@ -213,12 +294,14 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Investment Amount:</span>
-                  <span className="font-medium">${investmentAmount.toLocaleString()}</span>
+                  <span className="font-medium">
+                    ${investmentAmount.toLocaleString()}
+                  </span>
                 </div>
 
                 <div className="flex justify-between">
-                   <span>Tier:</span>
-                   <span className="font-medium">
+                  <span>Tier:</span>
+                  <span className="font-medium">
                     {selectedTier.name} ({selectedTier.multiplier}x)
                   </span>
                 </div>
@@ -230,7 +313,9 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
 
                 <div className="flex justify-between border-t pt-2">
                   <span>Projected Annual Returns:</span>
-                  <span className="font-medium text-green-600">${projectedReturns.toLocaleString()}</span>
+                  <span className="font-medium text-green-600">
+                    ${projectedReturns.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -240,19 +325,41 @@ export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }
         {canInvest ? (
           <Button
             onClick={handleInvestment}
-            disabled={!selectedTier || investmentAmount === 0 || isProcessing}
+            disabled={investmentAmount === 0 || isProcessing}
             className="w-full"
             size="lg"
           >
-            {isProcessing ? "Processing Investment..." : `Invest $${investmentAmount.toLocaleString()}`}
+            {isProcessing
+              ? "Processing Investment..."
+              : `Invest $${investmentAmount.toLocaleString()}`}
           </Button>
         ) : null}
         {user && user.role === "investor" && (
           <p className="text-xs text-muted-foreground mt-2">
-            By investing, you agree to the platform terms and the profit-sharing agreement for this pitch.
+            By investing, you agree to the platform terms and the profit-sharing
+            agreement for this pitch.
           </p>
         )}
       </CardContent>
+
+      {/* Dialogs */}
+      <InsufficientBalanceDialog
+        open={insufficientBalanceDialogOpen}
+        onOpenChange={setInsufficientBalanceDialogOpen}
+        requiredAmount={investmentAmount}
+        currentBalance={accountBalance}
+        onDepositSuccess={handleDepositSuccess}
+      />
+
+      <InvestmentValidationDialog
+        open={validationDialogOpen}
+        onOpenChange={setValidationDialogOpen}
+        type={validationDialogType}
+        investmentAmount={investmentAmount}
+        minAmount={getMinimumInvestmentAmount()}
+        maxAmount={getMaximumInvestmentAmount()}
+        tierName={getHighestTier()?.name}
+      />
     </Card>
-  )
+  );
 }
