@@ -92,7 +92,7 @@ export async function middleware(request: NextRequest) {
   } else {
     // Unauthenticated users cannot access protected routes
     if (isBusinessRoute || isInvestorRoute) {
-      return NextResponse.redirect(new URL("/signin", request.url));
+      return NextResponse.redirect(new URL("/", request.url));
     }
   }
 

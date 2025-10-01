@@ -24,6 +24,8 @@ import {
 import type { Pitch, InvestmentTier } from "@/lib/types";
 import { InsufficientBalanceDialog } from "./insufficient-balance-dialog";
 import { InvestmentValidationDialog } from "./investment-validation-dialog";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { SuccessDialog } from "@/components/ui/success-dialog";
 
 interface InvestmentFormProps {
   pitch: Pitch;
@@ -50,6 +52,8 @@ export function InvestmentForm({
   const [validationDialogType, setValidationDialogType] = useState<
     "below_minimum" | "above_maximum"
   >("below_minimum");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
 
   useEffect(() => {
     async function fetchBalance() {
@@ -109,13 +113,10 @@ export function InvestmentForm({
     ? investmentAmount * (pitch.profit_share / 100) * selectedTier.multiplier
     : 0;
 
-  const handleInvestment = async () => {
-    if (!user) return;
-
-    const minAmount = getMinimumInvestmentAmount();
-    const maxAmount = getMaximumInvestmentAmount();
-
+  // Replace handleInvestment with two-step confirmation
+  const handleInvestment = () => {
     // Check if investment amount is below minimum
+    const minAmount = getMinimumInvestmentAmount();
     if (investmentAmount < minAmount) {
       setValidationDialogType("below_minimum");
       setValidationDialogOpen(true);
@@ -123,6 +124,7 @@ export function InvestmentForm({
     }
 
     // Check if investment amount is above maximum
+    const maxAmount = getMaximumInvestmentAmount();
     if (investmentAmount > maxAmount) {
       setValidationDialogType("above_maximum");
       setValidationDialogOpen(true);
@@ -146,34 +148,28 @@ export function InvestmentForm({
       return;
     }
 
+    setConfirmDialogOpen(true);
+  };
+
+  // Actual investment logic, called after confirmation
+  const doInvestment = async () => {
+    if (!user || !selectedTier) return;
     setIsProcessing(true);
-
-    setTimeout(async () => {
-      await createInvestment({
-        amount: investmentAmount,
-        investment_amount: investmentAmount,
-        investor_id: user.id,
-        pitch_id: pitch.id,
-        tier: selectedTier,
-        invested_at: new Date(),
-      });
-
-      if (fundingMethod === "balance") {
-        await updateAccountBalance(user.id, accountBalance - investmentAmount);
-        setAccountBalance(accountBalance - investmentAmount);
-      }
-      toast({
-        title: "Investment successful!",
-        description: `You've invested $${investmentAmount.toLocaleString()} in ${
-          pitch.title
-        }`,
-      });
-
-      setIsProcessing(false);
-      if (typeof onInvestmentComplete === "function") {
-        onInvestmentComplete();
-      }
-    }, 2000);
+    await new Promise((res) => setTimeout(res, 500)); // short delay for UX
+    await createInvestment({
+      amount: investmentAmount,
+      investment_amount: investmentAmount,
+      investor_id: user.id,
+      pitch_id: pitch.id,
+      tier: selectedTier,
+      invested_at: new Date(),
+    });
+    if (fundingMethod === "balance") {
+      await updateAccountBalance(user.id, accountBalance - investmentAmount);
+      setAccountBalance(accountBalance - investmentAmount);
+    }
+    setIsProcessing(false);
+    setSuccessDialogOpen(true);
   };
 
   const handleDepositSuccess = async () => {
@@ -343,6 +339,29 @@ export function InvestmentForm({
       </CardContent>
 
       {/* Dialogs */}
+      <ConfirmationDialog
+        open={confirmDialogOpen}
+        onOpenChange={setConfirmDialogOpen}
+        onConfirm={doInvestment}
+        title={`Confirm Investment`}
+        description={`Are you sure you want to invest $${investmentAmount.toLocaleString()} in ${pitch.title}?`}
+        confirmText="Yes, Invest"
+        cancelText="No"
+        isLoading={isProcessing}
+      />
+      <SuccessDialog
+        open={successDialogOpen}
+        onOpenChange={(open) => {
+          setSuccessDialogOpen(open);
+          // Only call onInvestmentComplete if provided and user closes dialog
+          if (!open && typeof onInvestmentComplete === "function") {
+            onInvestmentComplete();
+          }
+        }}
+        title="Investment Confirmed!"
+        description={`Your investment of $${investmentAmount.toLocaleString()} in ${pitch.title} was successful.`}
+        confirmText="OK"
+      />
       <InsufficientBalanceDialog
         open={insufficientBalanceDialogOpen}
         onOpenChange={setInsufficientBalanceDialogOpen}

@@ -1,13 +1,21 @@
+
 import { useEffect, useState } from "react";
 import { getCurrentBusinessUser } from "@/lib/action";
 import type { BusinessUser } from "@/lib/types/user";
 
-export function useBusinessUser() {
+export function useBusinessUser(user?: { role?: string }) {
   const [businessUser, setBusinessUser] = useState<BusinessUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user || user.role !== "business") {
+      setBusinessUser(null);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    setLoading(true);
     async function fetchBusinessUser() {
       try {
         const result = await getCurrentBusinessUser();
@@ -30,7 +38,7 @@ export function useBusinessUser() {
       }
     }
     fetchBusinessUser();
-  }, []);
+  }, [user?.role]);
 
   return { businessUser, loading, error };
 }

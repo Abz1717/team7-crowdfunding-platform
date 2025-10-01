@@ -238,9 +238,6 @@ export function PitchDetailsView({ pitchId, backHref, showInvestmentForm }: Pitc
           {showInvestmentForm && pitch.status === "active" && daysLeft > 0 && (
             <InvestmentForm
               pitch={pitch}
-              onInvestmentComplete={() => {
-                router.push("/investor/portfolio")
-              }}
               canInvest={canInvest}
             />
           )}

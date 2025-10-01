@@ -16,7 +16,7 @@ import { useBusinessUser } from "@/hooks/useBusinessUser"
 
 export function PitchBrowser() {
   const { user } = useAuth();
-  const { businessUser } = useBusinessUser();
+  const { businessUser } = useBusinessUser(user ?? undefined);
   const [pitches, setPitches] = useState<(Pitch & { created_at: Date, end_date: Date })[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("newest")

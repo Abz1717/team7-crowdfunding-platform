@@ -236,9 +236,6 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
           {pitch.status === "active" && daysLeft > 0 && (
             <InvestmentForm
               pitch={pitch}
-              onInvestmentComplete={() => {
-                router.push("/investor/portfolio")
-              }}
               canInvest={canInvest}
             />
           )}
