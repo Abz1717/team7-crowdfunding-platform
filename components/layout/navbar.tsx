@@ -7,15 +7,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
-  const { user, logout, isLoading } = useAuth();
+  const { user, logout} = useAuth();
   const router = useRouter();
 
   const handleLogout = () => {
     logout();
     router.push("/");
   };
-
-  if (isLoading) return null;
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

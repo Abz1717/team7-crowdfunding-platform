@@ -50,8 +50,6 @@ export async function login(formData: FormData) {
   }
 }
 
-
-
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
@@ -64,7 +62,6 @@ export async function signup(formData: FormData) {
   };
 
   console.log("Signup attempt:", data);
-
 
   // Sign up with Supabase Auth
   const { data: userData, error } = await supabase.auth.signUp({
@@ -84,7 +81,6 @@ export async function signup(formData: FormData) {
     redirect("/error");
   }
 
-
   // Mess with this to test or set up default values.
   const { error: tableError } = await supabase.from("user").insert([
     {
@@ -103,16 +99,13 @@ export async function signup(formData: FormData) {
 
   console.log("Signup success:", userData);
   revalidatePath("/", "layout");
-  
-    if (data.accountType === "business") {
+
+  if (data.accountType === "business") {
     redirect("/business-setup");
   } else {
     redirect("/investor");
   }
-
-  
 }
-
 
 export async function createBusinessUser(formData: FormData) {
   const supabase = await createClient();
@@ -457,28 +450,17 @@ export async function getPitchById(pitchId: string): Promise<{
   }
 }
 
-
-
 export async function getCurrentUser(): Promise<{
-
-
-
   success: boolean;
   data?: User;
   error?: string;
-
 }> {
-
   try {
     const supabase = await createClient();
     const {
       data: { user: authUser },
       error: authError,
     } = await supabase.auth.getUser();
-
-
-
-
 
     if (authError || !authUser) {
       return { success: false, error: "User not authenticated" };
@@ -496,23 +478,24 @@ export async function getCurrentUser(): Promise<{
     }
 
     return { success: true, data: user };
-
   } catch (error) {
-
     console.error("Unexpected error fetching user profile:", error);
 
     return { success: false, error: "An unexpected error occurred" };
-
   }
 }
 
-
-export async function getCurrentBusinessUser(): Promise<{success: boolean; data?: BusinessUser; error?: string;
+export async function getCurrentBusinessUser(): Promise<{
+  success: boolean;
+  data?: BusinessUser;
+  error?: string;
 }> {
-
   try {
     const supabase = await createClient();
-    const {data: { user: authUser }, error: authError,} = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !authUser) {
       return { success: false, error: "User not authenticated" };
@@ -530,7 +513,6 @@ export async function getCurrentBusinessUser(): Promise<{success: boolean; data?
     }
 
     return { success: true, data: businessUser };
-
   } catch (error) {
     console.error("Unexpected error fetching business user profile:", error);
 
@@ -538,12 +520,15 @@ export async function getCurrentBusinessUser(): Promise<{success: boolean; data?
   }
 }
 
-export async function updateUserProfile(userData: UpdateUserData): Promise<{ success: boolean; error?: string }> {
-
-
+export async function updateUserProfile(
+  userData: UpdateUserData
+): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient();
-    const {data: { user: authUser }, error: authError,} = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !authUser) {
       return { success: false, error: "User not authenticated" };
@@ -562,8 +547,6 @@ export async function updateUserProfile(userData: UpdateUserData): Promise<{ suc
     revalidatePath("/", "layout");
 
     return { success: true };
-
-
   } catch (error) {
     console.error("Unexpected error updating user profile:", error);
 
@@ -571,12 +554,15 @@ export async function updateUserProfile(userData: UpdateUserData): Promise<{ suc
   }
 }
 
-export async function updateBusinessUserProfile(businessData: UpdateBusinessUserData): Promise<{ success: boolean; error?: string }> {
-
-
+export async function updateBusinessUserProfile(
+  businessData: UpdateBusinessUserData
+): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient();
-    const {data: { user: authUser }, error: authError,} = await supabase.auth.getUser();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !authUser) {
       return { success: false, error: "User not authenticated" };
@@ -595,7 +581,6 @@ export async function updateBusinessUserProfile(businessData: UpdateBusinessUser
     revalidatePath("/", "layout");
 
     return { success: true };
-
   } catch (error) {
     console.error("Unexpected error updating business user profile:", error);
 
@@ -604,7 +589,6 @@ export async function updateBusinessUserProfile(businessData: UpdateBusinessUser
 }
 
 export async function signOut(): Promise<{ success: boolean; error?: string }> {
-
   try {
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
@@ -616,7 +600,6 @@ export async function signOut(): Promise<{ success: boolean; error?: string }> {
 
     revalidatePath("/", "layout");
     redirect("/signin");
-
   } catch (error) {
     console.error("Unexpected error signing out:", error);
     return { success: false, error: "An unexpected error occurred" };
@@ -635,7 +618,11 @@ export async function getRandomPitch() {
   return { success: true, data };
 }
 
-export async function getActivePitchCount(): Promise<{ success: boolean; count?: number; error?: string }> {
+export async function getActivePitchCount(): Promise<{
+  success: boolean;
+  count?: number;
+  error?: string;
+}> {
   try {
     const supabase = await createClient();
     const { count, error } = await supabase
@@ -649,8 +636,11 @@ export async function getActivePitchCount(): Promise<{ success: boolean; count?:
   }
 }
 
-
-export async function getActiveInvestorCount(): Promise<{ success: boolean; count?: number; error?: string }> {
+export async function getActiveInvestorCount(): Promise<{
+  success: boolean;
+  count?: number;
+  error?: string;
+}> {
   try {
     const supabase = await createClient();
     const { count, error } = await supabase
@@ -661,40 +651,53 @@ export async function getActiveInvestorCount(): Promise<{ success: boolean; coun
     if (error) return { success: false, error: error.message };
     return { success: true, count: count ?? 0 };
   } catch (error) {
-
     return { success: false, error: "Unexpected error" };
   }
 }
-export async function getTotalFunded(): Promise<{ success: boolean; total?: number; error?: string }> {
+export async function getTotalFunded(): Promise<{
+  success: boolean;
+  total?: number;
+  error?: string;
+}> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("pitch")
       .select("current_amount");
-      
+
     if (error) return { success: false, error: error.message };
-    const total = Array.isArray(data) ? data.reduce((sum, p) => sum + (p.current_amount || 0), 0) : 0;
+    const total = Array.isArray(data)
+      ? data.reduce((sum, p) => sum + (p.current_amount || 0), 0)
+      : 0;
     return { success: true, total };
   } catch (error) {
-
     return { success: false, error: "Unexpected error" };
   }
 }
 
-
-export async function declareProfits(pitchId: string, profitAmount: number): Promise<{ success: boolean; error?: string }> {
+export async function declareProfits(
+  pitchId: string,
+  profitAmount: number
+): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient();
 
     //
     const { data: profitDist, error: profitDistError } = await supabase
       .from("profit_distribution")
-      .insert({ pitch_id: pitchId, total_profit: profitAmount, distribution_date: new Date().toISOString() })
+      .insert({
+        pitch_id: pitchId,
+        total_profit: profitAmount,
+        distribution_date: new Date().toISOString(),
+      })
       .select()
       .single();
     if (profitDistError || !profitDist) {
       console.error("Error declaring profits:", profitDistError);
-      return { success: false, error: profitDistError?.message || "Error declaring profits" };
+      return {
+        success: false,
+        error: profitDistError?.message || "Error declaring profits",
+      };
     }
     //
     const { data: pitch, error: pitchError } = await supabase
@@ -706,9 +709,15 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
       return { success: false, error: "Pitch not found" };
     }
 
-    if (typeof pitch.current_amount === "number" && typeof pitch.target_amount === "number") {
+    if (
+      typeof pitch.current_amount === "number" &&
+      typeof pitch.target_amount === "number"
+    ) {
       if (pitch.current_amount < pitch.target_amount) {
-        return { success: false, error: "Pitch is not fully funded. Cannot declare profits." };
+        return {
+          success: false,
+          error: "Pitch is not fully funded. Cannot declare profits.",
+        };
       }
     }
 
@@ -720,16 +729,22 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
       .eq("pitch_id", pitchId)
       .order("distribution_date", { ascending: false });
     if (distError) {
-      return { success: false, error: "Error checking previous profit distributions." };
+      return {
+        success: false,
+        error: "Error checking previous profit distributions.",
+      };
     }
 
     const now = new Date();
     const intervalMonths = 0; // CHANGE THIS TO ADJUST PROFIT DECLARATION INTERVAL 3 or 12 months
     if (!distributions || distributions.length === 0) {
-    if (pitch.end_date) {
+      if (pitch.end_date) {
         const endDate = new Date(pitch.end_date);
         if (now < endDate) {
-          return { success: false, error: `First profit can only be declared after pitch end date (${endDate.toLocaleDateString()})` };
+          return {
+            success: false,
+            error: `First profit can only be declared after pitch end date (${endDate.toLocaleDateString()})`,
+          };
         }
       }
     } else {
@@ -737,7 +752,10 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
       const nextAllowed = new Date(lastDist);
       nextAllowed.setMonth(nextAllowed.getMonth() + intervalMonths);
       if (now < nextAllowed) {
-        return { success: false, error: `Next profit can only be declared after ${nextAllowed.toLocaleDateString()}` };
+        return {
+          success: false,
+          error: `Next profit can only be declared after ${nextAllowed.toLocaleDateString()}`,
+        };
       }
     }
     //
@@ -750,13 +768,15 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
       return { success: false, error: "Error fetching investments" };
     }
 
-  const profitShare = pitch.profit_share ?? 0;
-  const profitShareAmount = profitAmount * (profitShare / 100);
+    const profitShare = pitch.profit_share ?? 0;
+    const profitShareAmount = profitAmount * (profitShare / 100);
 
     const weightedInvestments = investments.map((inv: any) => {
       let tierMultiplier = 1;
       if (Array.isArray(pitch.investment_tiers)) {
-        const tier = pitch.investment_tiers.find((t: any) => t.name === inv.tier?.name);
+        const tier = pitch.investment_tiers.find(
+          (t: any) => t.name === inv.tier?.name
+        );
         if (tier) {
           tierMultiplier = Number(tier.multiplier) || 1;
         }
@@ -768,38 +788,54 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
       };
     });
 
-    const totalWeighted = weightedInvestments.reduce((sum, w) => sum + w.weighted, 0);
+    const totalWeighted = weightedInvestments.reduce(
+      (sum, w) => sum + w.weighted,
+      0
+    );
     const payouts = weightedInvestments.map((w) => {
-      const payoutAmount = totalWeighted > 0 ? (w.weighted / totalWeighted) * profitShareAmount : 0;
-      
+      const payoutAmount =
+        totalWeighted > 0
+          ? (w.weighted / totalWeighted) * profitShareAmount
+          : 0;
+
       const payoutObj = {
         distribution_id: profitDist.id,
         investor_id: w.investor_id,
         amount: payoutAmount,
-        percentage: profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
+        percentage:
+          profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
         investment_amount: w.investment_amount,
         weighted: w.weighted,
         totalWeighted,
         profitShareAmount,
         profitShare,
-        profitAmount
+        profitAmount,
       };
-      console.log('[declareProfits] Computed payout:', payoutObj);
+      console.log("[declareProfits] Computed payout:", payoutObj);
       return {
         distribution_id: payoutObj.distribution_id,
         investor_id: payoutObj.investor_id,
         amount: payoutObj.amount,
-        percentage: payoutObj.percentage
+        percentage: payoutObj.percentage,
       };
     });
 
     for (const payout of payouts) {
-      const { error: payoutError } = await supabase.from("investor_payout").insert(payout);
+      const { error: payoutError } = await supabase
+        .from("investor_payout")
+        .insert(payout);
 
       if (payoutError) {
-        console.error(`[declareProfits] Error inserting payout for investor ${payout.investor_id}:`, payoutError);
+        console.error(
+          `[declareProfits] Error inserting payout for investor ${payout.investor_id}:`,
+          payoutError
+        );
       } else {
-        console.log(`[declareProfits] Payout inserted for investor ${payout.investor_id}: $${payout.amount.toFixed(2)}`);
+        console.log(
+          `[declareProfits] Payout inserted for investor ${
+            payout.investor_id
+          }: $${payout.amount.toFixed(2)}`
+        );
       }
 
       const { data: user, error: userError } = await supabase
@@ -810,18 +846,33 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
 
       if (!userError && user) {
         const newBalance = (user.account_balance || 0) + payout.amount;
-        const { error: updateError } = await supabase.from("user").update({ account_balance: newBalance }).eq("id", payout.investor_id);
+        const { error: updateError } = await supabase
+          .from("user")
+          .update({ account_balance: newBalance })
+          .eq("id", payout.investor_id);
         if (updateError) {
-          console.error(`[declareProfits] Error updating account balance for investor ${payout.investor_id}:`, updateError);
+          console.error(
+            `[declareProfits] Error updating account balance for investor ${payout.investor_id}:`,
+            updateError
+          );
         } else {
-          console.log(`[declareProfits] Account balance updated for investor ${payout.investor_id}: $${newBalance.toFixed(2)}`);
+          console.log(
+            `[declareProfits] Account balance updated for investor ${
+              payout.investor_id
+            }: $${newBalance.toFixed(2)}`
+          );
         }
       } else {
-        console.error(`[declareProfits] Error fetching user for investor ${payout.investor_id}:`, userError);
+        console.error(
+          `[declareProfits] Error fetching user for investor ${payout.investor_id}:`,
+          userError
+        );
       }
     }
 
-    console.log(`[declareProfits] All payouts processed for pitch ${pitchId}, profitAmount $${profitAmount}`);
+    console.log(
+      `[declareProfits] All payouts processed for pitch ${pitchId}, profitAmount $${profitAmount}`
+    );
     return { success: true };
   } catch (error) {
     console.error("Unexpected error declaring profits:", error);
@@ -829,7 +880,9 @@ export async function declareProfits(pitchId: string, profitAmount: number): Pro
   }
 }
 
-export async function fetchProfitDistributions(pitchId: string): Promise<{ success: boolean; data?: any[]; error?: string }> {
+export async function fetchProfitDistributions(
+  pitchId: string
+): Promise<{ success: boolean; data?: any[]; error?: string }> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -841,7 +894,7 @@ export async function fetchProfitDistributions(pitchId: string): Promise<{ succe
       console.error("Error fetching profit distributions:", error);
       return { success: false, error: error.message };
     }
-    
+
     return { success: true, data: data || [] };
   } catch (error) {
     console.error("Unexpected error fetching profit distributions:", error);
@@ -849,8 +902,10 @@ export async function fetchProfitDistributions(pitchId: string): Promise<{ succe
   }
 }
 
-export async function previewProfitDistribution(pitchId: string, profitAmount: number): Promise<{ success: boolean; data?: any; error?: string }> {
-  
+export async function previewProfitDistribution(
+  pitchId: string,
+  profitAmount: number
+): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const supabase = await createClient();
     const { data: pitch, error: pitchError } = await supabase
@@ -862,7 +917,6 @@ export async function previewProfitDistribution(pitchId: string, profitAmount: n
       return { success: false, error: "Pitch not found" };
     }
 
-    
     const { data: investments, error: invError } = await supabase
       .from("investment")
       .select("*")
@@ -878,14 +932,15 @@ export async function previewProfitDistribution(pitchId: string, profitAmount: n
       let tierMultiplier = 1;
       let tierName = "";
       if (Array.isArray(pitch.investment_tiers)) {
-        const tier = pitch.investment_tiers.find((t: any) => t.name === inv.tier?.name);
+        const tier = pitch.investment_tiers.find(
+          (t: any) => t.name === inv.tier?.name
+        );
         if (tier) {
           tierMultiplier = Number(tier.multiplier) || 1;
           tierName = tier.name;
         }
       }
       return {
-
         investor_id: inv.investor_id,
         investment_amount: inv.investment_amount,
         tier_name: tierName,
@@ -893,24 +948,31 @@ export async function previewProfitDistribution(pitchId: string, profitAmount: n
         weighted: inv.investment_amount * tierMultiplier,
       };
     });
-    const totalWeighted = weightedInvestments.reduce((sum, w) => sum + w.weighted, 0);
+    const totalWeighted = weightedInvestments.reduce(
+      (sum, w) => sum + w.weighted,
+      0
+    );
     const investorPayouts = weightedInvestments.map((w) => {
-
-      const payoutAmount = totalWeighted > 0 ? (w.weighted / totalWeighted) * profitShareAmount : 0;
+      const payoutAmount =
+        totalWeighted > 0
+          ? (w.weighted / totalWeighted) * profitShareAmount
+          : 0;
       return {
-      
         investor_id: w.investor_id,
         investment_amount: w.investment_amount,
         tier_name: w.tier_name,
         tier_multiplier: w.tier_multiplier,
         amount: payoutAmount,
-        percentage: profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
+        percentage:
+          profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
       };
     });
-    const totalInvested = investments.reduce((sum, inv) => sum + (inv.investment_amount || 0), 0);
+    const totalInvested = investments.reduce(
+      (sum, inv) => sum + (inv.investment_amount || 0),
+      0
+    );
     const businessKeeps = profitAmount - profitShareAmount;
     const preview = {
-
       total_profit: profitAmount,
       total_to_investors: profitShareAmount,
       business_keeps: businessKeeps,
@@ -924,5 +986,4 @@ export async function previewProfitDistribution(pitchId: string, profitAmount: n
     console.error("Unexpected error previewing profit distribution:", error);
     return { success: false, error: "Unexpected error" };
   }
-
 }
