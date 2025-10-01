@@ -987,3 +987,194 @@ export async function previewProfitDistribution(
     return { success: false, error: "Unexpected error" };
   }
 }
+
+// Transaction actions for deposits and withdrawals
+export async function depositFunds(
+  amount: number,
+  cardDetails: {
+    cardNumber: string;
+    cardExpiry: string;
+    cardCvv: string;
+    cardName: string;
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Validate amount
+    if (amount <= 0) {
+      return { success: false, error: "Amount must be greater than £0" };
+    }
+
+    // Get current user data
+    const { data: userData, error: userError } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", authUser.id)
+      .single();
+
+    if (userError || !userData) {
+      return { success: false, error: "User not found" };
+    }
+
+    // Update user balance first (instant fake deposit)
+    const newBalance = Number(userData.account_balance) + Number(amount);
+    const { error: updateError } = await supabase
+      .from("user")
+      .update({ account_balance: newBalance })
+      .eq("id", authUser.id);
+
+    if (updateError) {
+      console.error("Error updating balance:", updateError);
+      return { success: false, error: "Failed to update account balance" };
+    }
+
+    // Create transaction record
+    const { data: transaction, error: transactionError } = await supabase
+      .from("transactions")
+      .insert([
+        {
+          user_id: authUser.id,
+          amount: amount,
+          type: "deposit",
+          status: "completed",
+          payment_method: "card",
+        },
+      ])
+      .select()
+      .single();
+
+    if (transactionError) {
+      console.error("Error creating transaction:", transactionError);
+      // Don't fail the whole operation if transaction record fails
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true, data: { transaction, newBalance } };
+  } catch (error) {
+    console.error("Unexpected error depositing funds:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function withdrawFunds(
+  amount: number,
+  bankDetails: {
+    accountNumber: string;
+    sortCode: string;
+    accountName: string;
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    // Validate amount
+    if (amount <= 0) {
+      return { success: false, error: "Amount must be greater than £0" };
+    }
+
+    // Get current user data
+    const { data: userData, error: userError } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", authUser.id)
+      .single();
+
+    if (userError || !userData) {
+      return { success: false, error: "User not found" };
+    }
+
+    // Check if user has sufficient balance
+    if (Number(userData.account_balance) < Number(amount)) {
+      return { success: false, error: "Insufficient balance" };
+    }
+
+    // Update user balance first (instant fake withdrawal)
+    const newBalance = Number(userData.account_balance) - Number(amount);
+    const { error: updateError } = await supabase
+      .from("user")
+      .update({ account_balance: newBalance })
+      .eq("id", authUser.id);
+
+    if (updateError) {
+      console.error("Error updating balance:", updateError);
+      return { success: false, error: "Failed to update account balance" };
+    }
+
+    // Create transaction record
+    const { data: transaction, error: transactionError } = await supabase
+      .from("transactions")
+      .insert([
+        {
+          user_id: authUser.id,
+          amount: amount,
+          type: "withdraw",
+          status: "completed",
+          payment_method: "bank_account",
+        },
+      ])
+      .select()
+      .single();
+
+    if (transactionError) {
+      console.error("Error creating transaction:", transactionError);
+      // Don't fail the whole operation if transaction record fails
+    }
+
+    revalidatePath("/", "layout");
+    return { success: true, data: { transaction, newBalance } };
+  } catch (error) {
+    console.error("Unexpected error withdrawing funds:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function getTransactionHistory(): Promise<{
+  success: boolean;
+  data?: any[];
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user: authUser },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !authUser) {
+      return { success: false, error: "User not authenticated" };
+    }
+
+    const { data: transactions, error: transactionsError } = await supabase
+      .from("transactions")
+      .select("*")
+      .eq("user_id", authUser.id)
+      .order("created_at", { ascending: false });
+
+    if (transactionsError) {
+      console.error("Error fetching transactions:", transactionsError);
+      return { success: false, error: transactionsError.message };
+    }
+
+    return { success: true, data: transactions || [] };
+  } catch (error) {
+    console.error("Unexpected error fetching transactions:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
