@@ -69,9 +69,20 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
 
-    // Business users cannot access investor routes
     if (userRole === "business" && isInvestorRoute) {
-      return NextResponse.redirect(new URL("/business", request.url));
+      const allowedInvestorPaths = [
+        "/investor/browse-pitches",
+        "/investor/browse-pitches/",
+      ];
+      if (
+        path === "/investor/browse-pitches" ||
+        path === "/investor/browse-pitches/" ||
+        path.startsWith("/investor/browse-pitches/")
+      ) {
+        // allow
+      } else {
+        return NextResponse.redirect(new URL("/business", request.url));
+      }
     }
 
     // Investor users cannot access business routes
