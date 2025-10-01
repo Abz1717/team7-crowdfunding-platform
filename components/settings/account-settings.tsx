@@ -28,6 +28,9 @@ import {
   CreditCard,
   Download,
   Trash2,
+  Wallet,
+  Plus,
+  Minus,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -37,6 +40,9 @@ import {
   signOut,
 } from "@/lib/action";
 import type { User as UserType, BusinessUser } from "@/lib/types/user";
+import { DepositDialog } from "@/components/settings/deposit-dialog";
+import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
+import { TransactionHistory } from "@/components/settings/transaction-history";
 
 export function AccountSettings() {
   const [user, setUser] = useState<UserType | null>(null);
@@ -55,6 +61,8 @@ export function AccountSettings() {
   });
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
 
   // User form data
   const [userFormData, setUserFormData] = useState({
@@ -223,7 +231,9 @@ export function AccountSettings() {
         <div className="w-64 bg-sidebar border-r border-sidebar-border p-6 flex flex-col h-screen">
           <div>
             <div className="mb-8">
-              <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+              <h1 className="text-xl font-semibold text-foreground">
+                Settings
+              </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 Manage your account preferences
               </p>
@@ -405,7 +415,11 @@ export function AccountSettings() {
                               Account Balance
                             </Label>
                             <p className="text-foreground font-medium">
-                              ${user.account_balance.toLocaleString()}
+                              £
+                              {user.account_balance.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
                             </p>
                           </div>
                         </div>
@@ -796,34 +810,56 @@ export function AccountSettings() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">
-                    Billing
+                    Wallet & Billing
                   </h2>
                   <p className="text-muted-foreground">
-                    Manage your billing information and subscription
+                    Manage your account balance
                   </p>
                 </div>
 
                 <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" />
-                      Current Plan
+                      <Wallet className="h-5 w-5" />
+                      Account Balance
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between">
+                    <div className="space-y-4">
                       <div>
-                        <p className="text-foreground font-medium">
-                          Professional Plan
+                        <p className="text-3xl font-bold text-foreground">
+                          £
+                          {user.account_balance.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          $29/month • Next billing date: Jan 15, 2024
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Available balance
                         </p>
                       </div>
-                      <Button variant="outline">Manage Plan</Button>
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={() => setDepositDialogOpen(true)}
+                          className="flex-1"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Deposit
+                        </Button>
+                        <Button
+                          onClick={() => setWithdrawDialogOpen(true)}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          <Minus className="h-4 w-4 mr-2" />
+                          Withdraw
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
+
+                <TransactionHistory />
               </div>
             )}
 
@@ -880,6 +916,18 @@ export function AccountSettings() {
           </div>
         </div>
       </div>
+
+      <DepositDialog
+        open={depositDialogOpen}
+        onOpenChange={setDepositDialogOpen}
+        onSuccess={loadUserData}
+      />
+      <WithdrawDialog
+        open={withdrawDialogOpen}
+        onOpenChange={setWithdrawDialogOpen}
+        onSuccess={loadUserData}
+        currentBalance={user.account_balance}
+      />
     </div>
   );
 }

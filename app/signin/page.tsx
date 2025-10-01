@@ -11,7 +11,8 @@ export default function SignInPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/"); 
+      const redirectUrl = user.role === "business" ? "/business" : "/investor";
+      router.replace(redirectUrl);
     }
   }, [user, isLoading, router]);
 

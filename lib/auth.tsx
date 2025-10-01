@@ -1,92 +1,158 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { createClient } from "@/utils/supabase/client"
-import type { User as SupabaseUser } from "@supabase/supabase-js"
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from "react";
+import { createClient } from "@/utils/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-export type UserRole = "business" | "investor"
+export type UserRole = "business" | "investor";
 
 export interface User {
-  id: string
-  email: string
-  name: string
-  role: UserRole
-  createdAt: Date
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: Date;
 }
 
 interface AuthContextType {
-  user: User | null
-  logout: () => Promise<void>
-  isLoading: boolean
-  refreshUser: () => Promise<void>
+  user: User | null;
+  logout: () => Promise<void>;
+  isLoading: boolean;
+  refreshUser: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const supabase = createClient();
+
+  const fetchUserProfile = useCallback(
+    async (supabaseUser: SupabaseUser) => {
+      try {
+        const { data, error } = await supabase
+          .from("user")
+          .select("first_name, last_name, account_type, created_at")
+          .eq("email", supabaseUser.email)
+          .single();
+
+        if (error) {
+          console.error("Error fetching user profile:", error);
+          setUser(null);
+          return;
+        }
+
+        if (data) {
+          const user: User = {
+            id: supabaseUser.id,
+            email: supabaseUser.email!,
+            name: `${data.first_name} ${data.last_name}`,
+            role: data.account_type as UserRole,
+            createdAt: new Date(data.created_at),
+          };
+          setUser(user);
+        } else {
+          console.error("No user data found for email:", supabaseUser.email);
+          setUser(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        setUser(null);
+      }
+    },
+    [supabase]
+  );
 
   useEffect(() => {
     //  initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
+      console.log("Getting initial session");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (session?.user) {
-        await fetchUserProfile(session.user)
+        await fetchUserProfile(session.user);
       }
-      
-      setIsLoading(false)
-    }
-    getInitialSession()
+      console.log("Session fetched");
+      setIsLoading(false);
+    };
+    getInitialSession();
 
     // auth changes - server actions signup)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event, session?.user?.email);
       if (session?.user) {
-        await fetchUserProfile(session.user)
+        await fetchUserProfile(session.user);
       } else {
-        setUser(null)
+        setUser(null);
       }
-      setIsLoading(false)
-    })
+      setIsLoading(false);
+    });
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => subscription.unsubscribe();
+  }, [fetchUserProfile]);
 
+  // Add a window focus listener to refresh auth state when user returns to the page
+  useEffect(() => {
+    const handleFocus = async () => {
+      console.log("Window focused, checking auth state");
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user && !user) {
+        console.log("Found session on focus, fetching profile");
+        await fetchUserProfile(session.user);
+      }
+    };
 
-  const fetchUserProfile = async (supabaseUser: SupabaseUser) => {
-    try {
-      const { data, error } = await supabase
-        .from('user')
-        .select('first_name, last_name, account_type, created_at')
-        .eq('email', supabaseUser.email)
-        .single()
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchUserProfile, user]);
 
-
-      if (data && !error) {
-        const user: User = {
-          id: supabaseUser.id,
-          email: supabaseUser.email!,
-          name: `${data.first_name} ${data.last_name}`,
-          role: data.account_type as UserRole,
-          createdAt: new Date(data.created_at)
+  // Check for refresh parameter and force session check
+  useEffect(() => {
+    const checkRefreshParam = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("refresh") === "true") {
+        console.log("Refresh parameter detected, checking session");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (session?.user) {
+          console.log("Found session after refresh, fetching profile");
+          await fetchUserProfile(session.user);
         }
-        setUser(user)
+        // Remove the refresh parameter from URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete("refresh");
+        window.history.replaceState({}, "", newUrl.toString());
       }
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-    }
-  }
+    };
+
+    checkRefreshParam();
+  }, [fetchUserProfile]);
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
-  }
+    await supabase.auth.signOut();
+    setUser(null);
+  };
 
   // Refresh user profile from DB
   const refreshUser = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (session?.user) {
       await fetchUserProfile(session.user);
     }
@@ -96,13 +162,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ user, logout, isLoading, refreshUser }}>
       {children}
     </AuthContext.Provider>
-  )
+  );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider")
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-  return context
+  return context;
 }
