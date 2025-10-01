@@ -1,9 +1,9 @@
 "use client"
-export default function InvestorPage() {
+export default function BusinessPage() {
   return (
     <div>
-      <h1>Investor Dashboard</h1>
-      <p>Welcome to your investor dashboard.</p>
+      <h1>Business Dashboard</h1>
+      <p>Welcome to your business dashboard.</p>
     </div>
   )
 }

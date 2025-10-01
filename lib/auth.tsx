@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserProfile = useCallback(
     async (supabaseUser: SupabaseUser) => {
       try {
+        console.log("[AuthProvider] Fetching user profile for:", supabaseUser.email);
         const { data, error } = await supabase
           .from("user")
           .select("first_name, last_name, account_type, created_at")
@@ -45,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .single();
 
         if (error) {
-          console.error("Error fetching user profile:", error);
+          console.error("[AuthProvider] Error fetching user profile from DB:", error, "for email:", supabaseUser.email);
           setUser(null);
           return;
         }
@@ -58,13 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: data.account_type as UserRole,
             createdAt: new Date(data.created_at),
           };
+          console.log("[AuthProvider] User profile loaded:", user);
           setUser(user);
         } else {
-          console.error("No user data found for email:", supabaseUser.email);
+          console.error("[AuthProvider] No user data found in DB for email:", supabaseUser.email);
           setUser(null);
         }
       } catch (error) {
-        console.error("Error fetching user profile:", error);
+        console.error("[AuthProvider] Exception fetching user profile:", error, "for email:", supabaseUser.email);
         setUser(null);
       }
     },
@@ -73,16 +75,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     //  initial session
+
     const getInitialSession = async () => {
-      console.log("Getting initial session");
+      console.log("[AuthProvider] Getting initial session");
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (session?.user) {
+        console.log("[AuthProvider] Session user found:", session.user.email);
         await fetchUserProfile(session.user);
+      } else {
+        console.log("[AuthProvider] No session user found");
       }
-      console.log("Session fetched");
+      console.log("[AuthProvider] Session fetched");
       setIsLoading(false);
     };
     getInitialSession();
@@ -91,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email);
+      console.log(`[AuthProvider] Auth state changed: ${event}`, session?.user?.email);
       if (session?.user) {
         await fetchUserProfile(session.user);
       } else {
