@@ -89,7 +89,7 @@ export async function signup(formData: FormData) {
       last_name: data.lastName,
       email: data.email,
       account_type: data.accountType,
-      account_balance: 20,
+      account_balance: 0,
     },
   ]);
 
@@ -100,10 +100,14 @@ export async function signup(formData: FormData) {
   console.log("Signup success:", userData);
   revalidatePath("/", "layout");
 
-  if (data.accountType === "business") {
-    redirect("/business-setup");
+  if (!userData.session) {
+    redirect("/signin?confirm=1");
   } else {
-    redirect("/investor");
+    if (data.accountType === "business") {
+      redirect("/business-setup");
+    } else {
+      redirect("/investor");
+    }
   }
 }
 
