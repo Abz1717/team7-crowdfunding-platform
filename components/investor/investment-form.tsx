@@ -14,11 +14,12 @@ import { createInvestment, getAccountBalance, updateAccountBalance } from "@/lib
 import type { Pitch, InvestmentTier } from "@/lib/types"
 
 interface InvestmentFormProps {
-  pitch: Pitch
-  onInvestmentComplete?: () => void
+  pitch: Pitch;
+  onInvestmentComplete?: () => void;
+  canInvest?: boolean;
 }
 
-export function InvestmentForm({ pitch, onInvestmentComplete }: InvestmentFormProps) {
+export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }: InvestmentFormProps) {
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -113,7 +114,6 @@ export function InvestmentForm({ pitch, onInvestmentComplete }: InvestmentFormPr
 
 
   return (
-
     <Card>
 
       <CardHeader>
@@ -179,27 +179,28 @@ export function InvestmentForm({ pitch, onInvestmentComplete }: InvestmentFormPr
           </Card>
         )}
 
-        <div className="space-y-4">
-          <Label>Funding Method</Label>
-          <RadioGroup value={fundingMethod} onValueChange={(value) => setFundingMethod(value as "balance" | "bank")}>
-            <div className="flex items-center space-x-2">
-              
-              <RadioGroupItem value="balance" id="balance" />
-              <Label htmlFor="balance" className="flex items-center gap-2 cursor-pointer">
-                <Wallet className="h-4 w-4" />
-                Account Balance (${accountBalance.toLocaleString()} available)
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="bank" id="bank" />
-              
-              <Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer">
-                <CreditCard className="h-4 w-4" />
-                Bank Transfer (Mock Integration)
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
+        {user && user.role === "investor" && (
+          <div className="space-y-4">
+            <Label>Funding Method</Label>
+            <RadioGroup value={fundingMethod} onValueChange={(value) => setFundingMethod(value as "balance" | "bank")}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="balance" id="balance" />
+                <Label htmlFor="balance" className="flex items-center gap-2 cursor-pointer">
+                  <Wallet className="h-4 w-4" />
+                  Account Balance (${accountBalance.toLocaleString()} available)
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="bank" id="bank" />
+                <Label htmlFor="bank" className="flex items-center gap-2 cursor-pointer">
+                  <CreditCard className="h-4 w-4" />
+                  Bank Transfer (Mock Integration)
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+        )}
 
         {investmentAmount > 0 && selectedTier && (
           <Card className="bg-primary/5 border-primary/20">
@@ -236,17 +237,21 @@ export function InvestmentForm({ pitch, onInvestmentComplete }: InvestmentFormPr
           </Card>
         )}
 
-        <Button
-          onClick={handleInvestment}
-          disabled={!selectedTier || investmentAmount === 0 || isProcessing}
-          className="w-full"
-          size="lg"
-        >
-          {isProcessing ? "Processing Investment..." : `Invest $${investmentAmount.toLocaleString()}`}
-        </Button>
-        <p className="text-xs text-muted-foreground text-center">
-          By investing, you agree to the platform terms and the profit-sharing agreement for this pitch.
-        </p>
+        {canInvest ? (
+          <Button
+            onClick={handleInvestment}
+            disabled={!selectedTier || investmentAmount === 0 || isProcessing}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing ? "Processing Investment..." : `Invest $${investmentAmount.toLocaleString()}`}
+          </Button>
+        ) : null}
+        {user && user.role === "investor" && (
+          <p className="text-xs text-muted-foreground mt-2">
+            By investing, you agree to the platform terms and the profit-sharing agreement for this pitch.
+          </p>
+        )}
       </CardContent>
     </Card>
   )

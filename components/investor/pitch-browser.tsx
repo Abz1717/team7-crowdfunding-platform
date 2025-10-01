@@ -11,8 +11,12 @@ import { getActivePitches } from "@/lib/data"
 import type { Pitch } from "@/lib/types"
 import Link from "next/link"
 import { Search, Filter, TrendingUp, Calendar, DollarSign, Users } from "lucide-react"
+import { useAuth } from "@/lib/auth"
+import { useBusinessUser } from "@/hooks/useBusinessUser"
 
 export function PitchBrowser() {
+  const { user } = useAuth();
+  const { businessUser } = useBusinessUser();
   const [pitches, setPitches] = useState<(Pitch & { created_at: Date, end_date: Date })[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("newest")
@@ -152,7 +156,8 @@ export function PitchBrowser() {
           filteredPitches.map((pitch) => {
             const fundingProgress = (pitch.current_amount / pitch.target_amount) * 100
             const daysLeft = getDaysLeft(pitch.end_date)
-
+            // Show tag if business user owns pitch (compare to businessUser.id)
+            const isMine = user && user.role === "business" && businessUser && pitch.business_id === businessUser.id;
             return (
               <Card key={pitch.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
@@ -161,9 +166,14 @@ export function PitchBrowser() {
                       <CardTitle className="text-xl mb-2">{pitch.title}</CardTitle>
                       <CardDescription className="text-base">{pitch.elevator_pitch}</CardDescription>
                     </div>
-                    <Badge variant="default" className="ml-4">
-                      {pitch.profit_share}% Returns
-                    </Badge>
+                    <div className="flex flex-col items-end ml-4">
+                      <Badge variant="default">{pitch.profit_share}% Returns</Badge>
+                      {isMine && (
+                        <span className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full font-semibold text-xs mt-2 align-middle shadow">
+                          My Pitch
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -223,7 +233,11 @@ export function PitchBrowser() {
 
                   <div className="flex gap-2">
                     <Link href={`/investor/browse-pitches/${pitch.id}`}>
-                      <Button>View Details & Invest</Button>
+                      {user && user.role === "business" ? (
+                        <Button>View Details</Button>
+                      ) : (
+                        <Button>View Details & Invest</Button>
+                      )}
                     </Link>
                     <Button variant="outline">Save for Later</Button>
                   </div>

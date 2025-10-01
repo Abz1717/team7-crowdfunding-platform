@@ -27,7 +27,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
   
   useEffect(() => {
     async function fetchPitch() {
-      if (!isLoading && (!user || user.role !== "investor")) {
+      if (!isLoading && !user) {
         router.push("/auth")
         return
       }
@@ -45,13 +45,15 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
   }
 
-  if (!user || user.role !== "investor" || !pitch) {
+  if (!user || !pitch) {
     return null
   }
 
   const fundingProgress = (pitch.current_amount / pitch.target_amount) * 100
   const endDate = typeof pitch.end_date === "string" ? new Date(pitch.end_date) : pitch.end_date
   const daysLeft = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+  // Only allow investors to invest
+  const canInvest = user.role === "investor"
 
   const formatDate = (date: Date | string) => {
     const d = typeof date === "string" ? new Date(date) : date
@@ -65,7 +67,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-6">
-        <Link href="/investor/browse-pitches">
+        <Link href={user && user.role === "business" ? "/business/other-pitches" : "/investor/browse-pitches"}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Opportunities
@@ -237,6 +239,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
               onInvestmentComplete={() => {
                 router.push("/investor/portfolio")
               }}
+              canInvest={canInvest}
             />
           )}
 
