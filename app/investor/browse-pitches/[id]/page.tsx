@@ -67,7 +67,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-6">
-        <Link href="/investor/browse-pitches">
+        <Link href={user && user.role === "business" ? "/business/other-pitches" : "/investor/browse-pitches"}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Opportunities
