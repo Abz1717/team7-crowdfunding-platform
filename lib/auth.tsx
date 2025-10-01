@@ -78,18 +78,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const getInitialSession = async () => {
       console.log("[AuthProvider] Getting initial session");
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        console.log("[AuthProvider] Session user found:", session.user.email);
-        await fetchUserProfile(session.user);
-      } else {
-        console.log("[AuthProvider] No session user found");
+        if (session?.user) {
+          console.log("[AuthProvider] Session user found:", session.user.email);
+          await fetchUserProfile(session.user);
+        } else {
+          console.log("[AuthProvider] No session user found");
+        }
+        console.log("[AuthProvider] Session fetched");
+      } catch (err) {
+        console.error("[AuthProvider] Error in getInitialSession", err);
+      } finally {
+        setIsLoading(false);
       }
-      console.log("[AuthProvider] Session fetched");
-      setIsLoading(false);
     };
     getInitialSession();
 
@@ -98,12 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log(`[AuthProvider] Auth state changed: ${event}`, session?.user?.email);
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setUser(null);
+      try {
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("[AuthProvider] Error in onAuthStateChange", err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
     return () => subscription.unsubscribe();
