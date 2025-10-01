@@ -36,7 +36,7 @@ export function Navbar() {
                     <Link href="/business/my-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       My pitches
                     </Link>
-                    <Link href="/business" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link href="/business/other-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       Other pitches
                     </Link>
                   </>

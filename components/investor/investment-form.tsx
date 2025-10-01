@@ -14,11 +14,12 @@ import { createInvestment, getAccountBalance, updateAccountBalance } from "@/lib
 import type { Pitch, InvestmentTier } from "@/lib/types"
 
 interface InvestmentFormProps {
-  pitch: Pitch
-  onInvestmentComplete?: () => void
+  pitch: Pitch;
+  onInvestmentComplete?: () => void;
+  canInvest?: boolean;
 }
 
-export function InvestmentForm({ pitch, onInvestmentComplete }: InvestmentFormProps) {
+export function InvestmentForm({ pitch, onInvestmentComplete, canInvest = true }: InvestmentFormProps) {
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -236,14 +237,16 @@ export function InvestmentForm({ pitch, onInvestmentComplete }: InvestmentFormPr
           </Card>
         )}
 
-        <Button
-          onClick={handleInvestment}
-          disabled={!selectedTier || investmentAmount === 0 || isProcessing}
-          className="w-full"
-          size="lg"
-        >
-          {isProcessing ? "Processing Investment..." : `Invest $${investmentAmount.toLocaleString()}`}
-        </Button>
+        {canInvest ? (
+          <Button
+            onClick={handleInvestment}
+            disabled={!selectedTier || investmentAmount === 0 || isProcessing}
+            className="w-full"
+            size="lg"
+          >
+            {isProcessing ? "Processing Investment..." : `Invest $${investmentAmount.toLocaleString()}`}
+          </Button>
+        ) : null}
         <p className="text-xs text-muted-foreground text-center">
           By investing, you agree to the platform terms and the profit-sharing agreement for this pitch.
         </p>
