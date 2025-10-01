@@ -204,6 +204,9 @@ export async function createPitch(
           detailed_pitch: pitchData.detailed_pitch,
           target_amount: pitchData.target_amount,
           profit_share: pitchData.profit_share,
+          profit_distribution_frequency:
+            pitchData.profit_distribution_frequency,
+          tags: pitchData.tags,
           end_date: pitchData.end_date,
           investment_tiers: pitchData.investment_tiers,
           ai_analysis: pitchData.ai_analysis || null,

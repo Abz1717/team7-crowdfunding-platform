@@ -28,7 +28,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     async function fetchPitch() {
       if (!isLoading && !user) {
-        router.push("/auth")
+        router.push("/signin")
         return
       }
       const foundPitch = await getPitchById(resolvedParams.id)

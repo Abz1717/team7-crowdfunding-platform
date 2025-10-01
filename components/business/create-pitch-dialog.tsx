@@ -43,6 +43,7 @@ import {
   AlertTriangle,
   ThumbsUp,
   Lightbulb,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -51,6 +52,13 @@ import type { PitchFormData, AIAnalysis } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
 import { generatePitchAnalysisDirect } from "@/lib/ai/gemini-direct";
 import { AIAnalysisDisplay } from "@/components/business/ai-analysis-display";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface CreatePitchDialogProps {
   onCreated?: (pitch: unknown) => void;
@@ -72,13 +80,30 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
     detailedPitch: "",
     targetAmount: "",
     profitShare: "",
+    profitDistributionFrequency: "monthly",
+    tags: [],
     endDate: undefined as Date | undefined,
-    tiers: [
-      { name: "Bronze", minAmount: "", maxAmount: "", multiplier: "1.0" },
-      { name: "Silver", minAmount: "", maxAmount: "", multiplier: "1.2" },
-      { name: "Gold", minAmount: "", maxAmount: "", multiplier: "1.5" },
-    ],
+    tiers: [],
   });
+
+  const [tagInput, setTagInput] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+
+  const suggestedTags = [
+    "Technology",
+    "Healthcare",
+    "Fintech",
+    "AI",
+    "SaaS",
+    "Consumer",
+    "B2B",
+    "Marketplace",
+    "Climate",
+    "Education",
+    "Gaming",
+    "Web3",
+    "Other",
+  ];
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
@@ -99,8 +124,15 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
           formData.endDate
         );
       case 4:
-        return formData.tiers.every(
-          (t) => t.minAmount !== "" && t.maxAmount !== "" && t.multiplier !== ""
+        return (
+          formData.tiers.length > 0 &&
+          formData.tiers.every(
+            (t) =>
+              t.name.trim() !== "" &&
+              t.minAmount !== "" &&
+              t.maxAmount !== "" &&
+              t.multiplier !== ""
+          )
         );
       case 5:
         return true; // Supporting media is optional
@@ -123,6 +155,50 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
   };
 
   const prevStep = () => currentStep > 1 && setCurrentStep(currentStep - 1);
+
+  const addTier = () => {
+    setFormData({
+      ...formData,
+      tiers: [
+        ...formData.tiers,
+        { name: "", minAmount: "", maxAmount: "", multiplier: "1.0" },
+      ],
+    });
+  };
+
+  const removeTier = (index: number) => {
+    setFormData({
+      ...formData,
+      tiers: formData.tiers.filter((_, i) => i !== index),
+    });
+  };
+
+  const updateTier = (
+    index: number,
+    field: keyof (typeof formData.tiers)[0],
+    value: string
+  ) => {
+    const newTiers = [...formData.tiers];
+    newTiers[index] = { ...newTiers[index], [field]: value };
+    setFormData({ ...formData, tiers: newTiers });
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tagInput.trim()],
+      });
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((tag) => tag !== tagToRemove),
+    });
+  };
 
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -214,13 +290,12 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
           detailedPitch: "",
           targetAmount: "",
           profitShare: "",
+          profitDistributionFrequency: "monthly",
+          tags: [],
           endDate: undefined,
-          tiers: [
-            { name: "Bronze", minAmount: "", maxAmount: "", multiplier: "1.0" },
-            { name: "Silver", minAmount: "", maxAmount: "", multiplier: "1.2" },
-            { name: "Gold", minAmount: "", maxAmount: "", multiplier: "1.5" },
-          ],
+          tiers: [],
         });
+        setTagInput("");
         setCurrentStep(1);
         setAiAnalysis(null);
         setUploadedFiles([]);
@@ -313,10 +388,10 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       }}
     >
       <DialogTrigger asChild>
-          <Button className="gap-2 bg-black hover:bg-gray-900 text-white font-medium px-4 py-2">
-            <Plus className="h-4 w-4" />
-            Create New Pitch
-          </Button>
+        <Button className="gap-2 bg-black hover:bg-gray-900 text-white font-medium px-4 py-2">
+          <Plus className="h-4 w-4" />
+          Create New Pitch
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-6">
@@ -449,6 +524,88 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       placeholder="Describe your product/service, market opportunity, target customers..."
                     />
                   </div>
+                  {/* Pitch Tags moved here */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Pitch Tags
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={selectedTag}
+                        onValueChange={(value) => setSelectedTag(value)}
+                      >
+                        <SelectTrigger className="w-full border-gray-300 focus:border-black focus:ring-black">
+                          <SelectValue placeholder="Choose a common tag" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suggestedTags.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedTag === "Other" && (
+                        <Input
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          placeholder="Enter custom tag"
+                          className="border-gray-300 focus:border-black focus:ring-black"
+                        />
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (selectedTag === "Other") {
+                            const custom = tagInput.trim();
+                            if (custom && !formData.tags.includes(custom)) {
+                              setFormData({
+                                ...formData,
+                                tags: [...formData.tags, custom],
+                              });
+                              setTagInput("");
+                              setSelectedTag("");
+                            }
+                            return;
+                          }
+
+                          if (
+                            selectedTag &&
+                            !formData.tags.includes(selectedTag)
+                          ) {
+                            setFormData({
+                              ...formData,
+                              tags: [...formData.tags, selectedTag],
+                            });
+                            setSelectedTag("");
+                          }
+                        }}
+                        className="border-gray-300"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {formData.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.tags.map((tag) => (
+                          <div
+                            key={tag}
+                            className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                          >
+                            <span>{tag}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="text-gray-500 hover:text-gray-700"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -565,6 +722,33 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                           Percentage of profits to share with investors (1-100%)
                         </p>
                       </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="profitDistribution"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Profit Distribution Frequency *
+                        </Label>
+                        <select
+                          id="profitDistribution"
+                          value={formData.profitDistributionFrequency}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              profitDistributionFrequency: e.target.value,
+                            })
+                          }
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="semi-annually">Semi-Annually</option>
+                          <option value="annually">Annually</option>
+                        </select>
+                        <p className="text-xs text-gray-500">
+                          How often will profits be distributed to investors?
+                        </p>
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -578,91 +762,142 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                     Investment Tiers
                   </h3>
                   <p className="text-gray-600">
-                    Configure different investment levels and their benefits
+                    Create custom investment tiers with different benefit levels
                   </p>
                 </div>
                 <div className="space-y-6 max-w-3xl mx-auto">
-                  {formData.tiers.map((tier, index) => (
-                    <Card
-                      key={index}
-                      className="border border-gray-200 shadow-sm"
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-lg font-semibold text-gray-800">
-                          {tier.name} Tier
-                        </CardTitle>
-                        <CardDescription className="text-gray-600">
-                          Define the range and multiplier for this investment
-                          tier
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
-                            Min Amount (£) *
-                          </Label>
-                          <Input
-                            type="number"
-                            value={tier.minAmount}
-                            onChange={(e) => {
-                              const t = [...formData.tiers];
-                              t[index].minAmount = e.target.value;
-                              setFormData({ ...formData, tiers: t });
-                            }}
-                            placeholder={
-                              index === 0
-                                ? "1000"
-                                : index === 1
-                                ? "5000"
-                                : "15000"
-                            }
-                            className="border-gray-300 focus:border-black focus:ring-black"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
-                            Max Amount (£) *
-                          </Label>
-                          <Input
-                            type="number"
-                            value={tier.maxAmount}
-                            onChange={(e) => {
-                              const t = [...formData.tiers];
-                              t[index].maxAmount = e.target.value;
-                              setFormData({ ...formData, tiers: t });
-                            }}
-                            placeholder={
-                              index === 0
-                                ? "4999"
-                                : index === 1
-                                ? "14999"
-                                : "50000"
-                            }
-                            className="border-gray-300 focus:border-black focus:ring-black"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
-                            Multiplier *
-                          </Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={tier.multiplier}
-                            onChange={(e) => {
-                              const t = [...formData.tiers];
-                              t[index].multiplier = e.target.value;
-                              setFormData({ ...formData, tiers: t });
-                            }}
-                            placeholder={
-                              index === 0 ? "1.0" : index === 1 ? "1.2" : "1.5"
-                            }
-                            className="border-gray-300 focus:border-black focus:ring-black"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {formData.tiers.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                      <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                        No Tiers Yet
+                      </h4>
+                      <p className="text-gray-600 mb-6">
+                        Create investment tiers to offer different benefits to
+                        investors
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={addTier}
+                        className="bg-black hover:bg-gray-900 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Tier
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {formData.tiers.map((tier, index) => (
+                        <Card
+                          key={index}
+                          className="border border-gray-200 shadow-sm relative"
+                        >
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <CardTitle className="text-lg font-semibold text-gray-800 mb-2">
+                                  Tier {index + 1}
+                                </CardTitle>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeTier(index)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-gray-700">
+                                Tier Name *
+                              </Label>
+                              <Input
+                                type="text"
+                                value={tier.name}
+                                onChange={(e) =>
+                                  updateTier(index, "name", e.target.value)
+                                }
+                                placeholder="e.g., Starter, Premium, Elite"
+                                className="border-gray-300 focus:border-black focus:ring-black"
+                              />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Min Amount (£) *
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={tier.minAmount}
+                                  onChange={(e) =>
+                                    updateTier(
+                                      index,
+                                      "minAmount",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="1000"
+                                  className="border-gray-300 focus:border-black focus:ring-black"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Max Amount (£) *
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={tier.maxAmount}
+                                  onChange={(e) =>
+                                    updateTier(
+                                      index,
+                                      "maxAmount",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="5000"
+                                  className="border-gray-300 focus:border-black focus:ring-black"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Multiplier *
+                                </Label>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  value={tier.multiplier}
+                                  onChange={(e) =>
+                                    updateTier(
+                                      index,
+                                      "multiplier",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="1.0"
+                                  className="border-gray-300 focus:border-black focus:ring-black"
+                                />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <div className="flex justify-center">
+                        <Button
+                          type="button"
+                          onClick={addTier}
+                          variant="outline"
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Another Tier
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}

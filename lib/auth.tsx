@@ -44,25 +44,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("email", supabaseUser.email)
           .single();
 
-        if (error) {
+        if (error || !data) {
           console.error("Error fetching user profile:", error);
           setUser(null);
           return;
         }
 
-        if (data) {
-          const user: User = {
-            id: supabaseUser.id,
-            email: supabaseUser.email!,
-            name: `${data.first_name} ${data.last_name}`,
-            role: data.account_type as UserRole,
-            createdAt: new Date(data.created_at),
-          };
-          setUser(user);
-        } else {
-          console.error("No user data found for email:", supabaseUser.email);
-          setUser(null);
-        }
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email!,
+          name: `${data.first_name} ${data.last_name}`,
+          role: data.account_type as UserRole,
+          createdAt: new Date(data.created_at),
+        });
       } catch (error) {
         console.error("Error fetching user profile:", error);
         setUser(null);
@@ -71,84 +65,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [supabase]
   );
 
+  // Initial session and auth state changes
   useEffect(() => {
-    //  initial session
-    const getInitialSession = async () => {
-      console.log("Getting initial session");
+    let mounted = true;
+
+    const getSessionAndListen = async () => {
+      // Get initial session
       const {
         data: { session },
       } = await supabase.auth.getSession();
-
-      if (session?.user) {
+      if (mounted && session?.user) {
         await fetchUserProfile(session.user);
       }
-      console.log("Session fetched");
       setIsLoading(false);
-    };
-    getInitialSession();
 
-    // auth changes - server actions signup)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email);
-      if (session?.user) {
-        await fetchUserProfile(session.user);
-      } else {
-        setUser(null);
-      }
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, [fetchUserProfile]);
-
-  // Add a window focus listener to refresh auth state when user returns to the page
-  useEffect(() => {
-    const handleFocus = async () => {
-      console.log("Window focused, checking auth state");
+      // Listen to auth changes
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user && !user) {
-        console.log("Found session on focus, fetching profile");
-        await fetchUserProfile(session.user);
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [fetchUserProfile, user]);
-
-  // Check for refresh parameter and force session check
-  useEffect(() => {
-    const checkRefreshParam = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("refresh") === "true") {
-        console.log("Refresh parameter detected, checking session");
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (!mounted) return;
         if (session?.user) {
-          console.log("Found session after refresh, fetching profile");
           await fetchUserProfile(session.user);
+        } else {
+          setUser(null);
         }
-        // Remove the refresh parameter from URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete("refresh");
-        window.history.replaceState({}, "", newUrl.toString());
-      }
+      });
+
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
     };
 
-    checkRefreshParam();
+    getSessionAndListen();
   }, [fetchUserProfile]);
 
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
   };
-
-  // Refresh user profile from DB
+ 
   const refreshUser = async () => {
     const {
       data: { session },
@@ -167,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
