@@ -2,7 +2,6 @@
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-  const [isReloading, setIsReloading] = useState(false);
 import { getPitchById } from "@/lib/data";
 import type { InvestmentTier } from "@/lib/types";
 import type { Pitch } from "@/lib/types";
@@ -28,18 +27,18 @@ export function PitchDetailsView({ pitchId, backHref, showInvestmentForm }: Pitc
   const [pitch, setPitch] = useState<Pitch | null>(null);
   const [isPitchLoading, setIsPitchLoading] = useState(true);
 
-  const fetchPitch = async () => {
-    if (!isLoading && !user) {
-      setPitch(null);
-      setIsPitchLoading(false);
-      return;
-    }
-    setIsPitchLoading(true);
-    const foundPitch = await getPitchById(pitchId);
-    setPitch(foundPitch);
-    setIsPitchLoading(false);
-  };
   useEffect(() => {
+    async function fetchPitch() {
+      if (!isLoading && !user) {
+        setPitch(null);
+        setIsPitchLoading(false);
+        return;
+      }
+      setIsPitchLoading(true);
+      const foundPitch = await getPitchById(pitchId);
+      setPitch(foundPitch);
+      setIsPitchLoading(false);
+    }
     fetchPitch();
   }, [user, isLoading, pitchId]);
 
@@ -74,13 +73,6 @@ export function PitchDetailsView({ pitchId, backHref, showInvestmentForm }: Pitc
     }).format(d);
   };
 
-  if (isReloading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <span className="text-lg font-semibold">Reloading...</span>
-      </div>
-    );
-  }
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-6">
@@ -247,12 +239,6 @@ export function PitchDetailsView({ pitchId, backHref, showInvestmentForm }: Pitc
             <InvestmentForm
               pitch={pitch}
               canInvest={canInvest}
-              onInvestmentComplete={() => {
-                setIsReloading(true);
-                setTimeout(() => {
-                  window.location.reload();
-                }, 400);
-              }}
             />
           )}
 

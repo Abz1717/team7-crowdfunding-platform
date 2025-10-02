@@ -329,7 +329,7 @@ useEffect(() => {
                                 {pitch.status}
                               </Badge>
                             </div>
-                            <Link href={`/investor/pitch/${pitch.id}`}>
+                              <Link href={`/investor/pitch/${pitch?.id}`}>
                               <Button variant="outline" size="sm">
                                 View Pitch Details
                                 <ArrowUpRight className="ml-1 h-3 w-3" />
