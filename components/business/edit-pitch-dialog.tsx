@@ -377,14 +377,12 @@ export function EditPitchDialog({
 
                   {formData.status === "active" ? (
                     <div className="space-y-2">
-
                       <Label
                         htmlFor="edit-status"
                         className="text-sm font-medium text-gray-700"
                       >
                         Status
                       </Label>
-                      
                       <Select
                         value={formData.status}
                         onValueChange={(value) =>
@@ -397,12 +395,10 @@ export function EditPitchDialog({
                         <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
-
                         <SelectContent>
                           <SelectItem value="active">Active</SelectItem>
                           <SelectItem value="closed">Closed</SelectItem>
                         </SelectContent>
-                        
                       </Select>
                     </div>
                   ) : (
