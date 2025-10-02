@@ -19,6 +19,7 @@ function formatDate(date: string | Date): string {
 
 export function Portfolio() {
   // current user and toast noti's, users invesments, account balance and widthdrawal status
+  // current user and toast noti's, users invesments, account balance and widthdrawal status
   const { user } = useAuth()
   const [accountBalance, setAccountBalance] = useState(0)
   const [totalInvested, setTotalInvested] = useState(0)
@@ -44,6 +45,21 @@ export function Portfolio() {
   const [investmentDetails, setInvestmentDetails] = useState<
     { investment: Investment; pitch: any; investmentReturns: number; roi: number }[]
   >([])
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const investmentsPerPage = 3;
+  
+  const sortedInvestments = [...investmentDetails].sort((a, b) => {
+    const dateA = new Date(a.investment.invested_at).getTime();
+    const dateB = new Date(b.investment.invested_at).getTime();
+    return dateB - dateA;
+  });
+  const totalPages = Math.ceil(sortedInvestments.length / investmentsPerPage);
+  const pagedInvestments = sortedInvestments.slice(
+    (currentPage - 1) * investmentsPerPage,
+    currentPage * investmentsPerPage
+  );
+
 useEffect(() => {
   async function fetchDetails() {
     if (!investments.length) {
@@ -192,74 +208,97 @@ useEffect(() => {
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              {investmentDetails.map(({ investment, pitch, investmentReturns, roi }) => {
-                if (!pitch) return null
-                console.log("investmentDetails", investmentDetails)
-                return (
-                  <Card key={investment.id} className="bg-muted/30">
-                    <CardContent className="pt-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h4 className="font-semibold text-lg">{pitch.title}</h4>
-                          <p className="text-sm text-muted-foreground">{pitch.elevator_pitch}</p>
-                        </div>
-                        <Badge variant="outline">{investment.tier.name} Tier</Badge>
-                      </div>
+            <>
+              <div className="space-y-4">
+                {pagedInvestments.map(({ investment, pitch, investmentReturns, roi }) => {
+                  if (!pitch) return null
 
-                      <div className="grid md:grid-cols-5 gap-4">
-                        <div>
-                          <div className="text-sm text-muted-foreground">Investment Amount</div>
-                          <div className="font-semibold">${investment.investment_amount.toLocaleString()}</div>
+                  return (
+                    <Card key={investment.id} className="bg-muted/30">
+                      <CardContent className="pt-6">
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h4 className="font-semibold text-lg">{pitch.title}</h4>
+                            <p className="text-sm text-muted-foreground">{pitch.elevator_pitch}</p>
+                          </div>
+                          <Badge variant="outline">{investment.tier.name} Tier</Badge>
                         </div>
 
-                        <div>
-                          <div className="text-sm text-muted-foreground">Tier & Multiplier</div>
-                          <div className="font-semibold">
-                            {investment.tier.name} ({investment.tier.multiplier}x)
+                        <div className="grid md:grid-cols-5 gap-4">
+                          <div>
+                            <div className="text-sm text-muted-foreground">Investment Amount</div>
+                            <div className="font-semibold">${investment.investment_amount.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Tier & Multiplier</div>
+                            <div className="font-semibold">
+                              {investment.tier.name} ({investment.tier.multiplier}x)
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Investment Date</div>
+                            <div className="font-semibold">{formatDate(investment.invested_at)}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Returns Received</div>
+                            <div className="font-semibold text-green-600">${investmentReturns.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">Current ROI</div>
+                            <div className={`font-semibold ${roi >= 0 ? "text-green-600" : "text-red-600"}`}>
+                              {roi >= 0 ? "+" : ""}
+                              {roi.toFixed(1)}%
+                            </div>
                           </div>
                         </div>
-
-                        <div>
-                          <div className="text-sm text-muted-foreground">Investment Date</div>
-                          <div className="font-semibold">{formatDate(investment.invested_at)}</div>
-                        </div>
-
-                        <div>
-                          <div className="text-sm text-muted-foreground">Returns Received</div>
-                          <div className="font-semibold text-green-600">${investmentReturns.toLocaleString()}</div>
-                        </div>
-
-                        <div>
-                          <div className="text-sm text-muted-foreground">Current ROI</div>
-                          <div className={`font-semibold ${roi >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {roi >= 0 ? "+" : ""}
-                            {roi.toFixed(1)}%
+                        <div className="mt-4 pt-4 border-t">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm text-muted-foreground">
+                              Pitch Status:{" "}
+                              <Badge variant="default" className="ml-1">
+                                {pitch.status}
+                              </Badge>
+                            </div>
+                            <Link href={`/investor/pitch/${pitch.id}`}>
+                              <Button variant="outline" size="sm">
+                                View Pitch Details
+                                <ArrowUpRight className="ml-1 h-3 w-3" />
+                              </Button>
+                            </Link>
                           </div>
                         </div>
-                      </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
 
-                      <div className="mt-4 pt-4 border-t">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-muted-foreground">
-                            Pitch Status:{" "}
-                            <Badge variant="default" className="ml-1">
-                              {pitch.status}
-                            </Badge>
-                          </div>
-                          <Link href={`/investor/pitch/${pitch.id}`}>
-                            <Button variant="outline" size="sm">
-                              View Pitch Details
-                              <ArrowUpRight className="ml-1 h-3 w-3" />
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
-            </div>
+
+
+              {totalPages > 1 && (
+                <div className="flex justify-center gap-4 mt-6">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground self-center">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
