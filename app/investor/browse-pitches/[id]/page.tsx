@@ -17,32 +17,37 @@ import Image from "next/image"
 import React from "react"
 
 export default function PitchDetailPage({ params }: { params: Promise<{ id: string }> }) {
-
+  const [isPageLoading, setIsPageLoading] = useState(false)
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [pitch, setPitch] = useState<Pitch | null>(null)
+  const [isPitchLoading, setIsPitchLoading] = useState(false)
   const resolvedParams = React.use(params)
 
 
   
-  useEffect(() => {
-    async function fetchPitch() {
-      if (!isLoading && !user) {
-        router.push("/auth")
-        return
-      }
-      const foundPitch = await getPitchById(resolvedParams.id)
-      if (!foundPitch) {
-        router.push("/investor")
-        return
-      }
-      setPitch(foundPitch)
+  const fetchPitch = async () => {
+    if (!isLoading && !user) {
+      router.push("/")
+      setPitch(null)
+      setIsPitchLoading(false)
+      return
     }
+    setIsPitchLoading(true)
+    const foundPitch = await getPitchById(resolvedParams.id)
+    setPitch(foundPitch)
+    setIsPitchLoading(false)
+  }
+  useEffect(() => {
     fetchPitch()
-  }, [user, isLoading, router, resolvedParams.id])
+  }, [user, isLoading, resolvedParams.id])
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  if (isPageLoading || isPitchLoading || isLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <div className="flex items-center justify-center min-h-[400px]">Loading pitch details...</div>
+      </div>
+    );
   }
 
   if (!user || !pitch) {
@@ -87,7 +92,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 <Badge variant="default" className="text-lg px-3 py-1">
-                  {pitch.profit_share}% Returns
+                  {pitch.profit_share}% Shares
                 </Badge>
               </div>
             </CardHeader>
@@ -237,6 +242,11 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
             <InvestmentForm
               pitch={pitch}
               canInvest={canInvest}
+              onInvestmentComplete={async () => {
+                setIsPageLoading(true);
+                await fetchPitch();
+                setIsPageLoading(false);
+              }}
             />
           )}
 

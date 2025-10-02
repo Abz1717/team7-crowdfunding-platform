@@ -142,6 +142,17 @@ export function InvestmentForm({
       return;
     }
 
+    // prevent profit share from exceeding pitch.profit_share
+    const userProfitShare = ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share;
+    if (userProfitShare > pitch.profit_share) {
+      toast({
+        title: "Investment Too Large",
+        description: `Your investment would exceed the maximum allowed profit share (${pitch.profit_share}%). Reduce the amount or choose a lower tier.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check for insufficient balance
     if (fundingMethod === "balance" && investmentAmount > accountBalance) {
       setInsufficientBalanceDialogOpen(true);
@@ -303,8 +314,12 @@ export function InvestmentForm({
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Profit Share:</span>
-                  <span className="font-medium">{pitch.profit_share}%</span>
+                  <span>Your Profit Share:</span>
+                  <span className="font-medium">
+                    {selectedTier && pitch.target_amount && investmentAmount > 0
+                      ? (((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share).toFixed(6) + "%"
+                      : "0%"}
+                  </span>
                 </div>
 
                 <div className="flex justify-between border-t pt-2">
@@ -321,7 +336,14 @@ export function InvestmentForm({
         {canInvest ? (
           <Button
             onClick={handleInvestment}
-            disabled={investmentAmount === 0 || isProcessing}
+            disabled={
+              investmentAmount === 0 ||
+              isProcessing ||
+              Boolean(
+                selectedTier && pitch.target_amount && investmentAmount > 0 &&
+                (((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share > pitch.profit_share)
+              )
+            }
             className="w-full"
             size="lg"
           >

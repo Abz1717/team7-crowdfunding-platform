@@ -167,7 +167,7 @@ export function PitchBrowser() {
                       <CardDescription className="text-base">{pitch.elevator_pitch}</CardDescription>
                     </div>
                     <div className="flex flex-col items-end ml-4">
-                      <Badge variant="default">{pitch.profit_share}% Returns</Badge>
+                      <Badge variant="default">{pitch.profit_share}% Shares</Badge>
                       {isMine && (
                         <span className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full font-semibold text-xs mt-2 align-middle shadow">
                           My Pitch

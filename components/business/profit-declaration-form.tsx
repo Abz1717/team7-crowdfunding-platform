@@ -48,11 +48,7 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
         setFirstAllowed(null);
       } else {
 
-        if (pitch.end_date) {
-          setFirstAllowed(new Date(pitch.end_date));
-        } else {
-          setFirstAllowed(null);
-        }
+        setFirstAllowed(new Date());
         setLastDistribution(null);
         setNextDistribution(null);
       }
@@ -85,12 +81,15 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
   }
 
   const handleDeclare = async () => {
-    if (!preview) return
+    if (!preview) return;
 
-    setIsDeclaring(true)
+    setIsDeclaring(true);
     try {
-      const profitToDeclare = preview.total_profit ?? Number.parseFloat(profitAmount)
-      const result = await declareProfits(pitch.id, profitToDeclare)
+      const profitToDeclare = preview.total_profit ?? Number.parseFloat(profitAmount);
+      console.log('[DEBUG] Declaring profits for pitch:', pitch);
+      console.log('[DEBUG] Profit amount to declare:', profitToDeclare);
+      const result = await declareProfits(pitch.id, profitToDeclare);
+      console.log('[DEBUG] declareProfits result:', result);
       if (result.success) {
         setResultInfo({
           success: true,
@@ -105,16 +104,16 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
         setShowResultModal(true);
       }
     } catch (error) {
-      console.error("[v0] Error declaring profits:", error)
+      console.error("[v0] Error declaring profits:", error);
       setResultInfo({
         success: false,
         message: "Unable to declare profits. Please try again."
       });
       setShowResultModal(true);
     } finally {
-      setIsDeclaring(false)
+      setIsDeclaring(false);
     }
-  }
+  } 
 
   return (
   <>

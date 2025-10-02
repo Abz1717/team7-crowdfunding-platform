@@ -68,6 +68,7 @@ export interface ProfitDistribution {
   id: string
   pitch_id: string
   total_profit: number
+  business_profit: number
   distribution_date: Date
 }
 export interface InvestorPayout {
