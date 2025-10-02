@@ -31,6 +31,7 @@ function formatDate(date: string | Date): string {
 
 
 export function Portfolio() {
+
   // current user and toast noti's, users invesments, account balance and widthdrawal status
   // current user and toast noti's, users invesments, account balance and widthdrawal status
   const { user } = useAuth()
@@ -134,6 +135,15 @@ useEffect(() => {
     totalPercentage: number;
   }[]>([]);
 
+  // Pagination for profit payouts (must be after profitPayouts is defined)
+  const [profitPayoutsPage, setProfitPayoutsPage] = useState(1);
+  const profitPayoutsPerPage = 3;
+  const totalProfitPayoutPages = Math.ceil(profitPayouts.length / profitPayoutsPerPage);
+  const pagedProfitPayouts = profitPayouts.slice(
+    (profitPayoutsPage - 1) * profitPayoutsPerPage,
+    profitPayoutsPage * profitPayoutsPerPage
+  );
+
   useEffect(() => {
     async function fetchPayouts() {
       if (!user) return setProfitPayouts([]);
@@ -151,13 +161,12 @@ useEffect(() => {
           }
         }
       }
-      // Group by pitch.id and distribution.id
       const grouped: Record<string, { payout: any; distribution: any; pitch: any; totalAmount: number; totalPercentage: number }> = {};
       for (const item of payoutsArr) {
         const key = `${item.pitch.id}-${item.distribution.id}`;
         if (!grouped[key]) {
           grouped[key] = {
-            payout: item.payout, // Use the first payout for reference
+            payout: item.payout, 
             distribution: item.distribution,
             pitch: item.pitch,
             totalAmount: 0,
@@ -376,22 +385,49 @@ useEffect(() => {
           {profitPayouts.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">No profit payouts yet</div>
           ) : (
-            <div className="space-y-3">
-              {profitPayouts.map(({ payout, distribution, pitch, totalAmount, totalPercentage }) => (
-                <div key={pitch.id + '-' + distribution.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium">${totalAmount.toLocaleString()} from {pitch?.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Paid on {formatDate(distribution.distribution_date)} • {Math.round(totalPercentage * 100)}% share
+            <>
+              <div className="space-y-3">
+                {pagedProfitPayouts.map(({ payout, distribution, pitch, totalAmount, totalPercentage }) => (
+                  <div key={pitch.id + '-' + distribution.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-green-600" />
                     </div>
+                    <div className="flex-1">
+                      <div className="font-medium">${totalAmount.toLocaleString()} from {pitch?.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        Paid on {formatDate(distribution.distribution_date)} • {Math.round(totalPercentage * 100)}% share
+                      </div>
+                    </div>
+                    <Link href={`/investor/pitch/${pitch?.id}`}><Button size="sm" variant="outline">View Pitch</Button></Link>
                   </div>
-                  <Link href={`/investor/pitch/${pitch?.id}`}><Button size="sm" variant="outline">View Pitch</Button></Link>
+                ))}
+              </div>
+
+
+              {totalProfitPayoutPages > 1 && (
+                <div className="flex justify-center gap-4 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setProfitPayoutsPage((p) => Math.max(1, p - 1))}
+                    disabled={profitPayoutsPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground self-center">
+                    Page {profitPayoutsPage} of {totalProfitPayoutPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setProfitPayoutsPage((p) => Math.min(totalProfitPayoutPages, p + 1))}
+                    disabled={profitPayoutsPage === totalProfitPayoutPages}
+                  >
+                    Next
+                  </Button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
