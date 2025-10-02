@@ -3,6 +3,16 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+// Helper to render colored tier badges with accurate metallic colors
+function TierBadge({ tier, className = "" }: { tier: string, className?: string }) {
+  let color = "bg-gray-400 text-white";
+  if (tier.toLowerCase() === "bronze") color = "bg-[#b08d57] text-white border-[#a97142] shadow-[0_0_8px_#b08d57]";
+  else if (tier.toLowerCase() === "silver") color = "bg-[#bfc1c2] text-black border-[#a7a9ac] shadow-[0_0_8px_#bfc1c2]";
+  else if (tier.toLowerCase() === "gold") color = "bg-[#ffd700] text-black border-[#e6be8a] shadow-[0_0_8px_#ffd700]";
+  return (
+    <Badge className={className + " " + color + " border-2 font-semibold"}>{tier} Tier</Badge>
+  );
+}
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
 import { getInvestmentsByInvestorId, getPitchById, calculateROI, getAccountBalance, updateAccountBalance, getTotalInvested, getInvestmentsByPitchId, getTotalReturns, getOverallROI, getProfitDistributionsByPitchId, getInvestorPayoutsByDistributionId} from "@/lib/data"
@@ -48,7 +58,7 @@ export function Portfolio() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const investmentsPerPage = 3;
-  
+
   const sortedInvestments = [...investmentDetails].sort((a, b) => {
     const dateA = new Date(a.investment.invested_at).getTime();
     const dateB = new Date(b.investment.invested_at).getTime();
@@ -221,7 +231,7 @@ useEffect(() => {
                             <h4 className="font-semibold text-lg">{pitch.title}</h4>
                             <p className="text-sm text-muted-foreground">{pitch.elevator_pitch}</p>
                           </div>
-                          <Badge variant="outline">{investment.tier.name} Tier</Badge>
+                          <TierBadge tier={investment.tier.name} />
                         </div>
 
                         <div className="grid md:grid-cols-5 gap-4">
@@ -324,7 +334,7 @@ useEffect(() => {
                     ${investment.investment_amount.toLocaleString()} • {formatDate(investment.invested_at)}
                   </div>
                 </div>
-                <Badge variant="outline">{investment.tier.name}</Badge>
+                <TierBadge tier={investment.tier.name} />
               </div>
             ))}
 
