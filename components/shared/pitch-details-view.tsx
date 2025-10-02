@@ -94,7 +94,7 @@ export function PitchDetailsView({ pitchId, backHref, showInvestmentForm }: Pitc
                   <CardDescription className="text-lg">{pitch.elevator_pitch}</CardDescription>
                 </div>
                 <Badge variant="default" className="text-lg px-3 py-1">
-                  {pitch.profit_share}% Returns
+                  {pitch.profit_share}% Shares
                 </Badge>
               </div>
             </CardHeader>

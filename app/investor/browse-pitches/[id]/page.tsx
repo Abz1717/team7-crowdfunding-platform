@@ -21,6 +21,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const [pitch, setPitch] = useState<Pitch | null>(null)
+  const [isPitchLoading, setIsPitchLoading] = useState(false)
   const resolvedParams = React.use(params)
 
 
@@ -28,18 +29,18 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     async function fetchPitch() {
       if (!isLoading && !user) {
-        router.push("/auth")
+        router.push("/")
+        setPitch(null)
+        setIsPitchLoading(false)
         return
       }
+      setIsPitchLoading(true)
       const foundPitch = await getPitchById(resolvedParams.id)
-      if (!foundPitch) {
-        router.push("/investor")
-        return
-      }
       setPitch(foundPitch)
+      setIsPitchLoading(false)
     }
     fetchPitch()
-  }, [user, isLoading, router, resolvedParams.id])
+  }, [user, isLoading, resolvedParams.id])
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>
@@ -87,7 +88,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
 
                 <Badge variant="default" className="text-lg px-3 py-1">
-                  {pitch.profit_share}% Returns
+                  {pitch.profit_share}% Shares
                 </Badge>
               </div>
             </CardHeader>
