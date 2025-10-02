@@ -6,6 +6,9 @@ import { Badge } from "@/components/ui/badge"
 // Helper to render colored tier badges with accurate metallic colors
 function TierBadge({ tier, className = "" }: { tier: string, className?: string }) {
   let color = "bg-gray-400 text-white";
+  // Bronze: #b08d57 (metallic bronze)
+  // Silver: #bfc1c2 (metallic silver)
+  // Gold: #ffd700 (metallic gold)
   if (tier.toLowerCase() === "bronze") color = "bg-[#b08d57] text-white border-[#a97142] shadow-[0_0_8px_#b08d57]";
   else if (tier.toLowerCase() === "silver") color = "bg-[#bfc1c2] text-black border-[#a7a9ac] shadow-[0_0_8px_#bfc1c2]";
   else if (tier.toLowerCase() === "gold") color = "bg-[#ffd700] text-black border-[#e6be8a] shadow-[0_0_8px_#ffd700]";
@@ -122,6 +125,54 @@ useEffect(() => {
       setIsWithdrawing(false)
     }, 1500)
   }
+
+  const [profitPayouts, setProfitPayouts] = useState<{
+    payout: any;
+    distribution: any;
+    pitch: any;
+    totalAmount: number;
+    totalPercentage: number;
+  }[]>([]);
+
+  useEffect(() => {
+    async function fetchPayouts() {
+      if (!user) return setProfitPayouts([]);
+      const investments = await getInvestmentsByInvestorId(user.id);
+      let payoutsArr: any[] = [];
+      for (const inv of investments) {
+        const pitch = await getPitchById(inv.pitch_id);
+        const distributions = await getProfitDistributionsByPitchId(inv.pitch_id);
+        for (const dist of distributions) {
+          const payouts = await getInvestorPayoutsByDistributionId(dist.id);
+          for (const payout of payouts) {
+            if (payout.investor_id === user.id) {
+              payoutsArr.push({ payout, distribution: dist, pitch });
+            }
+          }
+        }
+      }
+      // Group by pitch.id and distribution.id
+      const grouped: Record<string, { payout: any; distribution: any; pitch: any; totalAmount: number; totalPercentage: number }> = {};
+      for (const item of payoutsArr) {
+        const key = `${item.pitch.id}-${item.distribution.id}`;
+        if (!grouped[key]) {
+          grouped[key] = {
+            payout: item.payout, // Use the first payout for reference
+            distribution: item.distribution,
+            pitch: item.pitch,
+            totalAmount: 0,
+            totalPercentage: 0,
+          };
+        }
+        grouped[key].totalAmount += item.payout.amount;
+        grouped[key].totalPercentage += item.payout.percentage;
+      }
+      const groupedArr = Object.values(grouped)
+        .sort((a, b) => new Date(b.distribution.distribution_date).getTime() - new Date(a.distribution.distribution_date).getTime());
+      setProfitPayouts(groupedArr);
+    }
+    fetchPayouts();
+  }, [user]);
 
    console.log("Portfolio user:", user)
   console.log("Portfolio accountBalance:", accountBalance)
@@ -309,6 +360,38 @@ useEffect(() => {
                 </div>
               )}
             </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
+            Profit Payouts
+          </CardTitle>
+          <CardDescription>All profit returns paid out to you from your investments</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {profitPayouts.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">No profit payouts yet</div>
+          ) : (
+            <div className="space-y-3">
+              {profitPayouts.map(({ payout, distribution, pitch, totalAmount, totalPercentage }) => (
+                <div key={pitch.id + '-' + distribution.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">${totalAmount.toLocaleString()} from {pitch?.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      Paid on {formatDate(distribution.distribution_date)} • {Math.round(totalPercentage * 100)}% share
+                    </div>
+                  </div>
+                  <Link href={`/investor/pitch/${pitch?.id}`}><Button size="sm" variant="outline">View Pitch</Button></Link>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
