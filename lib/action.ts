@@ -687,11 +687,25 @@ export async function declareProfits(
     const supabase = await createClient();
 
     //
+    const { data: pitch, error: pitchError } = await supabase
+      .from("pitch")
+      .select("*")
+      .eq("id", pitchId)
+      .single();
+    if (pitchError || !pitch) {
+      return { success: false, error: "Pitch not found" };
+    }
+
+  const businessProfitShare = pitch.profit_share ?? 0;
+  const businessProfitShareAmount = profitAmount * (businessProfitShare / 100);
+  const businessProfit = profitAmount - businessProfitShareAmount;
+
     const { data: profitDist, error: profitDistError } = await supabase
       .from("profit_distribution")
       .insert({
         pitch_id: pitchId,
         total_profit: profitAmount,
+  business_profit: businessProfit,
         distribution_date: new Date().toISOString(),
       })
       .select()
@@ -704,15 +718,6 @@ export async function declareProfits(
       };
     }
     //
-    const { data: pitch, error: pitchError } = await supabase
-      .from("pitch")
-      .select("*")
-      .eq("id", pitchId)
-      .single();
-    if (pitchError || !pitch) {
-      return { success: false, error: "Pitch not found" };
-    }
-
     if (
       typeof pitch.current_amount === "number" &&
       typeof pitch.target_amount === "number"

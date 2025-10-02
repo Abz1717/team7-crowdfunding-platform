@@ -54,9 +54,13 @@ export async function getProfitDistributionsByPitchId(pitchId: string): Promise<
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profit_distribution")
-    .select("*")
+    .select("id, pitch_id, total_profit, business_profit, distribution_date")
     .eq("pitch_id", pitchId);
-  return data ?? [];
+  return (data ?? []).map((dist) => ({
+    ...dist,
+    business_profit: dist.business_profit !== null && dist.business_profit !== undefined ? Number(dist.business_profit) : 0,
+    total_profit: dist.total_profit !== null && dist.total_profit !== undefined ? Number(dist.total_profit) : 0,
+  }));
 }
 
 export async function updatePitch(id: string, updates: Partial<Pitch>): Promise<boolean> {
@@ -101,11 +105,20 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
 
   if (!data || error) return null;
 
+
   const newAmount = current_amount + investment.investment_amount;
-  await supabase
+  let statusUpdate = {};
+  if (newAmount >= target_amount) {
+    statusUpdate = { status: "funded" };
+  }
+
+  const { error: updateError } = await supabase
     .from("pitch")
-    .update({ current_amount: newAmount })
+    .update({ current_amount: newAmount, ...statusUpdate })
     .eq("id", investment.pitch_id);
+  if (updateError) {
+    console.error('Failed to update pitch status:', updateError.message, updateError.details);
+  }
 
   return data;
 }
