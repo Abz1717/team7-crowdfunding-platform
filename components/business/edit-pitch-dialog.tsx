@@ -574,9 +574,42 @@ export function EditPitchDialog({
                   {formData.investment_tiers.map((tier, index) => (
                     <div
                       key={index}
-                      className="p-4 border rounded-lg bg-gray-50"
+                      className="p-4 border rounded-lg bg-gray-50 relative"
                     >
-                      <h4 className="font-semibold mb-3">{tier.name} Tier</h4>
+                      <div className="flex items-center justify-between mb-3">
+                        {(!isFunded && !isActive) ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="text"
+                              value={tier.name}
+                              onChange={e => {
+                                const tiers = [...formData.investment_tiers];
+                                tiers[index].name = e.target.value;
+                                setFormData({ ...formData, investment_tiers: tiers });
+                              }}
+                              className="w-20 border-gray-300 focus:border-black focus:ring-black text-base font-semibold px-2 py-1"
+                            />
+                            <span className="font-semibold">Tier</span>
+                          </div>
+                        ) : (
+                          <h4 className="font-semibold">{tier.name} Tier</h4>
+                        )}
+                        {formData.investment_tiers.length > 1 && !isFunded && !isActive && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="ml-2 h-8 w-8 p-0 rounded-full hover:bg-red-100 hover:text-red-600"
+                            onClick={() => {
+                              const tiers = formData.investment_tiers.filter((_, i) => i !== index);
+                              setFormData({ ...formData, investment_tiers: tiers });
+                            }}
+                            title="Remove tier"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        )}
+                      </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label>Min Amount (£)</Label>

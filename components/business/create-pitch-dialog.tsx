@@ -43,6 +43,7 @@ import {
   AlertTriangle,
   ThumbsUp,
   Lightbulb,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -318,7 +319,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
             Create New Pitch
           </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Create Investment Pitch
@@ -585,16 +586,44 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                   {formData.tiers.map((tier, index) => (
                     <Card
                       key={index}
-                      className="border border-gray-200 shadow-sm"
+                      className="border border-gray-200 shadow-sm relative"
                     >
                       <CardHeader>
-                        <CardTitle className="text-lg font-semibold text-gray-800">
-                          {tier.name} Tier
-                        </CardTitle>
-                        <CardDescription className="text-gray-600">
-                          Define the range and multiplier for this investment
-                          tier
-                        </CardDescription>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg font-semibold text-gray-800">
+                                  <Input
+                                    type="text"
+                                    value={tier.name}
+                                    onChange={(e) => {
+                                      const t = [...formData.tiers];
+                                      t[index].name = e.target.value;
+                                      setFormData({ ...formData, tiers: t });
+                                    }}
+                                    className="w-20 border-gray-300 focus:border-black focus:ring-black text-base font-semibold px-2 py-1"
+                                  />
+                              {" "}Tier
+                            </CardTitle>
+                            <CardDescription className="text-gray-600">
+                              Define the range and multiplier for this investment tier
+                            </CardDescription>
+                          </div>
+                          {formData.tiers.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="ml-2 h-8 w-8 p-0 rounded-full hover:bg-red-100 hover:text-red-600"
+                              onClick={() => {
+                                const t = formData.tiers.filter((_, i) => i !== index);
+                                setFormData({ ...formData, tiers: t });
+                              }}
+                              title="Remove tier"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          )}
+                        </div>
                       </CardHeader>
                       <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="space-y-2">
@@ -663,6 +692,29 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       </CardContent>
                     </Card>
                   ))}
+                  <div className="flex justify-end mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-gray-400 text-gray-700 hover:bg-gray-50"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          tiers: [
+                            ...formData.tiers,
+                            {
+                              name: `Tier ${formData.tiers.length + 1}`,
+                              minAmount: "",
+                              maxAmount: "",
+                              multiplier: "1.0",
+                            },
+                          ],
+                        });
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Tier
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
