@@ -239,10 +239,8 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
                 {preview?.investor_payouts?.map?.((payout: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="mb-1">
                         <span className="font-medium">Investor {index + 1}</span>
-                        <Badge variant="outline">{payout.tier_name}</Badge>
-                        <span className="text-sm text-muted-foreground">{payout.tier_multiplier}x multiplier</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
                          Investment: {payout.investment_amount?.toLocaleString?.()}

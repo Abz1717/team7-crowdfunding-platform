@@ -937,43 +937,33 @@ export async function previewProfitDistribution(
     const profitShare = pitch.profit_share ?? 0;
     const profitShareAmount = profitAmount * (profitShare / 100);
 
-    const weightedInvestments = investments.map((inv) => {
+    // Group investments by investor_id
+    const investorMap: Record<string, { investment_amount: number; weighted: number; tiers: { name: string; multiplier: number }[] }> = {};
+    for (const inv of investments) {
       let tierMultiplier = 1;
       let tierName = "";
       if (Array.isArray(pitch.investment_tiers)) {
-        const tier = pitch.investment_tiers.find(
-          (t: any) => t.name === inv.tier?.name
-        );
+        const tier = pitch.investment_tiers.find((t: any) => t.name === inv.tier?.name);
         if (tier) {
           tierMultiplier = Number(tier.multiplier) || 1;
           tierName = tier.name;
         }
       }
+      if (!investorMap[inv.investor_id]) {
+        investorMap[inv.investor_id] = { investment_amount: 0, weighted: 0, tiers: [] };
+      }
+      investorMap[inv.investor_id].investment_amount += inv.investment_amount;
+      investorMap[inv.investor_id].weighted += inv.investment_amount * tierMultiplier;
+      investorMap[inv.investor_id].tiers.push({ name: tierName, multiplier: tierMultiplier });
+    }
+    const totalWeighted = Object.values(investorMap).reduce((sum, v) => sum + v.weighted, 0);
+    const investorPayouts = Object.entries(investorMap).map(([investor_id, v]) => {
+      const payoutAmount = totalWeighted > 0 ? (v.weighted / totalWeighted) * profitShareAmount : 0;
       return {
-        investor_id: inv.investor_id,
-        investment_amount: inv.investment_amount,
-        tier_name: tierName,
-        tier_multiplier: tierMultiplier,
-        weighted: inv.investment_amount * tierMultiplier,
-      };
-    });
-    const totalWeighted = weightedInvestments.reduce(
-      (sum, w) => sum + w.weighted,
-      0
-    );
-    const investorPayouts = weightedInvestments.map((w) => {
-      const payoutAmount =
-        totalWeighted > 0
-          ? (w.weighted / totalWeighted) * profitShareAmount
-          : 0;
-      return {
-        investor_id: w.investor_id,
-        investment_amount: w.investment_amount,
-        tier_name: w.tier_name,
-        tier_multiplier: w.tier_multiplier,
+        investor_id,
+        investment_amount: v.investment_amount,
         amount: payoutAmount,
-        percentage:
-          profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
+        percentage: profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
       };
     });
     const totalInvested = investments.reduce(
@@ -981,12 +971,13 @@ export async function previewProfitDistribution(
       0
     );
     const businessKeeps = profitAmount - profitShareAmount;
+    const uniqueInvestorCount = Object.keys(investorMap).length;
     const preview = {
       total_profit: profitAmount,
       total_to_investors: profitShareAmount,
       business_keeps: businessKeeps,
       profit_share_percentage: profitShare,
-      investor_count: investments.length,
+      investor_count: uniqueInvestorCount,
       total_invested: totalInvested,
       investor_payouts: investorPayouts,
     };

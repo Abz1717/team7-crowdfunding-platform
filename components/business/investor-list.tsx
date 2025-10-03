@@ -14,7 +14,7 @@ interface InvestorListProps {
 }
 
 export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
-  const [investors, setInvestors] = useState<(Investment & { name?: string; profitShare?: number })[]>([]);
+  const [investors, setInvestors] = useState<(Investment & { name?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,14 +28,11 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
 
     const investorIds = investments.map(inv => inv.investor_id);
       const users: UserName[] = await getUsersByIds(investorIds);
-      const totalInvested = investments.reduce((sum, inv) => sum + inv.investment_amount, 0);
       const investorsWithNames = investments.map(inv => {
         const user = users.find(u => u.id === inv.investor_id);
-        const profitShare = totalInvested > 0 ? (inv.investment_amount / totalInvested) * 100 : 0;
         return {
           ...inv,
           name: user ? `${user.first_name} ${user.last_name}` : inv.investor_id,
-          profitShare,
         };
       });
       setInvestors(investorsWithNames);
@@ -68,7 +65,7 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
                   <div className="font-medium">{inv.name}</div>
                   <div className="text-sm text-muted-foreground flex gap-4 flex-wrap">
                     <span className="flex items-center gap-1"><DollarSign className="h-4 w-4" /> Invested: ${inv.investment_amount.toLocaleString()}</span>
-                    <span className="flex items-center gap-1"><Percent className="h-4 w-4" /> Profit Share: {inv.profitShare?.toFixed(2)}%</span>
+                    <span className="flex items-center gap-1"><Percent className="h-4 w-4" /> Profit Share: {typeof inv.effective_share === 'number' ? inv.effective_share.toFixed(2) : 'N/A'}%</span>
                   </div>
                 </div>
               </div>

@@ -36,7 +36,7 @@ export async function getInvestmentsByInvestorId(investorId: string): Promise<In
   const supabase = createClient();
   const { data, error } = await supabase
     .from("investment")
-    .select("*")
+    .select("*, effective_share")
     .eq("investor_id", investorId);
   return data ?? [];
 }
@@ -45,7 +45,7 @@ export async function getInvestmentsByPitchId(pitchId: string): Promise<Investme
   const supabase = createClient();
   const { data, error } = await supabase
     .from("investment")
-    .select("*")
+    .select("*, effective_share")
     .eq("pitch_id", pitchId);
   return data ?? [];
 }
@@ -93,7 +93,9 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
   if (!pitchData || pitchError) return null;
 
   const { current_amount = 0, target_amount = 0 } = pitchData;
-  if (current_amount + investment.investment_amount > target_amount) {
+  // Calculate effective value for funding progress
+  const effectiveValue = investment.investment_amount * (investment.tier?.multiplier ?? 1);
+  if (current_amount + effectiveValue > target_amount) {
     return null;
   }
 
@@ -105,8 +107,7 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
 
   if (!data || error) return null;
 
-
-  const newAmount = current_amount + investment.investment_amount;
+  const newAmount = current_amount + effectiveValue;
   let statusUpdate = {};
   if (newAmount >= target_amount) {
     statusUpdate = { status: "funded" };
