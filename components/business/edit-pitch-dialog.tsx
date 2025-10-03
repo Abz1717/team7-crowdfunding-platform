@@ -82,6 +82,10 @@ export function EditPitchDialog({
     ] as InvestmentTier[],
   });
 
+  const isFunded = formData.status === "funded";
+  const isActive = formData.status === "active";
+  const isEditable = !isFunded && !isActive;
+
   // Populate form when pitch changes
   useEffect(() => {
     if (pitch && open) {
@@ -317,7 +321,7 @@ export function EditPitchDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+  <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg">
           <DialogHeader className="pb-6">
             <div className="flex items-center justify-between">
               <div>
@@ -372,10 +376,12 @@ export function EditPitchDialog({
                       }
                       placeholder="Enter pitch title"
                       className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      disabled={isFunded || isActive}
+                      readOnly={isFunded || isActive}
                     />
                   </div>
 
-                  {formData.status === "active" ? (
+                  {isActive ? (
                     <div className="space-y-2">
                       <Label
                         htmlFor="edit-status"
@@ -433,6 +439,8 @@ export function EditPitchDialog({
                     rows={3}
                     placeholder="Brief description of your pitch"
                     className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isFunded || isActive}
+                    readOnly={isFunded || isActive}
                   />
                 </div>
 
@@ -455,6 +463,8 @@ export function EditPitchDialog({
                     rows={6}
                     placeholder="Detailed description of your business opportunity"
                     className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    disabled={isFunded || isActive}
+                    readOnly={isFunded || isActive}
                   />
                 </div>
               </div>
@@ -489,6 +499,8 @@ export function EditPitchDialog({
                       }
                       placeholder="250000"
                       className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      disabled={isFunded || isActive}
+                      readOnly={isFunded || isActive}
                     />
                   </div>
 
@@ -512,6 +524,8 @@ export function EditPitchDialog({
                       placeholder="25"
                       max="100"
                       className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      disabled={isFunded || isActive}
+                      readOnly={isFunded || isActive}
                     />
                   </div>
 
@@ -527,6 +541,7 @@ export function EditPitchDialog({
                             "w-full justify-start text-left font-normal border-gray-300 hover:bg-gray-50",
                             !formData.end_date && "text-gray-500"
                           )}
+                          disabled={isFunded || isActive}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {formData.end_date
@@ -576,6 +591,8 @@ export function EditPitchDialog({
                               )
                             }
                             placeholder="1000"
+                            disabled={isFunded || isActive}
+                            readOnly={isFunded || isActive}
                           />
                         </div>
                         <div className="space-y-2">
@@ -591,6 +608,8 @@ export function EditPitchDialog({
                               )
                             }
                             placeholder="5000"
+                            disabled={isFunded || isActive}
+                            readOnly={isFunded || isActive}
                           />
                         </div>
                         <div className="space-y-2">
@@ -607,6 +626,8 @@ export function EditPitchDialog({
                               )
                             }
                             placeholder="1.0"
+                            disabled={isFunded || isActive}
+                            readOnly={isFunded || isActive}
                           />
                         </div>
                       </div>
@@ -623,8 +644,14 @@ export function EditPitchDialog({
 
                 <div className="space-y-4">
                   {/* Upload Section */}
-                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors">
-                    <div className="text-center">
+                  <div className={
+                    `border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors relative` +
+                    ((isFunded || isActive) ? ' bg-gray-100 opacity-70 pointer-events-none' : '')
+                  }>
+                    {(isFunded || isActive) && (
+                      <div className="absolute inset-0 bg-gray-100 opacity-60 z-10 rounded-lg" />
+                    )}
+                    <div className="text-center relative z-20">
                       <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <div className="space-y-2">
                         <p className="text-sm text-gray-600">
@@ -638,12 +665,12 @@ export function EditPitchDialog({
                             onChange={handleFileSelect}
                             className="hidden"
                             id="media-upload"
-                            disabled={isUploadingMedia}
+                            disabled={isUploadingMedia || isFunded || isActive}
                           />
                           <label htmlFor="media-upload">
                             <Button
                               type="button"
-                              disabled={isUploadingMedia}
+                              disabled={isUploadingMedia || isFunded || isActive}
                               className="cursor-pointer"
                               asChild
                             >
@@ -669,13 +696,18 @@ export function EditPitchDialog({
 
                   {/* Media Grid */}
                   {supportingMedia.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
+                    <div className={
+                      `space-y-4 relative` + ((isFunded || isActive) ? ' bg-gray-100 opacity-70 pointer-events-none rounded-lg' : '')
+                    }>
+                      {(isFunded || isActive) && (
+                        <div className="absolute inset-0 bg-gray-100 opacity-60 z-10 rounded-lg" />
+                      )}
+                      <div className="flex items-center justify-between relative z-20">
                         <h4 className="text-sm font-semibold text-gray-700">
                           Current Media ({supportingMedia.length})
                         </h4>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 relative z-20">
                         {supportingMedia.map((url, index) => (
                           <div key={index} className="relative group">
                             <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50">
@@ -693,6 +725,7 @@ export function EditPitchDialog({
                                 className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                                 onClick={() => handleRemoveMedia(index)}
                                 title="Remove image"
+                                disabled={isFunded || isActive}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -727,8 +760,7 @@ export function EditPitchDialog({
           </Tabs>
 
           <div className="flex items-center justify-between gap-3 pt-6 border-t border-gray-200">
-            {/* Delete Button - Left Side */}
-            {onDelete && (
+            {onDelete && (formData.status === "draft" || formData.status === "closed") && (
               <Button
                 variant="outline"
                 onClick={handleDeleteClick}
