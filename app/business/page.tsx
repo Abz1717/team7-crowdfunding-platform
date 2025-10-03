@@ -78,6 +78,18 @@ export default function BusinessDashboardPage() {
       <h1 className="text-2xl font-bold mb-4">Business Dashboard</h1>
       <p className="mb-8">Welcome to your Business dashboard.</p>
 
+      <Card className="mb-8 max-w-xs">
+        <CardHeader>
+          <CardTitle>Account Balance</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <span className="text-2xl font-bold text-green-600">
+            ${user?.account_balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
+          </span>
+        </CardContent>
+      </Card>
+
+      {/* Declaring Profit Record Section */}
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Declaring Profit Record</CardTitle>
