@@ -22,16 +22,12 @@ export function BusinessSetupForm() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [phoneError, setPhoneError] = useState("");
-  const [websiteError, setWebsiteError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (field === "phoneNumber") {
       validatePhone(value);
-    }
-    if (field === "website") {
-      validateWebsite(value);
     }
   };
 
@@ -71,27 +67,11 @@ export function BusinessSetupForm() {
     }
   };
 
-  const validateWebsite = (value: string) => {
-    const websiteRegex = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/;
-    if (!value) {
-      setWebsiteError("");
-      return false;
-    }
-    if (!websiteRegex.test(value)) {
-      setWebsiteError("Enter a valid website URL (e.g. https://example.com)");
-      return false;
-    } else {
-      setWebsiteError("");
-      return true;
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const isPhoneValid = validatePhone(formData.phoneNumber);
-    const isWebsiteValid = validateWebsite(formData.website);
-    if (!isPhoneValid || !isWebsiteValid) return;
+    if (!isPhoneValid) return;
     let logoUrl = formData.logoUrl;
     if (logoFile) {
       setIsUploading(true);
@@ -163,15 +143,11 @@ export function BusinessSetupForm() {
               <Input
                 id="website"
                 name="website"
-                type="url"
+                type="text"
                 placeholder="https://yourcompany.com"
                 value={formData.website}
                 onChange={(e) => handleInputChange("website", e.target.value)}
-                className={websiteError ? "border-red-500" : ""}
               />
-              {websiteError && (
-                <p className="text-xs text-red-600 mt-1">{websiteError}</p>
-              )}
             </div>
 
             <div className="space-y-2">
