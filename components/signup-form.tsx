@@ -29,6 +29,12 @@ export function SignUpForm() {
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      e.preventDefault();
+      setError("Please enter a valid email address.");
+      return;
+    }
     if (formData.password.length < 6) {
       e.preventDefault();
       setError("Password should be at least 6 characters.");

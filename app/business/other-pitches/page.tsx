@@ -12,7 +12,7 @@ export default function BusinessOtherPitches() {
 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== "business")) {
-      router.push("/auth")
+      router.push("/")
     }
   }, [user, isLoading, router])
 
