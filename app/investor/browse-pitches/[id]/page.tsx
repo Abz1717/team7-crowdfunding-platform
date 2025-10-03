@@ -145,31 +145,57 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
             </CardHeader>
 
             <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                {(pitch.investment_tiers as InvestmentTier[]).map((tier: InvestmentTier, index: number) => (
-                  <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                      <Badge
-                        variant={index === 0 ? "secondary" : "default"}
-                      >
-                        {tier.name}
-                      </Badge>
-                      <span className="text-lg font-bold">{tier.multiplier}x</span>
-                    </div>
-                    <div className="text-sm text-muted-foreground mb-2">
-                      ${typeof tier.min_amount === "number" ? tier.min_amount.toLocaleString() : "0"} -{" "}
-                      {typeof tier.max_amount === "number" ? 
-                      (tier.max_amount === Number.POSITIVE_INFINITY ? "∞" : `$${tier.max_amount.toLocaleString()}`) : ""}
-                    </div>
-                    <div className="text-sm">
-                      <div className="text-muted-foreground">Effective Return Rate:</div>
-                      <div className="font-medium text-green-600">
-                        {(pitch.profit_share * tier.multiplier).toFixed(1)}% annually
+              {(() => {
+                const normalizedTiers = (pitch.investment_tiers as any[]).map((tier) => ({
+                  ...tier,
+
+                  min_amount:
+                    typeof tier.min_amount === "number"
+                      ? tier.min_amount
+                      : Number(tier.minAmount ?? 0),
+
+                  max_amount:
+                    typeof tier.max_amount === "number"
+                      ? tier.max_amount
+                      : Number(tier.maxAmount ?? 0),
+                      
+                  multiplier:
+                    typeof tier.multiplier === "number"
+                      ? tier.multiplier
+                      : Number(tier.multiplier ?? 1),
+                  name: tier.name,
+                }));
+
+
+
+
+                return (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {normalizedTiers.map((tier: InvestmentTier, index: number) => (
+                      <div key={index} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <Badge
+                            variant={index === 0 ? "secondary" : "default"}
+                          >
+                            {tier.name}
+                          </Badge>
+                          <span className="text-lg font-bold">{tier.multiplier}x</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          {`$${typeof tier.min_amount === "number" && !isNaN(tier.min_amount) ? tier.min_amount.toLocaleString() : "0"} - ${typeof tier.max_amount === "number" && !isNaN(tier.max_amount) ? (tier.max_amount === Number.POSITIVE_INFINITY ? "∞" : `$${tier.max_amount.toLocaleString()}`) : ""}`}
+                        </div>
+                        {tier.multiplier > 1.0 && (
+                          <div className="text-sm">
+                            <div className="font-medium text-green-600">
+                              {`Get up to ${(Math.round((tier.multiplier - 1) * 100))}% more shares`}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
