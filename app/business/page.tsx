@@ -149,31 +149,37 @@ export default function BusinessDashboardPage() {
       </Card>
 
       {(!loading && businessUser && profitDistributions.length > 0 && totalInvestorPages > 0) && (
-        <div className="mb-8">
-
-          <InvestorList pitchId={currentPitch?.id} pitchTitle={currentPitch?.title} />
-          {totalInvestorPages > 1 && (
-            <div className="flex justify-center gap-4 mt-8">
-              <button
-                className="px-3 py-1 rounded border bg-muted text-muted-foreground disabled:opacity-50"
-                onClick={() => setInvestorPage((p) => Math.max(0, p - 1))}
-                disabled={investorPage === 0}
-              >
-                Previous
-              </button>
-              <span className="text-sm text-muted-foreground self-center">
-                {investorPage + 1} / {totalInvestorPages}
-              </span>
-             <button
-                className="px-3 py-1 rounded border bg-muted text-muted-foreground disabled:opacity-50"
-                onClick={() => setInvestorPage((p) => Math.min(totalInvestorPages - 1, p + 1))}
-                disabled={investorPage === totalInvestorPages - 1}
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Your Investors </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InvestorList pitchId={currentPitch?.id} pitchTitle={currentPitch?.title} />
+            {totalInvestorPages > 1 && (
+              <div className="flex justify-center gap-4 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInvestorPage((p) => Math.max(0, p - 1))}
+                  disabled={investorPage === 0}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground self-center">
+                  Page {investorPage + 1} of {totalInvestorPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInvestorPage((p) => Math.min(totalInvestorPages - 1, p + 1))}
+                  disabled={investorPage === totalInvestorPages - 1}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   )
