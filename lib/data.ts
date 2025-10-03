@@ -84,41 +84,69 @@ export async function createPitch(pitch: Omit<Pitch, "id" | "createdAt" | "updat
 export async function createInvestment(investment: Omit<Investment, "id" | "investedAt" | "returns">): Promise <Investment | null> {
   const supabase = createClient();
 
-  const { data: pitchData, error: pitchError } = await supabase
+  const { data: pitch, error: pitchError } = await supabase
     .from("pitch")
-    .select("current_amount, target_amount")
+    .select("id, current_amount, target_amount, investment_pool, business_id")
     .eq("id", investment.pitch_id)
     .single();
+  if (!pitch || pitchError) return null;
 
-  if (!pitchData || pitchError) return null;
-
-  const { current_amount = 0, target_amount = 0 } = pitchData;
-  // Calculate effective value for funding progress
   const effectiveValue = investment.investment_amount * (investment.tier?.multiplier ?? 1);
-  if (current_amount + effectiveValue > target_amount) {
-    return null;
-  }
+  const newPool = (pitch.investment_pool ?? 0) + investment.amount;
+  const newCurrentAmount = (pitch.current_amount ?? 0) + effectiveValue;
+  const isFullyFunded = newCurrentAmount >= (pitch.target_amount ?? 0);
 
   const { data, error } = await supabase
     .from("investment")
     .insert([investment])
     .select()
     .single();
-
   if (!data || error) return null;
 
-  const newAmount = current_amount + effectiveValue;
-  let statusUpdate = {};
-  if (newAmount >= target_amount) {
-    statusUpdate = { status: "funded" };
-  }
+  if (isFullyFunded) {
+    const businessId = pitch.business_id;
+    const { data: businessUser, error: businessUserError } = await supabase
+      .from("businessuser")
+      .select("user_id")
+      .eq("id", businessId)
+      .single();
+    if (!businessUser || businessUserError) return null;
 
-  const { error: updateError } = await supabase
-    .from("pitch")
-    .update({ current_amount: newAmount, ...statusUpdate })
-    .eq("id", investment.pitch_id);
-  if (updateError) {
-    console.error('Failed to update pitch status:', updateError.message, updateError.details);
+    const { data: userRow, error: userError } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", businessUser.user_id)
+      .single();
+      
+    if (!userRow || userError) return null;
+
+    const updatedBalance = (userRow.account_balance ?? 0) + newPool;
+
+    const { error: updateUserError } = await supabase
+      .from("user")
+      .update({ account_balance: updatedBalance })
+      .eq("id", businessUser.user_id);
+    if (updateUserError) return null;
+
+    const { error: updatePitchError } = await supabase
+      .from("pitch")
+      .update({
+        current_amount: newCurrentAmount,
+        status: "funded",
+        investment_pool: 0,
+      })
+      .eq("id", investment.pitch_id);
+    if (updatePitchError) return null;
+  } else {
+
+    const { error: updatePitchError } = await supabase
+      .from("pitch")
+      .update({
+        investment_pool: newPool,
+        current_amount: newCurrentAmount,
+      })
+      .eq("id", investment.pitch_id);
+    if (updatePitchError) return null;
   }
 
   return data;
