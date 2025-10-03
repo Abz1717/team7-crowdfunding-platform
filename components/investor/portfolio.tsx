@@ -84,17 +84,25 @@ useEffect(() => {
       investments.map(async (investment: Investment) => {
         const pitch = await getPitchById(investment.pitch_id)
         const distributions = await getProfitDistributionsByPitchId(investment.pitch_id)
-        let investmentReturns = 0
+        // gettin all investments by this investor in this pitch
+        const allMyInvestments = investments.filter(inv => inv.pitch_id === investment.pitch_id && inv.investor_id === investment.investor_id);
+        // sum effective shares for this investor in this pitch
+        const totalEffectiveShare = allMyInvestments.reduce((sum, inv) => sum + (typeof inv.effective_share === 'number' ? inv.effective_share : 0), 0);
+        // summ all payouts for this investor in this pitch -across all distributions
+        let totalPayout = 0;
         for (const dist of distributions) {
-          const payouts = await getInvestorPayoutsByDistributionId(dist.id)
+          const payouts = await getInvestorPayoutsByDistributionId(dist.id);
           payouts.forEach((payout) => {
-            if (payout.investor_id === user?.id) investmentReturns += payout.amount
-          })
+            if (payout.investor_id === user?.id) totalPayout += payout.amount;
+          });
         }
-        const roi = investment.investment_amount > 0 ? (investmentReturns / investment.investment_amount) * 100 : 0
-        return { investment, pitch, investmentReturns, roi }
+        // proportional payout for this investment
+        const thisShare = typeof investment.effective_share === 'number' ? investment.effective_share : 0;
+        const investmentReturns = totalEffectiveShare > 0 ? totalPayout * (thisShare / totalEffectiveShare) : 0;
+        const roi = investment.investment_amount > 0 ? (investmentReturns / investment.investment_amount) * 100 : 0;
+        return { investment, pitch, investmentReturns, roi };
       })
-    )
+    );
     setInvestmentDetails(details)
   }
   if (user && investments.length) fetchDetails()
