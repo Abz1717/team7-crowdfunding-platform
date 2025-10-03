@@ -687,6 +687,7 @@ export async function declareProfits(
   pitchId: string,
   profitAmount: number
 ): Promise<{ success: boolean; error?: string }> {
+
   try {
     const supabase = await createClient();
 
@@ -700,9 +701,40 @@ export async function declareProfits(
       return { success: false, error: "Pitch not found" };
     }
 
-  const businessProfitShare = pitch.profit_share ?? 0;
-  const businessProfitShareAmount = profitAmount * (businessProfitShare / 100);
-  const businessProfit = profitAmount - businessProfitShareAmount;
+    const { data: businessUser, error: businessUserError } = await supabase
+      .from("businessuser")
+      .select("user_id")
+      .eq("id", pitch.business_id)
+      .single();
+    if (businessUserError || !businessUser) {
+      return { success: false, error: "Business user not found" };
+    }
+
+    const { data: user, error: userError } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", businessUser.user_id)
+      .single();
+    if (userError || !user) {
+      return { success: false, error: "Business user account not found" };
+    }
+
+    if (typeof user.account_balance !== 'number' || user.account_balance < profitAmount) {
+      return { success: false, error: "Insufficient account balance to declare this profit amount." };
+    }
+
+    const newBusinessBalance = user.account_balance - profitAmount;
+    const { error: updateBusinessError } = await supabase
+      .from("user")
+      .update({ account_balance: newBusinessBalance })
+      .eq("id", businessUser.user_id);
+    if (updateBusinessError) {
+      return { success: false, error: "Failed to update business account balance." };
+    }
+
+    const businessProfitShare = pitch.profit_share ?? 0;
+    const businessProfitShareAmount = profitAmount * (businessProfitShare / 100);
+    const businessProfit = profitAmount - businessProfitShareAmount;
 
     const { data: profitDist, error: profitDistError } = await supabase
       .from("profit_distribution")

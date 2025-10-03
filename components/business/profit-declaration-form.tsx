@@ -97,9 +97,14 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
         });
         setShowResultModal(true);
       } else {
+
+        let errorMsg = result.error || "Unable to declare profits. Please try again.";
+        if (result.error && result.error.toLowerCase().includes("insufficient account balance")) {
+          errorMsg = "Insufficient account balance. Please deposit more funds before declaring this profit amount.";
+        }
         setResultInfo({
           success: false,
-          message: result.error || "Unable to declare profits. Please try again."
+          message: errorMsg
         });
         setShowResultModal(true);
       }
@@ -113,7 +118,7 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
     } finally {
       setIsDeclaring(false);
     }
-  } 
+  }
 
   return (
   <>
