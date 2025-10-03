@@ -10,8 +10,8 @@ export function Navbar() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
 
@@ -106,7 +106,7 @@ export function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            <Link href="/signup">
+            <Link href="/signin">
               <Button>Get Started</Button>
             </Link>
           )}

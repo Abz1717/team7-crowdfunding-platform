@@ -90,11 +90,15 @@ export async function signup(formData: FormData) {
       email: data.email,
       account_type: data.accountType,
       account_balance: 0,
+      total_invested: 0,
+      total_returns: 0,
+      overall_roi: 0,
     },
   ]);
 
   if (tableError) {
     console.error("Error inserting into user table:", tableError);
+    redirect("/error");
   }
 
   console.log("Signup success:", userData);
