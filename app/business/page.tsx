@@ -9,15 +9,22 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { getPitchesByBusinessId, getProfitDistributionsByPitchId, getInvestorPayoutsByDistributionId } from "@/lib/data";
 import { useBusinessUser } from "@/hooks/useBusinessUser";
-import dynamic from "next/dynamic";
+import { InvestorList } from '@/components/business/investor-list';
 
-const InvestorList = dynamic(() => import('@/components/business/investor-list').then(mod => mod.InvestorList), { ssr: false });
-
-export default function BusinessPage() {
+export default function BusinessDashboardPage() {
   const { user } = useAuth();
   const { businessUser, loading: businessUserLoading } = useBusinessUser(user || undefined);
   const [profitDistributions, setProfitDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // Investor paging state and logic
+  const uniquePitches = Array.from(new Set(profitDistributions.map(d => d.pitchId)))
+    .map(pitchId => ({
+      id: pitchId,
+      title: profitDistributions.find(d => d.pitchId === pitchId)?.pitchTitle || "",
+    }));
+  const [investorPage, setInvestorPage] = useState(0);
+  const totalInvestorPages = uniquePitches.length;
+  const currentPitch = uniquePitches[investorPage];
 
   useEffect(() => {
     async function fetchDistributions() {
@@ -129,15 +136,31 @@ export default function BusinessPage() {
         </CardContent>
       </Card>
 
-      {(!loading && businessUser && profitDistributions.length > 0) && (
-        <div className="space-y-6 mb-8">
-          {[...new Set(profitDistributions.map(d => d.pitchId))].map((pitchId) => (
-            <InvestorList
-              key={pitchId}
-              pitchId={pitchId}
-              pitchTitle={profitDistributions.find(d => d.pitchId === pitchId)?.pitchTitle}
-            />
-          ))}
+      {(!loading && businessUser && profitDistributions.length > 0 && totalInvestorPages > 0) && (
+        <div className="mb-8">
+
+          <InvestorList pitchId={currentPitch?.id} pitchTitle={currentPitch?.title} />
+          {totalInvestorPages > 1 && (
+            <div className="flex justify-center gap-4 mt-8">
+              <button
+                className="px-3 py-1 rounded border bg-muted text-muted-foreground disabled:opacity-50"
+                onClick={() => setInvestorPage((p) => Math.max(0, p - 1))}
+                disabled={investorPage === 0}
+              >
+                Previous
+              </button>
+              <span className="text-sm text-muted-foreground self-center">
+                {investorPage + 1} / {totalInvestorPages}
+              </span>
+             <button
+                className="px-3 py-1 rounded border bg-muted text-muted-foreground disabled:opacity-50"
+                onClick={() => setInvestorPage((p) => Math.min(totalInvestorPages - 1, p + 1))}
+                disabled={investorPage === totalInvestorPages - 1}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

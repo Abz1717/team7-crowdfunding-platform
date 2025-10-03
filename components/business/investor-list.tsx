@@ -14,7 +14,12 @@ interface InvestorListProps {
 }
 
 export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
-  const [investors, setInvestors] = useState<(Investment & { name?: string })[]>([]);
+  const [investors, setInvestors] = useState<{
+    investor_id: string;
+    name: string;
+    totalInvested: number;
+    totalProfitShare: number;
+  }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -24,15 +29,30 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
         getInvestmentsByPitchId(pitchId),
         getPitchById(pitchId),
       ]);
-
-
-    const investorIds = investments.map(inv => inv.investor_id);
+      // Group by investor_id
+      const grouped: Record<string, { investor_id: string; totalInvested: number; totalProfitShare: number }> = {};
+      let totalPitchInvested = 0;
+      for (const inv of investments) {
+        totalPitchInvested += inv.investment_amount;
+        if (!grouped[inv.investor_id]) {
+          grouped[inv.investor_id] = {
+            investor_id: inv.investor_id,
+            totalInvested: 0,
+            totalProfitShare: 0,
+          };
+        }
+        grouped[inv.investor_id].totalInvested += inv.investment_amount;
+        grouped[inv.investor_id].totalProfitShare += typeof inv.effective_share === 'number' ? inv.effective_share : 0;
+      }
+      const investorIds = Object.keys(grouped);
       const users: UserName[] = await getUsersByIds(investorIds);
-      const investorsWithNames = investments.map(inv => {
-        const user = users.find(u => u.id === inv.investor_id);
+      const investorsWithNames = investorIds.map(id => {
+        const user = users.find(u => u.id === id);
         return {
-          ...inv,
-          name: user ? `${user.first_name} ${user.last_name}` : inv.investor_id,
+          investor_id: id,
+          name: user ? `${user.first_name} ${user.last_name}` : id,
+          totalInvested: grouped[id].totalInvested,
+          totalProfitShare: grouped[id].totalProfitShare,
         };
       });
       setInvestors(investorsWithNames);
@@ -53,19 +73,17 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
         ) : investors.length === 0 ? (
           <div>No investors found for this pitch.</div>
         ) : (
-
           <div className="space-y-3">
             {investors.map((inv) => (
-              <div key={inv.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+              <div key={inv.investor_id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <User2 className="h-4 w-4 text-blue-600" />
                 </div>
-
                 <div className="flex-1">
                   <div className="font-medium">{inv.name}</div>
                   <div className="text-sm text-muted-foreground flex gap-4 flex-wrap">
-                    <span className="flex items-center gap-1"><DollarSign className="h-4 w-4" /> Invested: ${inv.investment_amount.toLocaleString()}</span>
-                    <span className="flex items-center gap-1"><Percent className="h-4 w-4" /> Profit Share: {typeof inv.effective_share === 'number' ? inv.effective_share.toFixed(2) : 'N/A'}%</span>
+                    <span className="flex items-center gap-1"><DollarSign className="h-4 w-4" /> Invested: ${inv.totalInvested.toLocaleString()}</span>
+                    <span className="flex items-center gap-1"><Percent className="h-4 w-4" /> Profit Share: {inv.totalProfitShare.toFixed(2)}%</span>
                   </div>
                 </div>
               </div>
