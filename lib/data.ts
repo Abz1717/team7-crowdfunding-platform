@@ -86,7 +86,7 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
 
   const { data: pitch, error: pitchError } = await supabase
     .from("pitch")
-    .select("id, current_amount, target_amount, investment_pool, business_id")
+    .select("id, current_amount, target_amount, investment_pool, business_id, released_at")
     .eq("id", investment.pitch_id)
     .single();
   if (!pitch || pitchError) return null;
@@ -95,7 +95,7 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
   const newPool = (pitch.investment_pool ?? 0) + investment.amount;
   const newCurrentAmount = (pitch.current_amount ?? 0) + effectiveValue;
   const isFullyFunded = newCurrentAmount >= (pitch.target_amount ?? 0);
-
+  
   const { data, error } = await supabase
     .from("investment")
     .insert([investment])
@@ -103,7 +103,7 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
     .single();
   if (!data || error) return null;
 
-  if (isFullyFunded) {
+  if (isFullyFunded && !pitch.released_at) {
     const businessId = pitch.business_id;
     const { data: businessUser, error: businessUserError } = await supabase
       .from("businessuser")
@@ -117,7 +117,6 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
       .select("account_balance")
       .eq("id", businessUser.user_id)
       .single();
-      
     if (!userRow || userError) return null;
 
     const updatedBalance = (userRow.account_balance ?? 0) + newPool;
@@ -134,6 +133,7 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
         current_amount: newCurrentAmount,
         status: "funded",
         investment_pool: 0,
+        released_at: new Date().toISOString(),
       })
       .eq("id", investment.pitch_id);
     if (updatePitchError) return null;

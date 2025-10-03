@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { TrendingUp } from "lucide-react";
+import { TrendingUp, ArrowDownLeft, Calendar } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
@@ -16,6 +16,32 @@ export default function BusinessDashboardPage() {
   const { businessUser, loading: businessUserLoading } = useBusinessUser(user || undefined);
   const [profitDistributions, setProfitDistributions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [fundingActivity, setFundingActivity] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchFundingActivity() {
+      if (!user || businessUserLoading) return;
+      if (!businessUser) {
+        setFundingActivity([]);
+        return;
+      }
+
+      const pitches = await getPitchesByBusinessId(businessUser.id);
+      const releasedPitches = pitches.filter((p: any) => p.funds_released || p.released_at);
+      
+      const activity = releasedPitches.map((pitch: any) => ({
+        id: pitch.id,
+        title: pitch.title,
+        fundedAt: pitch.released_at || pitch.funded_at || pitch.updated_at || pitch.created_at,
+        amount: pitch.target_amount,
+        elevatorPitch: pitch.elevator_pitch,
+      }));
+      activity.sort((a, b) => new Date(b.fundedAt).getTime() - new Date(a.fundedAt).getTime());
+      setFundingActivity(activity);
+    }
+    fetchFundingActivity();
+  }, [user, businessUser, businessUserLoading]);
   // Investor paging state and logic
   const uniquePitches = Array.from(new Set(profitDistributions.map(d => d.pitchId)))
     .map(pitchId => ({
@@ -86,6 +112,40 @@ export default function BusinessDashboardPage() {
           <span className="text-2xl font-bold text-green-600">
             ${user?.account_balance?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '0.00'}
           </span>
+        </CardContent>
+      </Card>
+
+
+            <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            Funding Activity
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {fundingActivity.length === 0 ? (
+              <div className="text-center py-4 text-muted-foreground">No funding activity yet</div>
+            ) : (
+
+              fundingActivity.slice(0, 3).map((fund) => (
+                <div key={fund.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <ArrowDownLeft className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium">Received ${fund.amount.toLocaleString()} for {fund.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {fund.elevatorPitch}<br/>
+                      {fund.fundedAt ? new Date(fund.fundedAt).toLocaleDateString() : ""}
+                    </div>
+                  </div>
+                  <Link href={`/business/pitch/${fund.id}`}><Button size="sm" variant="outline">View Pitch</Button></Link>
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -184,3 +244,4 @@ export default function BusinessDashboardPage() {
     </div>
   )
 }
+
