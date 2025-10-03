@@ -167,7 +167,11 @@ export function InvestmentForm({
     if (!user || !selectedTier) return;
     setIsProcessing(true);
     await new Promise((res) => setTimeout(res, 500)); // short delay for UX
-    await createInvestment({
+    // Calculate effective share (same as UI logic)
+    const effectiveShare = ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share;
+
+    // Insert investment
+    const investmentResult = await createInvestment({
       amount: investmentAmount,
       investment_amount: investmentAmount,
       investor_id: user.id,
@@ -175,6 +179,17 @@ export function InvestmentForm({
       tier: selectedTier,
       invested_at: new Date(),
     });
+
+    // Store effective_share in the new investment row
+    if (investmentResult && investmentResult.id) {
+      await import("@/utils/supabase/client").then(({ createClient }) => {
+        const supabase = createClient();
+        return supabase
+          .from("investment")
+          .update({ effective_share: effectiveShare })
+          .eq("id", investmentResult.id);
+      });
+    }
     if (fundingMethod === "balance") {
       await updateAccountBalance(user.id, accountBalance - investmentAmount);
       setAccountBalance(accountBalance - investmentAmount);

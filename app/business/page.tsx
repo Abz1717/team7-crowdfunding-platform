@@ -9,6 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
 import { getPitchesByBusinessId, getProfitDistributionsByPitchId, getInvestorPayoutsByDistributionId } from "@/lib/data";
 import { useBusinessUser } from "@/hooks/useBusinessUser";
+import dynamic from "next/dynamic";
+
+const InvestorList = dynamic(() => import('@/components/business/investor-list').then(mod => mod.InvestorList), { ssr: false });
 
 export default function BusinessPage() {
   const { user } = useAuth();
@@ -125,6 +128,18 @@ export default function BusinessPage() {
           )}
         </CardContent>
       </Card>
+
+      {(!loading && businessUser && profitDistributions.length > 0) && (
+        <div className="space-y-6 mb-8">
+          {[...new Set(profitDistributions.map(d => d.pitchId))].map((pitchId) => (
+            <InvestorList
+              key={pitchId}
+              pitchId={pitchId}
+              pitchTitle={profitDistributions.find(d => d.pitchId === pitchId)?.pitchTitle}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

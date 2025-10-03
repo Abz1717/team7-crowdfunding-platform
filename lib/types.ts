@@ -62,6 +62,7 @@ export interface Investment {
   tier: InvestmentTier
   invested_at: Date
   returns: ProfitDistribution[]
+  effective_share?: number
 }
 
 export interface ProfitDistribution {

@@ -84,17 +84,25 @@ useEffect(() => {
       investments.map(async (investment: Investment) => {
         const pitch = await getPitchById(investment.pitch_id)
         const distributions = await getProfitDistributionsByPitchId(investment.pitch_id)
-        let investmentReturns = 0
+        // gettin all investments by this investor in this pitch
+        const allMyInvestments = investments.filter(inv => inv.pitch_id === investment.pitch_id && inv.investor_id === investment.investor_id);
+        // sum effective shares for this investor in this pitch
+        const totalEffectiveShare = allMyInvestments.reduce((sum, inv) => sum + (typeof inv.effective_share === 'number' ? inv.effective_share : 0), 0);
+        // summ all payouts for this investor in this pitch -across all distributions
+        let totalPayout = 0;
         for (const dist of distributions) {
-          const payouts = await getInvestorPayoutsByDistributionId(dist.id)
+          const payouts = await getInvestorPayoutsByDistributionId(dist.id);
           payouts.forEach((payout) => {
-            if (payout.investor_id === user?.id) investmentReturns += payout.amount
-          })
+            if (payout.investor_id === user?.id) totalPayout += payout.amount;
+          });
         }
-        const roi = investment.investment_amount > 0 ? (investmentReturns / investment.investment_amount) * 100 : 0
-        return { investment, pitch, investmentReturns, roi }
+        // proportional payout for this investment
+        const thisShare = typeof investment.effective_share === 'number' ? investment.effective_share : 0;
+        const investmentReturns = totalEffectiveShare > 0 ? totalPayout * (thisShare / totalEffectiveShare) : 0;
+        const roi = investment.investment_amount > 0 ? (investmentReturns / investment.investment_amount) * 100 : 0;
+        return { investment, pitch, investmentReturns, roi };
       })
-    )
+    );
     setInvestmentDetails(details)
   }
   if (user && investments.length) fetchDetails()
@@ -128,11 +136,10 @@ useEffect(() => {
   }
 
   const [profitPayouts, setProfitPayouts] = useState<{
-    payout: any;
     distribution: any;
     pitch: any;
     totalAmount: number;
-    totalPercentage: number;
+    userSharePercent: number;
   }[]>([]);
 
   // Pagination for profit payouts (must be after profitPayouts is defined)
@@ -146,42 +153,61 @@ useEffect(() => {
 
   useEffect(() => {
     async function fetchPayouts() {
-      if (!user) return setProfitPayouts([]);
-      const investments = await getInvestmentsByInvestorId(user.id);
+      if (!user || investments.length === 0) return setProfitPayouts([]);
+      let allInvestmentsByPitch: Record<string, Investment[]> = {};
+      const allPitchIds = [...new Set(investments.map(inv => inv.pitch_id))];
+      await Promise.all(allPitchIds.map(async (pitchId) => {
+        allInvestmentsByPitch[pitchId] = await getInvestmentsByPitchId(pitchId);
+      }));
+      // Gather all payouts for this user
       let payoutsArr: any[] = [];
-      for (const inv of investments) {
-        const pitch = await getPitchById(inv.pitch_id);
-        const distributions = await getProfitDistributionsByPitchId(inv.pitch_id);
+      // Get all unique pitch IDs from investments
+      const uniquePitchIds = [...new Set(investments.map(inv => inv.pitch_id))];
+      for (const pitchId of uniquePitchIds) {
+        const pitch = await getPitchById(pitchId);
+        const distributions = await getProfitDistributionsByPitchId(pitchId);
         for (const dist of distributions) {
           const payouts = await getInvestorPayoutsByDistributionId(dist.id);
-          for (const payout of payouts) {
-            if (payout.investor_id === user.id) {
-              payoutsArr.push({ payout, distribution: dist, pitch });
-            }
+          // Debug: log all payouts for this distribution
+          console.log(`All payouts for distribution ${dist.id} (pitch ${pitchId}):`, payouts);
+          // Add ALL payouts for this investor for this distribution (sum them later)
+          const myPayouts = payouts.filter(p => p.investor_id === user.id);
+          for (const payout of myPayouts) {
+            payoutsArr.push({ payout, distribution: dist, pitch });
           }
         }
       }
-      const grouped: Record<string, { payout: any; distribution: any; pitch: any; totalAmount: number; totalPercentage: number }> = {};
+      // Group by pitch-distribution and sum all payouts for the investor
+      const grouped: Record<string, { distribution: any; pitch: any; totalAmount: number; userSharePercent: number; payoutDetails: any[] }> = {};
       for (const item of payoutsArr) {
         const key = `${item.pitch.id}-${item.distribution.id}`;
         if (!grouped[key]) {
           grouped[key] = {
-            payout: item.payout, 
             distribution: item.distribution,
             pitch: item.pitch,
             totalAmount: 0,
-            totalPercentage: 0,
+            userSharePercent: 0,
+            payoutDetails: [],
           };
         }
         grouped[key].totalAmount += item.payout.amount;
-        grouped[key].totalPercentage += item.payout.percentage;
+        grouped[key].payoutDetails.push(item.payout);
       }
+      // Debug: log all payouts being summed for each group
+      Object.entries(grouped).forEach(([key, group]) => {
+        console.log(`Payout group ${key}:`, group.payoutDetails);
+      });
+      // After summing, calculate the correct percentage for each group
+      Object.values(grouped).forEach(group => {
+        const totalProfit = group.distribution.total_profit || 0;
+        group.userSharePercent = totalProfit > 0 ? (group.totalAmount / totalProfit) * 100 : 0;
+      });
       const groupedArr = Object.values(grouped)
         .sort((a, b) => new Date(b.distribution.distribution_date).getTime() - new Date(a.distribution.distribution_date).getTime());
       setProfitPayouts(groupedArr);
     }
     fetchPayouts();
-  }, [user]);
+  }, [user, investments]);
 
    console.log("Portfolio user:", user)
   console.log("Portfolio accountBalance:", accountBalance)
@@ -281,7 +307,7 @@ useEffect(() => {
             <>
               <div className="space-y-4">
                 {pagedInvestments.map(({ investment, pitch, investmentReturns, roi }) => {
-                  if (!pitch) return null
+                  if (!pitch) return null;
 
                   return (
                     <Card key={investment.id} className="bg-muted/30">
@@ -293,7 +319,6 @@ useEffect(() => {
                           </div>
                           <TierBadge tier={investment.tier.name} />
                         </div>
-
                         <div className="grid md:grid-cols-5 gap-4">
                           <div>
                             <div className="text-sm text-muted-foreground">Investment Amount</div>
@@ -314,10 +339,9 @@ useEffect(() => {
                             <div className="font-semibold text-green-600">${investmentReturns.toLocaleString()}</div>
                           </div>
                           <div>
-                            <div className="text-sm text-muted-foreground">Current ROI</div>
-                            <div className={`font-semibold ${roi >= 0 ? "text-green-600" : "text-red-600"}`}>
-                              {roi >= 0 ? "+" : ""}
-                              {roi.toFixed(1)}%
+                            <div className="text-sm text-muted-foreground">Profit Share</div>
+                            <div className="font-semibold">
+                              {typeof investment.effective_share === 'number' ? `${investment.effective_share.toFixed(2)}%` : 'N/A'}
                             </div>
                           </div>
                         </div>
@@ -329,7 +353,7 @@ useEffect(() => {
                                 {pitch.status}
                               </Badge>
                             </div>
-                              <Link href={`/investor/pitch/${pitch?.id}`}>
+                            <Link href={`/investor/pitch/${pitch?.id}`}>
                               <Button variant="outline" size="sm">
                                 View Pitch Details
                                 <ArrowUpRight className="ml-1 h-3 w-3" />
@@ -339,7 +363,7 @@ useEffect(() => {
                         </div>
                       </CardContent>
                     </Card>
-                  )
+                  );
                 })}
               </div>
 
@@ -387,7 +411,7 @@ useEffect(() => {
           ) : (
             <>
               <div className="space-y-3">
-                {pagedProfitPayouts.map(({ payout, distribution, pitch, totalAmount, totalPercentage }) => (
+                {pagedProfitPayouts.map(({ distribution, pitch, totalAmount, userSharePercent }) => (
                   <div key={pitch.id + '-' + distribution.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
                     <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                       <TrendingUp className="h-4 w-4 text-green-600" />
@@ -395,7 +419,7 @@ useEffect(() => {
                     <div className="flex-1">
                       <div className="font-medium">${totalAmount.toLocaleString()} from {pitch?.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        Paid on {formatDate(distribution.distribution_date)} • {Math.round(totalPercentage * 100)}% share
+                        Paid on {formatDate(distribution.distribution_date)} • {userSharePercent.toFixed(2)}% share
                       </div>
                     </div>
                     <Link href={`/investor/pitch/${pitch?.id}`}><Button size="sm" variant="outline">View Pitch</Button></Link>
