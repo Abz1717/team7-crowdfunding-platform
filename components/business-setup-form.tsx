@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Globe, Phone, MapPin, Image } from "lucide-react";
+import { Building2, Globe, Phone, MapPin } from "lucide-react";
 import { createBusinessUser } from "@/lib/action";
 
 export function BusinessSetupForm() {
@@ -21,10 +21,18 @@ export function BusinessSetupForm() {
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+  const [websiteError, setWebsiteError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "phoneNumber") {
+      validatePhone(value);
+    }
+    if (field === "website") {
+      validateWebsite(value);
+    }
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,8 +56,42 @@ export function BusinessSetupForm() {
     return urlData?.publicUrl || null;
   };
 
+  const validatePhone = (value: string) => {
+    const phoneRegex = /^\+[1-9]\d{9,14}$/;
+    if (!value) {
+      setPhoneError("");
+      return false;
+    }
+    if (!phoneRegex.test(value)) {
+      setPhoneError("Enter a valid international phone number (e.g. +441234567890)");
+      return false;
+    } else {
+      setPhoneError("");
+      return true;
+    }
+  };
+
+  const validateWebsite = (value: string) => {
+    const websiteRegex = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(\/\S*)?$/;
+    if (!value) {
+      setWebsiteError("");
+      return false;
+    }
+    if (!websiteRegex.test(value)) {
+      setWebsiteError("Enter a valid website URL (e.g. https://example.com)");
+      return false;
+    } else {
+      setWebsiteError("");
+      return true;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    const isPhoneValid = validatePhone(formData.phoneNumber);
+    const isWebsiteValid = validateWebsite(formData.website);
+    if (!isPhoneValid || !isWebsiteValid) return;
     let logoUrl = formData.logoUrl;
     if (logoFile) {
       setIsUploading(true);
@@ -68,6 +110,10 @@ export function BusinessSetupForm() {
     submitData.set("location", formData.location);
     await createBusinessUser(submitData);
   };
+
+  const countryList = [
+    "United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "India", "China", "Japan", "Brazil", "South Africa", "Nigeria", "Egypt", "Saudi Arabia", "Turkey", "Russia", "Italy", "Spain", "Mexico", "Argentina", "Netherlands", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Switzerland", "Belgium", "Austria", "Ireland", "Singapore", "New Zealand", "South Korea", "Indonesia", "Malaysia", "Thailand", "Vietnam", "Philippines", "Pakistan", "Bangladesh", "Ukraine", "Romania", "Greece", "Portugal", "Czech Republic", "Hungary", "Israel", "Chile", "Colombia", "Peru", "Venezuela", "Morocco", "Kenya", "Ghana", "Ethiopia", "Algeria", "UAE", "Qatar", "Kuwait", "Oman", "Jordan", "Lebanon", "Iraq", "Iran", "Afghanistan", "Sri Lanka", "Nepal", "Cambodia", "Laos", "Myanmar", "Kazakhstan", "Uzbekistan", "Azerbaijan", "Georgia", "Belarus", "Slovakia", "Slovenia", "Croatia", "Serbia", "Bulgaria", "Lithuania", "Latvia", "Estonia", "Luxembourg", "Iceland", "Malta", "Cyprus", "Monaco", "Liechtenstein", "Andorra", "San Marino", "Vatican City", "Other"
+  ];
 
   return (
     <Card className="w-full">
@@ -121,7 +167,11 @@ export function BusinessSetupForm() {
                 placeholder="https://yourcompany.com"
                 value={formData.website}
                 onChange={(e) => handleInputChange("website", e.target.value)}
+                className={websiteError ? "border-red-500" : ""}
               />
+              {websiteError && (
+                <p className="text-xs text-red-600 mt-1">{websiteError}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -135,10 +185,13 @@ export function BusinessSetupForm() {
                 type="tel"
                 placeholder="+44 7242 827218"
                 value={formData.phoneNumber}
-                onChange={(e) =>
-                  handleInputChange("phoneNumber", e.target.value)
-                }
+                onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                required
+                className={phoneError ? "border-red-500" : ""}
               />
+              {phoneError && (
+                <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+              )}
             </div>
           </div>
 
@@ -196,15 +249,19 @@ export function BusinessSetupForm() {
               <MapPin className="h-4 w-4" />
               Location *
             </Label>
-            <Input
+            <select
               id="location"
               name="location"
-              type="text"
-              placeholder="City, State, Country"
               value={formData.location}
               onChange={(e) => handleInputChange("location", e.target.value)}
               required
-            />
+              className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">Select a country</option>
+              {countryList.map((country) => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
           </div>
 
           <Button type="submit" className="w-full" size="lg">
