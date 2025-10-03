@@ -19,6 +19,7 @@ export interface User {
   name: string;
   role: UserRole;
   createdAt: Date;
+  account_balance: number;
 }
 
 interface AuthContextType {
@@ -41,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("[AuthProvider] Fetching user profile for:", supabaseUser.email);
         const { data, error } = await supabase
           .from("user")
-          .select("first_name, last_name, account_type, created_at")
+          .select("first_name, last_name, account_type, created_at, account_balance")
           .eq("email", supabaseUser.email)
           .single();
 
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             name: `${data.first_name} ${data.last_name}`,
             role: data.account_type as UserRole,
             createdAt: new Date(data.created_at),
+            account_balance: typeof data.account_balance === 'number' ? data.account_balance : 0,
           };
           console.log("[AuthProvider] User profile loaded:", user);
           setUser(user);
