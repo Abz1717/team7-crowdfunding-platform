@@ -199,10 +199,18 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       return;
     }
 
+    // make sure to normalize tiers to make sure fields are there and correct type
+    const normalizedTiers = (formData.tiers || []).map((tier) => ({
+      name: tier.name || "",
+      minAmount: tier.minAmount ?? "",
+      maxAmount: tier.maxAmount ?? "",
+      multiplier: tier.multiplier ?? "1.0",
+    }));
+
     setIsCreating(true);
     try {
       const result = await createNewPitch(
-        formData,
+        { ...formData, tiers: normalizedTiers },
         aiAnalysis || undefined,
         uploadedFileUrls
       );

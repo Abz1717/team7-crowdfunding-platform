@@ -145,6 +145,14 @@ export function EditPitchDialog({
       return;
     }
 
+    // make sure to normalize tiers to make sure fields are there and correct type
+    const normalizedTiers = (formData.investment_tiers || []).map((tier) => ({
+      name: tier.name || "",
+      minAmount: tier.minAmount ?? "",
+      maxAmount: tier.maxAmount ?? "",
+      multiplier: tier.multiplier ?? "1.0",
+    }));
+
     setIsUpdating(true);
 
     try {
@@ -158,13 +166,18 @@ export function EditPitchDialog({
           Number.parseInt(formData.profit_share) || pitch.profit_share,
         end_date: formData.end_date.toISOString(),
         status: formData.status,
-        investment_tiers: formData.investment_tiers.filter(
+        investment_tiers: normalizedTiers.filter(
           (tier) => tier.minAmount && tier.maxAmount && tier.multiplier
         ),
         supporting_media: supportingMedia,
       };
 
       const result = await updateExistingPitch(pitch.id, updateData);
+
+      if (result.success && formData.status === "closed") {
+        const { refundInvestorsIfPitchClosed } = await import("@/lib/data");
+        await refundInvestorsIfPitchClosed(pitch.id);
+      }
 
       if (result.success) {
         onOpenChange(false);

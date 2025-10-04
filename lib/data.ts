@@ -219,3 +219,44 @@ export async function getOverallROI(userId: string): Promise<number> {
   const returns = await getTotalReturns(userId);
   return invested > 0 ? (returns / invested) * 100 : 0;
 }
+
+
+export async function refundInvestorsIfPitchClosed(pitchId: string): Promise<void> {
+  const supabase = createClient();
+
+  const { data: pitch } = await supabase
+    .from("pitch")
+    .select("id, current_amount, target_amount, status")
+    .eq("id", pitchId)
+    .single();
+  if (!pitch) return;
+
+  if (pitch.current_amount >= pitch.target_amount) return;
+
+  const { data: investments } = await supabase
+    .from("investment")
+    .select("id, investor_id, investment_amount, refunded, refunded_amount")
+    .eq("pitch_id", pitchId);
+  if (!investments) return;
+
+  for (const inv of investments) {
+    if (inv.refunded) continue;
+
+    const { data: userRow } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", inv.investor_id)
+      .single();
+    if (!userRow) continue;
+    const updatedBalance = (userRow.account_balance ?? 0) + (inv.investment_amount ?? 0);
+    await supabase
+      .from("user")
+      .update({ account_balance: updatedBalance })
+      .eq("id", inv.investor_id);
+
+    await supabase
+      .from("investment")
+      .update({ refunded: true, refunded_amount: inv.investment_amount })
+      .eq("id", inv.id);
+  }
+}
