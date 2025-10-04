@@ -408,13 +408,22 @@ export function InvestorProvider({ children }: InvestorProviderProps) {
   // Initial data fetch when user logs in or component mounts
   useEffect(() => {
     if (user && user.role === "investor") {
-      console.log(
-        "[InvestorContext] Fetching initial investor data for user:",
-        user.email
-      );
-      refreshAllData();
+      // Only fetch if we don't already have data for this user
+      if (state.pitches.length === 0 && state.investments.length === 0) {
+        console.log(
+          "[InvestorContext] Fetching initial investor data for user:",
+          user.email
+        );
+        refreshAllData();
+      } else {
+        console.log(
+          "[InvestorContext] Data already loaded for user:",
+          user.email,
+          "- skipping initial fetch"
+        );
+      }
     }
-  }, [user, refreshAllData]);
+  }, [user, refreshAllData, state.pitches.length, state.investments.length]);
 
   return (
     <InvestorContext.Provider

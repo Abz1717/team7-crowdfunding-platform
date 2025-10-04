@@ -9,9 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { login } from "@/lib/action"; // import your server action
 import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export function SignInForm() {
   const [error, setError] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -52,43 +55,60 @@ export function SignInForm() {
         {error && (
           <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
         )}
-        <form className="space-y-4" onSubmit={async (e) => {
-          e.preventDefault();
-          
-          if (!formData.email || !formData.password) {
-            setError("Please enter both email and password.");
-            return;
-          }
-          const supabase = createClient();
+        <form
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
 
-          const { error } = await supabase.auth.signInWithPassword({
-            email: formData.email,
-            password: formData.password,
-          });
+            if (!formData.email || !formData.password) {
+              setError("Please enter both email and password.");
+              return;
+            }
 
-          if (error) {
-            setError("Invalid email or password.");
-            return;
-          }
-          const { data: userDetails, error: userError } = await supabase
-            .from("user")
-            .select("account_type")
-            .eq("email", formData.email)
-            .single();
+            setIsLoading(true);
+            setError("");
 
-          if (userError || !userDetails) {
-            setError("Account type not found.");
-            return;
-          }
+            try {
+              const supabase = createClient();
 
-          if (userDetails.account_type === "investor") {
-            window.location.href = "/investor";
-          } else if (userDetails.account_type === "business") {
-            window.location.href = "/business";
-          } else {
-            setError("Unknown account type.");
-          }
-        }}>
+              const { error } = await supabase.auth.signInWithPassword({
+                email: formData.email,
+                password: formData.password,
+              });
+
+              if (error) {
+                setError("Invalid email or password.");
+                setIsLoading(false);
+                return;
+              }
+
+              const { data: userDetails, error: userError } = await supabase
+                .from("user")
+                .select("account_type")
+                .eq("email", formData.email)
+                .single();
+
+              if (userError || !userDetails) {
+                setError("Account type not found.");
+                setIsLoading(false);
+                return;
+              }
+
+              // Use Next.js router for client-side navigation (no page reload)
+              if (userDetails.account_type === "investor") {
+                router.push("/investor");
+              } else if (userDetails.account_type === "business") {
+                router.push("/business");
+              } else {
+                setError("Unknown account type.");
+                setIsLoading(false);
+              }
+            } catch (err) {
+              setError("An error occurred during sign in.");
+              setIsLoading(false);
+            }
+          }}
+        >
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -130,8 +150,13 @@ export function SignInForm() {
             </div>
           </div>
 
-          <Button type="submit" className="w-full" size="lg">
-            Sign In
+          <Button
+            type="submit"
+            className="w-full"
+            size="lg"
+            disabled={isLoading}
+          >
+            {isLoading ? "Signing In..." : "Sign In"}
           </Button>
         </form>
       </CardContent>

@@ -2,13 +2,21 @@
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdownmenu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdownmenu";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
+
+  // Simple display logic - no complex optimistic UI
+  const displayUser = user;
 
   const handleLogout = async () => {
     await logout();
@@ -18,37 +26,60 @@ export function Navbar() {
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-xl font-bold text-primary"
+        >
           <img src="/logo_invex.ico" alt="Invex Logo" className="w-7 h-7" />
           invex
         </Link>
         <div className="flex items-center gap-4">
           {isLoading ? (
-            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground">Loading...</div>
-          ) : user ? (
+            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground">
+              Loading...
+            </div>
+          ) : displayUser ? (
             <>
               <div className="hidden md:flex items-center gap-4">
-                {user.role === "business" ? (
+                {displayUser.role === "business" ? (
                   <>
-                    <Link href="/business" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                      href="/business"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
                       Dashboard
                     </Link>
-                    <Link href="/business/my-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                      href="/business/my-pitches"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
                       My pitches
                     </Link>
-                    <Link href="/business/other-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                      href="/business/other-pitches"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
                       Other pitches
                     </Link>
                   </>
                 ) : (
                   <>
-                    <Link href="/investor" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                      href="/investor"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
                       Dashboard
                     </Link>
-                    <Link href="/investor/browse-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                      href="/investor/browse-pitches"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
                       Browse Pitches
                     </Link>
-                    <Link href="/investor/portfolio" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link
+                      href="/investor/portfolio"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
                       Portfolio
                     </Link>
                   </>
@@ -56,42 +87,56 @@ export function Navbar() {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Button
+                    variant="ghost"
+                    className="relative h-8 w-8 rounded-full"
+                  >
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : ""}</AvatarFallback>
+                      <AvatarFallback>
+                        {displayUser.name
+                          ? displayUser.name.charAt(0).toUpperCase()
+                          : ""}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end">
                   <DropdownMenuItem className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.name}</p>
-                      <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {displayUser.name}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {displayUser.email}
+                      </p>
                     </div>
                   </DropdownMenuItem>
-                  {user.role === "business" ? (
-                                        <>
+                  {displayUser.role === "business" ? (
+                    <>
                       <DropdownMenuItem asChild>
-                      <Link href="/business">Dashboard</Link>
+                        <Link href="/business">Dashboard</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/business/my-pitches">My Pitches</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/business/other-pitches">Other Pitches</Link>
+                        <Link href="/business/other-pitches">
+                          Other Pitches
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/business/settings">Settings</Link>
                       </DropdownMenuItem>
                     </>
-
                   ) : (
                     <>
                       <DropdownMenuItem asChild>
                         <Link href="/investor">Dashboard</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/investor/browse-pitches">Browse Pitches</Link>
+                        <Link href="/investor/browse-pitches">
+                          Browse Pitches
+                        </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/investor/portfolio">Portfolio</Link>
@@ -101,7 +146,9 @@ export function Navbar() {
                       </DropdownMenuItem>
                     </>
                   )}
-                  <DropdownMenuItem onClick={handleLogout}>Sign out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Sign out
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>

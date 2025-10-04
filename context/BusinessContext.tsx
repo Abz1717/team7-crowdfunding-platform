@@ -363,13 +363,22 @@ export function BusinessProvider({ children }: BusinessProviderProps) {
   // Initial data fetch when user logs in or component mounts
   useEffect(() => {
     if (user && user.role === "business") {
-      console.log(
-        "[BusinessContext] Fetching initial business data for user:",
-        user.email
-      );
-      refreshAllData();
+      // Only fetch if we don't already have data for this user
+      if (state.myPitches.length === 0 && state.transactions.length === 0) {
+        console.log(
+          "[BusinessContext] Fetching initial business data for user:",
+          user.email
+        );
+        refreshAllData();
+      } else {
+        console.log(
+          "[BusinessContext] Data already loaded for user:",
+          user.email,
+          "- skipping initial fetch"
+        );
+      }
     }
-  }, [user, refreshAllData]);
+  }, [user, refreshAllData, state.myPitches.length, state.transactions.length]);
 
   return (
     <BusinessContext.Provider
