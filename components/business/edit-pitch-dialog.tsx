@@ -32,8 +32,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { usePitchActions } from "@/hooks/usePitchActions";
-import type { Pitch, UpdatePitchData, InvestmentTier } from "@/lib/types/pitch";
+import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
+import type { Pitch } from "@/lib/types";
+import type { UpdatePitchData, InvestmentTier } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
 import {
   Select,
@@ -60,7 +61,7 @@ export function EditPitchDialog({
   onOpenChange,
   onDelete,
 }: EditPitchDialogProps) {
-  const { updateExistingPitch } = usePitchActions();
+  const { updateExistingPitch } = useBusinessPitchActions();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [supportingMedia, setSupportingMedia] = useState<string[]>([]);
@@ -96,7 +97,7 @@ export function EditPitchDialog({
         target_amount: pitch.target_amount.toString(),
         profit_share: pitch.profit_share.toString(),
         end_date: new Date(pitch.end_date),
-        status: pitch.status,
+        status: pitch.status as "draft" | "active" | "funded" | "closed",
         investment_tiers:
           pitch.investment_tiers?.length > 0
             ? pitch.investment_tiers
@@ -321,7 +322,7 @@ export function EditPitchDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-  <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg">
           <DialogHeader className="pb-6">
             <div className="flex items-center justify-between">
               <div>
@@ -409,9 +410,14 @@ export function EditPitchDialog({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Status
+                      </Label>
                       <Input
-                        value={formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+                        value={
+                          formData.status.charAt(0).toUpperCase() +
+                          formData.status.slice(1)
+                        }
                         disabled
                         readOnly
                         className="border-gray-300 bg-gray-100 text-gray-500"
@@ -577,15 +583,18 @@ export function EditPitchDialog({
                       className="p-4 border rounded-lg bg-gray-50 relative"
                     >
                       <div className="flex items-center justify-between mb-3">
-                        {(!isFunded && !isActive) ? (
+                        {!isFunded && !isActive ? (
                           <div className="flex items-center gap-2">
                             <Input
                               type="text"
                               value={tier.name}
-                              onChange={e => {
+                              onChange={(e) => {
                                 const tiers = [...formData.investment_tiers];
                                 tiers[index].name = e.target.value;
-                                setFormData({ ...formData, investment_tiers: tiers });
+                                setFormData({
+                                  ...formData,
+                                  investment_tiers: tiers,
+                                });
                               }}
                               className="w-20 border-gray-300 focus:border-black focus:ring-black text-base font-semibold px-2 py-1"
                             />
@@ -594,21 +603,28 @@ export function EditPitchDialog({
                         ) : (
                           <h4 className="font-semibold">{tier.name} Tier</h4>
                         )}
-                        {formData.investment_tiers.length > 1 && !isFunded && !isActive && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="ml-2 h-8 w-8 p-0 rounded-full hover:bg-red-100 hover:text-red-600"
-                            onClick={() => {
-                              const tiers = formData.investment_tiers.filter((_, i) => i !== index);
-                              setFormData({ ...formData, investment_tiers: tiers });
-                            }}
-                            title="Remove tier"
-                          >
-                            <Trash2 className="h-5 w-5" />
-                          </Button>
-                        )}
+                        {formData.investment_tiers.length > 1 &&
+                          !isFunded &&
+                          !isActive && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="ml-2 h-8 w-8 p-0 rounded-full hover:bg-red-100 hover:text-red-600"
+                              onClick={() => {
+                                const tiers = formData.investment_tiers.filter(
+                                  (_, i) => i !== index
+                                );
+                                setFormData({
+                                  ...formData,
+                                  investment_tiers: tiers,
+                                });
+                              }}
+                              title="Remove tier"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          )}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
@@ -677,10 +693,14 @@ export function EditPitchDialog({
 
                 <div className="space-y-4">
                   {/* Upload Section */}
-                  <div className={
-                    `border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors relative` +
-                    ((isFunded || isActive) ? ' bg-gray-100 opacity-70 pointer-events-none' : '')
-                  }>
+                  <div
+                    className={
+                      `border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors relative` +
+                      (isFunded || isActive
+                        ? " bg-gray-100 opacity-70 pointer-events-none"
+                        : "")
+                    }
+                  >
                     {(isFunded || isActive) && (
                       <div className="absolute inset-0 bg-gray-100 opacity-60 z-10 rounded-lg" />
                     )}
@@ -703,7 +723,9 @@ export function EditPitchDialog({
                           <label htmlFor="media-upload">
                             <Button
                               type="button"
-                              disabled={isUploadingMedia || isFunded || isActive}
+                              disabled={
+                                isUploadingMedia || isFunded || isActive
+                              }
                               className="cursor-pointer"
                               asChild
                             >
@@ -729,9 +751,14 @@ export function EditPitchDialog({
 
                   {/* Media Grid */}
                   {supportingMedia.length > 0 && (
-                    <div className={
-                      `space-y-4 relative` + ((isFunded || isActive) ? ' bg-gray-100 opacity-70 pointer-events-none rounded-lg' : '')
-                    }>
+                    <div
+                      className={
+                        `space-y-4 relative` +
+                        (isFunded || isActive
+                          ? " bg-gray-100 opacity-70 pointer-events-none rounded-lg"
+                          : "")
+                      }
+                    >
                       {(isFunded || isActive) && (
                         <div className="absolute inset-0 bg-gray-100 opacity-60 z-10 rounded-lg" />
                       )}
@@ -793,26 +820,27 @@ export function EditPitchDialog({
           </Tabs>
 
           <div className="flex items-center justify-between gap-3 pt-6 border-t border-gray-200">
-            {onDelete && (formData.status === "draft" || formData.status === "closed") && (
-              <Button
-                variant="outline"
-                onClick={handleDeleteClick}
-                disabled={isUpdating || isDeleting}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Pitch
-                  </>
-                )}
-              </Button>
-            )}
+            {onDelete &&
+              (formData.status === "draft" || formData.status === "closed") && (
+                <Button
+                  variant="outline"
+                  onClick={handleDeleteClick}
+                  disabled={isUpdating || isDeleting}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Pitch
+                    </>
+                  )}
+                </Button>
+              )}
 
             {/* Right Side Buttons */}
             <div className="flex gap-3">
