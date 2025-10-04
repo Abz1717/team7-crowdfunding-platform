@@ -309,9 +309,17 @@ useEffect(() => {
                 {pagedInvestments.map(({ investment, pitch, investmentReturns, roi }) => {
                   if (!pitch) return null;
 
+                  const isRefunded = investment.refunded === true;
                   return (
-                    <Card key={investment.id} className="bg-muted/30">
-                      <CardContent className="pt-6">
+                    <Card
+                      key={investment.id}
+                      className={
+                        isRefunded
+                          ? "relative border-blue-200 shadow-md overflow-hidden"
+                          : "bg-muted/30"
+                      }
+                    >
+                      <CardContent className={isRefunded ? "pt-6" : "pt-6"}>
                         <div className="flex items-start justify-between mb-4">
                           <div>
                             <h4 className="font-semibold text-lg">{pitch.title}</h4>
@@ -345,22 +353,35 @@ useEffect(() => {
                             </div>
                           </div>
                         </div>
-                        <div className="mt-4 pt-4 border-t">
+                        <div className="mt-4 pt-4 border-t relative">
                           <div className="flex items-center justify-between">
-                            <div className="text-sm text-muted-foreground">
-                              Pitch Status:{" "}
+                            <div className={isRefunded ? "relative z-40 text-sm text-muted-foreground pointer-events-auto" : "text-sm text-muted-foreground"}>
+                              Pitch Status: {" "}
                               <Badge variant="default" className="ml-1">
                                 {pitch.status}
                               </Badge>
                             </div>
-                            <Link href={`/investor/pitch/${pitch?.id}`}>
-                              <Button variant="outline" size="sm">
-                                View Pitch Details
-                                <ArrowUpRight className="ml-1 h-3 w-3" />
-                              </Button>
-                            </Link>
+                            <div className={isRefunded ? "relative z-40 pointer-events-auto" : ""}>
+                              <Link href={`/investor/pitch/${pitch?.id}`}>
+                                <Button variant="outline" size="sm">
+                                  View Pitch Details
+                                  <ArrowUpRight className="ml-1 h-3 w-3" />
+                                </Button>
+                              </Link>
+                            </div>
                           </div>
                         </div>
+                        {isRefunded && (
+                          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+                            <div className="absolute inset-0 rounded-xl bg-white/80 backdrop-blur-sm pointer-events-auto" />
+                            <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 py-4">
+                              <span className="text-green-600 text-xl font-bold mb-1">Refunded</span>
+                              <span className="text-gray-800 text-base mb-1">Investment in <span className='font-semibold'>{pitch.title}</span> refunded.</span>
+                              <span className="text-gray-600 text-sm mb-1">Business closed the pitch.</span>
+                              <span className="text-green-600 text-base font-semibold">+${investment.refunded_amount?.toLocaleString?.() ?? investment.investment_amount?.toLocaleString?.()}</span>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   );
