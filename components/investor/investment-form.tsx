@@ -41,6 +41,8 @@ export function InvestmentForm({
   const { user } = useAuth();
   const { toast } = useToast();
   const [investmentAmount, setInvestmentAmount] = useState<number>(0);
+
+  const maxAvailableToInvest = Math.max(0, pitch.target_amount - pitch.current_amount);
   const [fundingMethod, setFundingMethod] = useState<"balance" | "bank">(
     "balance"
   );
@@ -167,9 +169,6 @@ export function InvestmentForm({
     if (!user || !selectedTier) return;
     setIsProcessing(true);
     await new Promise((res) => setTimeout(res, 500)); // short delay for UX
-    // Calculate effective share (same as UI logic)
-    const effectiveShare = ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share;
-
     // Insert investment
     const investmentResult = await createInvestment({
       amount: investmentAmount,
@@ -179,17 +178,6 @@ export function InvestmentForm({
       tier: selectedTier,
       invested_at: new Date(),
     });
-
-    // Store effective_share in the new investment row
-    if (investmentResult && investmentResult.id) {
-      await import("@/utils/supabase/client").then(({ createClient }) => {
-        const supabase = createClient();
-        return supabase
-          .from("investment")
-          .update({ effective_share: effectiveShare })
-          .eq("id", investmentResult.id);
-      });
-    }
     if (fundingMethod === "balance") {
       await updateAccountBalance(user.id, accountBalance - investmentAmount);
       setAccountBalance(accountBalance - investmentAmount);
@@ -226,11 +214,22 @@ export function InvestmentForm({
             type="number"
             placeholder="Enter amount"
             value={investmentAmount || ""}
-            onChange={(e) =>
-              setInvestmentAmount(Number.parseInt(e.target.value) || 0)
-            }
+            onChange={(e) => {
+              let val = Number.parseInt(e.target.value) || 0;
+              if (val > maxAvailableToInvest) {
+                val = maxAvailableToInvest;
+              }
+              setInvestmentAmount(val);
+            }}
             min={0}
+            max={maxAvailableToInvest}
           />
+          {maxAvailableToInvest === 0 && (
+            <div className="text-xs text-red-600 mt-1">No more investment available for this pitch.</div>
+          )}
+          {investmentAmount > maxAvailableToInvest && (
+            <div className="text-xs text-red-600 mt-1">You cannot invest more than the available amount (${maxAvailableToInvest.toLocaleString()}).</div>
+          )}
           <div className="flex gap-2 flex-wrap">
             {normalizedTiers.map((tier) => (
               <Button
@@ -329,11 +328,11 @@ export function InvestmentForm({
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Your Profit Share:</span>
+                  <span>Your Shares:</span>
                   <span className="font-medium">
-                    {selectedTier && pitch.target_amount && investmentAmount > 0
-                      ? (((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share).toFixed(6) + "%"
-                      : "0%"}
+                    {selectedTier && investmentAmount > 0
+                      ? (investmentAmount * selectedTier.multiplier).toLocaleString()
+                      : "0"}
                   </span>
                 </div>
 
