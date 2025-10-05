@@ -169,9 +169,6 @@ export function InvestmentForm({
     if (!user || !selectedTier) return;
     setIsProcessing(true);
     await new Promise((res) => setTimeout(res, 500)); // short delay for UX
-    // Calculate effective share (same as UI logic)
-    const effectiveShare = ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share;
-
     // Insert investment
     const investmentResult = await createInvestment({
       amount: investmentAmount,
@@ -181,17 +178,6 @@ export function InvestmentForm({
       tier: selectedTier,
       invested_at: new Date(),
     });
-
-    // Store effective_share in the new investment row
-    if (investmentResult && investmentResult.id) {
-      await import("@/utils/supabase/client").then(({ createClient }) => {
-        const supabase = createClient();
-        return supabase
-          .from("investment")
-          .update({ effective_share: effectiveShare })
-          .eq("id", investmentResult.id);
-      });
-    }
     if (fundingMethod === "balance") {
       await updateAccountBalance(user.id, accountBalance - investmentAmount);
       setAccountBalance(accountBalance - investmentAmount);
@@ -342,11 +328,11 @@ export function InvestmentForm({
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Your Profit Share:</span>
+                  <span>Your Shares:</span>
                   <span className="font-medium">
-                    {selectedTier && pitch.target_amount && investmentAmount > 0
-                      ? (((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share).toFixed(6) + "%"
-                      : "0%"}
+                    {selectedTier && investmentAmount > 0
+                      ? (investmentAmount * selectedTier.multiplier).toLocaleString()
+                      : "0"}
                   </span>
                 </div>
 

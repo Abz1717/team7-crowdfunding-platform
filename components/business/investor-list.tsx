@@ -18,7 +18,7 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
     investor_id: string;
     name: string;
     totalInvested: number;
-    totalProfitShare: number;
+    totalShares: number;
   }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +30,7 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
         getPitchById(pitchId),
       ]);
       // Group by investor_id
-      const grouped: Record<string, { investor_id: string; totalInvested: number; totalProfitShare: number }> = {};
+  const grouped: Record<string, { investor_id: string; totalInvested: number; totalShares: number }> = {};
       let totalPitchInvested = 0;
       for (const inv of investments) {
         totalPitchInvested += inv.investment_amount;
@@ -38,11 +38,11 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
           grouped[inv.investor_id] = {
             investor_id: inv.investor_id,
             totalInvested: 0,
-            totalProfitShare: 0,
+            totalShares: 0,
           };
         }
         grouped[inv.investor_id].totalInvested += inv.investment_amount;
-        grouped[inv.investor_id].totalProfitShare += typeof inv.effective_share === 'number' ? inv.effective_share : 0;
+        grouped[inv.investor_id].totalShares += (inv.investment_amount && inv.tier?.multiplier) ? inv.investment_amount * inv.tier.multiplier : 0;
       }
       const investorIds = Object.keys(grouped);
       const users: UserName[] = await getUsersByIds(investorIds);
@@ -52,7 +52,7 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
           investor_id: id,
           name: user ? `${user.first_name} ${user.last_name}` : id,
           totalInvested: grouped[id].totalInvested,
-          totalProfitShare: grouped[id].totalProfitShare,
+          totalShares: grouped[id].totalShares,
         };
       });
       setInvestors(investorsWithNames);
@@ -83,7 +83,7 @@ export function InvestorList({ pitchId, pitchTitle }: InvestorListProps) {
                   <div className="font-medium">{inv.name}</div>
                   <div className="text-sm text-muted-foreground flex gap-4 flex-wrap">
                     <span className="flex items-center gap-1"><DollarSign className="h-4 w-4" /> Invested: ${inv.totalInvested.toLocaleString()}</span>
-                    <span className="flex items-center gap-1"><Percent className="h-4 w-4" /> Profit Share: {inv.totalProfitShare.toFixed(2)}%</span>
+                    <span className="flex items-center gap-1"><Percent className="h-4 w-4" /> Shares: {inv.totalShares.toLocaleString()}</span>
                   </div>
                 </div>
               </div>
