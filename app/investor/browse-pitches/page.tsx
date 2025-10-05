@@ -11,7 +11,7 @@ export default function InvestorDashboard() {
 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== "investor")) {
-      router.push("/auth");
+      router.push("/signin")
     }
   }, [user, isLoading, router]);
 

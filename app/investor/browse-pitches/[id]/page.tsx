@@ -44,14 +44,19 @@ export default function PitchDetailPage({
   const resolvedParams = React.use(params);
 
   const fetchPitch = async () => {
+    setIsPitchLoading(true);
     if (!isLoading && !user) {
-      router.push("/");
+      router.push("/signin");
       setPitch(null);
       setIsPitchLoading(false);
       return;
     }
-    setIsPitchLoading(true);
     const foundPitch = await getPitchById(resolvedParams.id);
+    if (!foundPitch) {
+      router.push("/investor");
+      setIsPitchLoading(false);
+      return;
+    }
     setPitch(foundPitch);
     setIsPitchLoading(false);
   };

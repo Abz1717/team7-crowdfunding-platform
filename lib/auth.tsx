@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabaseUser.email
       );
 
-      // Use API route to fetch user details
+      // Use API route to fetch user details (single source of truth)
       const response = await fetch("/api/user", {
         method: "GET",
         credentials: "include",
@@ -62,8 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const userData = await response.json();
 
-      if (userData.role && userData.email) {
-        const user: User = {
+      if (userData && userData.role && userData.email) {
+        const loadedUser: User = {
           id: supabaseUser.id,
           email: supabaseUser.email!,
           name:
@@ -76,8 +76,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ? userData.account_balance
               : 0,
         };
-        console.log("[AuthProvider] User profile loaded:", user);
-        setUser(user);
+        console.log("[AuthProvider] User profile loaded:", loadedUser);
+        setUser(loadedUser);
       } else {
         console.error(
           "[AuthProvider] No user data found in API response for email:",
@@ -96,93 +96,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Initial session and auth state changes
   useEffect(() => {
-    //  initial session
+    let mounted = true;
 
-    const getInitialSession = async () => {
-      console.log("[AuthProvider] Getting initial session");
+    const getSessionAndListen = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-
-        if (session?.user) {
-          console.log("[AuthProvider] Session user found:", session.user.email);
+        if (mounted && session?.user) {
           await fetchUserProfile(session.user);
-        } else {
-          console.log("[AuthProvider] No session user found");
         }
-        console.log("[AuthProvider] Session fetched");
       } catch (err) {
-        console.error("[AuthProvider] Error in getInitialSession", err);
+        console.error("[AuthProvider] Error getting initial session", err);
       } finally {
         setIsLoading(false);
       }
-    };
-    getInitialSession();
 
-    // auth changes - server actions signup)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(
-        `[AuthProvider] Auth state changed: ${event}`,
-        session?.user?.email
-      );
-      try {
-        if (session?.user) {
-          await fetchUserProfile(session.user);
-        } else {
-          setUser(null);
-        }
-      } catch (err) {
-        console.error("[AuthProvider] Error in onAuthStateChange", err);
-      } finally {
-        setIsLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [fetchUserProfile]);
-
-  // Add a window focus listener to refresh auth state when user returns to the page
-  useEffect(() => {
-    const handleFocus = async () => {
-      console.log("Window focused, checking auth state");
       const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (session?.user && !user) {
-        console.log("Found session on focus, fetching profile");
-        await fetchUserProfile(session.user);
-      }
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [fetchUserProfile, user]);
-
-  // Check for refresh parameter and force session check
-  useEffect(() => {
-    const checkRefreshParam = async () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("refresh") === "true") {
-        console.log("Refresh parameter detected, checking session");
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user) {
-          console.log("Found session after refresh, fetching profile");
-          await fetchUserProfile(session.user);
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (_event, session) => {
+        if (!mounted) return;
+        try {
+          if (session?.user) {
+            await fetchUserProfile(session.user);
+          } else {
+            setUser(null);
+          }
+        } catch (err) {
+          console.error("[AuthProvider] Error in onAuthStateChange", err);
         }
-        // Remove the refresh parameter from URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete("refresh");
-        window.history.replaceState({}, "", newUrl.toString());
-      }
+      });
+
+      return () => {
+        mounted = false;
+        subscription.unsubscribe();
+      };
     };
 
-    checkRefreshParam();
+    getSessionAndListen();
   }, [fetchUserProfile]);
 
   const logout = async () => {
@@ -190,7 +143,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  // Refresh user profile from DB
   const refreshUser = async () => {
     const {
       data: { session },
@@ -209,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;

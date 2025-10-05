@@ -41,7 +41,8 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = path === "/signin" || path === "/signup";
   const isBusinessRoute =
     path.startsWith("/business") || path.startsWith("/business-setup");
-  const isInvestorRoute = path.startsWith("/investor");
+  const isInvestorRoute =
+    path.startsWith("/investor");;
 
   // If user is authenticated, get their role from the database
   let userRole: "business" | "investor" | null = null;
