@@ -48,11 +48,7 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
         setFirstAllowed(null);
       } else {
 
-        if (pitch.end_date) {
-          setFirstAllowed(new Date(pitch.end_date));
-        } else {
-          setFirstAllowed(null);
-        }
+        setFirstAllowed(new Date());
         setLastDistribution(null);
         setNextDistribution(null);
       }
@@ -85,12 +81,15 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
   }
 
   const handleDeclare = async () => {
-    if (!preview) return
+    if (!preview) return;
 
-    setIsDeclaring(true)
+    setIsDeclaring(true);
     try {
-      const profitToDeclare = preview.total_profit ?? Number.parseFloat(profitAmount)
-      const result = await declareProfits(pitch.id, profitToDeclare)
+      const profitToDeclare = preview.total_profit ?? Number.parseFloat(profitAmount);
+      console.log('[DEBUG] Declaring profits for pitch:', pitch);
+      console.log('[DEBUG] Profit amount to declare:', profitToDeclare);
+      const result = await declareProfits(pitch.id, profitToDeclare);
+      console.log('[DEBUG] declareProfits result:', result);
       if (result.success) {
         setResultInfo({
           success: true,
@@ -98,21 +97,26 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
         });
         setShowResultModal(true);
       } else {
+
+        let errorMsg = result.error || "Unable to declare profits. Please try again.";
+        if (result.error && result.error.toLowerCase().includes("insufficient account balance")) {
+          errorMsg = "Insufficient account balance. Please deposit more funds before declaring this profit amount.";
+        }
         setResultInfo({
           success: false,
-          message: result.error || "Unable to declare profits. Please try again."
+          message: errorMsg
         });
         setShowResultModal(true);
       }
     } catch (error) {
-      console.error("[v0] Error declaring profits:", error)
+      console.error("[v0] Error declaring profits:", error);
       setResultInfo({
         success: false,
         message: "Unable to declare profits. Please try again."
       });
       setShowResultModal(true);
     } finally {
-      setIsDeclaring(false)
+      setIsDeclaring(false);
     }
   }
 
@@ -240,10 +244,8 @@ export function ProfitDeclarationForm({ pitch, onSuccess }: ProfitDeclarationFor
                 {preview?.investor_payouts?.map?.((payout: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="mb-1">
                         <span className="font-medium">Investor {index + 1}</span>
-                        <Badge variant="outline">{payout.tier_name}</Badge>
-                        <span className="text-sm text-muted-foreground">{payout.tier_multiplier}x multiplier</span>
                       </div>
                       <div className="text-sm text-muted-foreground">
                          Investment: {payout.investment_amount?.toLocaleString?.()}

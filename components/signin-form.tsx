@@ -12,11 +12,14 @@ import { createClient } from "@/utils/supabase/client";
 
 export function SignInForm() {
   const [error, setError] = useState<string>("");
+  const [emailRequiredError, setEmailRequiredError] = useState<string>("");
+  const [passwordRequiredError, setPasswordRequiredError] = useState<string>("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
     rememberMe: false,
   });
+  const [emailFormatError, setEmailFormatError] = useState<string>("");
 
   // Restore rememberMe preference on mount
   useEffect(() => {
@@ -38,6 +41,16 @@ export function SignInForm() {
         localStorage.setItem("rememberMe", JSON.stringify(value));
       }
 
+      if (field === "email") {
+        const emailVal = value as string;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (emailVal && !emailRegex.test(emailVal)) {
+          setEmailFormatError("Please enter a valid email address.");
+        } else {
+          setEmailFormatError("");
+        }
+      }
+
       return updated;
     });
   };
@@ -54,13 +67,21 @@ export function SignInForm() {
         )}
         <form className="space-y-4" onSubmit={async (e) => {
           e.preventDefault();
-          
-          if (!formData.email || !formData.password) {
-            setError("Please enter both email and password.");
-            return;
+          let hasError = false;
+          setEmailRequiredError("");
+          setPasswordRequiredError("");
+          setError("");
+          if (!formData.email) {
+            setEmailRequiredError("Enter an email.");
+            hasError = true;
           }
-          const supabase = createClient();
+          if (!formData.password) {
+            setPasswordRequiredError("Enter a password.");
+            hasError = true;
+          }
+          if (hasError) return;
 
+          const supabase = createClient();
           const { error } = await supabase.auth.signInWithPassword({
             email: formData.email,
             password: formData.password,
@@ -99,7 +120,14 @@ export function SignInForm() {
               value={formData.email}
               onChange={(e) => handleInputChange("email", e.target.value)}
               required
+              autoComplete="username"
             />
+            {emailFormatError && (
+              <p className="text-xs text-red-600 mt-1">{emailFormatError}</p>
+            )}
+            {emailRequiredError && (
+              <p className="text-xs text-red-600 mt-1">{emailRequiredError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -113,6 +141,9 @@ export function SignInForm() {
               onChange={(e) => handleInputChange("password", e.target.value)}
               required
             />
+            {passwordRequiredError && (
+              <p className="text-xs text-red-600 mt-1">{passwordRequiredError}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-between">

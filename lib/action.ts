@@ -90,20 +90,28 @@ export async function signup(formData: FormData) {
       email: data.email,
       account_type: data.accountType,
       account_balance: 0,
+      total_invested: 0,
+      total_returns: 0,
+      overall_roi: 0,
     },
   ]);
 
   if (tableError) {
     console.error("Error inserting into user table:", tableError);
+    redirect("/error");
   }
 
   console.log("Signup success:", userData);
   revalidatePath("/", "layout");
 
-  if (data.accountType === "business") {
-    redirect("/business-setup");
+  if (!userData.session) {
+    redirect("/signin?confirm=1");
   } else {
-    redirect("/investor");
+    if (data.accountType === "business") {
+      redirect("/business-setup");
+    } else {
+      redirect("/investor");
+    }
   }
 }
 
@@ -682,15 +690,61 @@ export async function declareProfits(
   pitchId: string,
   profitAmount: number
 ): Promise<{ success: boolean; error?: string }> {
+
   try {
     const supabase = await createClient();
 
     //
+    const { data: pitch, error: pitchError } = await supabase
+      .from("pitch")
+      .select("*")
+      .eq("id", pitchId)
+      .single();
+    if (pitchError || !pitch) {
+      return { success: false, error: "Pitch not found" };
+    }
+
+    const { data: businessUser, error: businessUserError } = await supabase
+      .from("businessuser")
+      .select("user_id")
+      .eq("id", pitch.business_id)
+      .single();
+    if (businessUserError || !businessUser) {
+      return { success: false, error: "Business user not found" };
+    }
+
+    const { data: user, error: userError } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", businessUser.user_id)
+      .single();
+    if (userError || !user) {
+      return { success: false, error: "Business user account not found" };
+    }
+
+    if (typeof user.account_balance !== 'number' || user.account_balance < profitAmount) {
+      return { success: false, error: "Insufficient account balance to declare this profit amount." };
+    }
+
+    const newBusinessBalance = user.account_balance - profitAmount;
+    const { error: updateBusinessError } = await supabase
+      .from("user")
+      .update({ account_balance: newBusinessBalance })
+      .eq("id", businessUser.user_id);
+    if (updateBusinessError) {
+      return { success: false, error: "Failed to update business account balance." };
+    }
+
+    const businessProfitShare = pitch.profit_share ?? 0;
+    const businessProfitShareAmount = profitAmount * (businessProfitShare / 100);
+    const businessProfit = profitAmount - businessProfitShareAmount;
+
     const { data: profitDist, error: profitDistError } = await supabase
       .from("profit_distribution")
       .insert({
         pitch_id: pitchId,
         total_profit: profitAmount,
+  business_profit: businessProfit,
         distribution_date: new Date().toISOString(),
       })
       .select()
@@ -703,15 +757,6 @@ export async function declareProfits(
       };
     }
     //
-    const { data: pitch, error: pitchError } = await supabase
-      .from("pitch")
-      .select("*")
-      .eq("id", pitchId)
-      .single();
-    if (pitchError || !pitch) {
-      return { success: false, error: "Pitch not found" };
-    }
-
     if (
       typeof pitch.current_amount === "number" &&
       typeof pitch.target_amount === "number"
@@ -931,43 +976,33 @@ export async function previewProfitDistribution(
     const profitShare = pitch.profit_share ?? 0;
     const profitShareAmount = profitAmount * (profitShare / 100);
 
-    const weightedInvestments = investments.map((inv) => {
+    // Group investments by investor_id
+    const investorMap: Record<string, { investment_amount: number; weighted: number; tiers: { name: string; multiplier: number }[] }> = {};
+    for (const inv of investments) {
       let tierMultiplier = 1;
       let tierName = "";
       if (Array.isArray(pitch.investment_tiers)) {
-        const tier = pitch.investment_tiers.find(
-          (t: any) => t.name === inv.tier?.name
-        );
+        const tier = pitch.investment_tiers.find((t: any) => t.name === inv.tier?.name);
         if (tier) {
           tierMultiplier = Number(tier.multiplier) || 1;
           tierName = tier.name;
         }
       }
+      if (!investorMap[inv.investor_id]) {
+        investorMap[inv.investor_id] = { investment_amount: 0, weighted: 0, tiers: [] };
+      }
+      investorMap[inv.investor_id].investment_amount += inv.investment_amount;
+      investorMap[inv.investor_id].weighted += inv.investment_amount * tierMultiplier;
+      investorMap[inv.investor_id].tiers.push({ name: tierName, multiplier: tierMultiplier });
+    }
+    const totalWeighted = Object.values(investorMap).reduce((sum, v) => sum + v.weighted, 0);
+    const investorPayouts = Object.entries(investorMap).map(([investor_id, v]) => {
+      const payoutAmount = totalWeighted > 0 ? (v.weighted / totalWeighted) * profitShareAmount : 0;
       return {
-        investor_id: inv.investor_id,
-        investment_amount: inv.investment_amount,
-        tier_name: tierName,
-        tier_multiplier: tierMultiplier,
-        weighted: inv.investment_amount * tierMultiplier,
-      };
-    });
-    const totalWeighted = weightedInvestments.reduce(
-      (sum, w) => sum + w.weighted,
-      0
-    );
-    const investorPayouts = weightedInvestments.map((w) => {
-      const payoutAmount =
-        totalWeighted > 0
-          ? (w.weighted / totalWeighted) * profitShareAmount
-          : 0;
-      return {
-        investor_id: w.investor_id,
-        investment_amount: w.investment_amount,
-        tier_name: w.tier_name,
-        tier_multiplier: w.tier_multiplier,
+        investor_id,
+        investment_amount: v.investment_amount,
         amount: payoutAmount,
-        percentage:
-          profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
+        percentage: profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
       };
     });
     const totalInvested = investments.reduce(
@@ -975,12 +1010,13 @@ export async function previewProfitDistribution(
       0
     );
     const businessKeeps = profitAmount - profitShareAmount;
+    const uniqueInvestorCount = Object.keys(investorMap).length;
     const preview = {
       total_profit: profitAmount,
       total_to_investors: profitShareAmount,
       business_keeps: businessKeeps,
       profit_share_percentage: profitShare,
-      investor_count: investments.length,
+      investor_count: uniqueInvestorCount,
       total_invested: totalInvested,
       investor_payouts: investorPayouts,
     };

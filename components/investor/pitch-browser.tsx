@@ -16,7 +16,7 @@ import { useBusinessUser } from "@/hooks/useBusinessUser"
 
 export function PitchBrowser() {
   const { user } = useAuth();
-  const { businessUser } = useBusinessUser();
+  const { businessUser } = useBusinessUser(user ?? undefined);
   const [pitches, setPitches] = useState<(Pitch & { created_at: Date, end_date: Date })[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("newest")
@@ -167,7 +167,7 @@ export function PitchBrowser() {
                       <CardDescription className="text-base">{pitch.elevator_pitch}</CardDescription>
                     </div>
                     <div className="flex flex-col items-end ml-4">
-                      <Badge variant="default">{pitch.profit_share}% Returns</Badge>
+                      <Badge variant="default">{pitch.profit_share}% Shares</Badge>
                       {isMine && (
                         <span className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full font-semibold text-xs mt-2 align-middle shadow">
                           My Pitch
@@ -232,13 +232,15 @@ export function PitchBrowser() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Link href={`/investor/browse-pitches/${pitch.id}`}>
-                      {user && user.role === "business" ? (
+                    {user && user.role === "business" ? (
+                      <Link href={`/business/other-pitches/${pitch.id}`}>
                         <Button>View Details</Button>
-                      ) : (
+                      </Link>
+                    ) : (
+                      <Link href={`/investor/browse-pitches/${pitch.id}`}>
                         <Button>View Details & Invest</Button>
-                      )}
-                    </Link>
+                      </Link>
+                    )}
                     <Button variant="outline">Save for Later</Button>
                   </div>
                 </CardContent>

@@ -7,11 +7,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
-  const { user, logout} = useAuth();
+  const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
 
@@ -23,7 +23,9 @@ export function Navbar() {
           invex
         </Link>
         <div className="flex items-center gap-4">
-          {user ? (
+          {isLoading ? (
+            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground">Loading...</div>
+          ) : user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
                 {user.role === "business" ? (
@@ -104,7 +106,7 @@ export function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            <Link href="/signup">
+            <Link href="/signin">
               <Button>Get Started</Button>
             </Link>
           )}

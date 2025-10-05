@@ -1,83 +1,82 @@
-"use client"
+"use client";
+import { useAuth } from "@/lib/auth";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { getPitchById } from "@/lib/data";
+import type { InvestmentTier } from "@/lib/types";
+import type { Pitch } from "@/lib/types";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { InvestmentForm } from "@/components/investor/investment-form";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Calendar, DollarSign, TrendingUp, Users, Target } from "lucide-react";
+import Link from "next/link";
+import Image from "next/image";
+import React from "react";
 
-import { useAuth } from "@/lib/auth"
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
-import { getPitchById } from "@/lib/data"
-import type { InvestmentTier } from "@/lib/types"
-import type { Pitch } from "@/lib/types"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { InvestmentForm } from "@/components/investor/investment-form"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Calendar, DollarSign, TrendingUp, Users, Target } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import React from "react"
+interface PitchDetailsViewProps {
+  pitchId: string;
+  backHref: string;
+  showInvestmentForm: boolean;
+}
 
-export default function PitchDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const [isPageLoading, setIsPageLoading] = useState(false)
-  const { user, isLoading } = useAuth()
-  const router = useRouter()
-  const [pitch, setPitch] = useState<Pitch | null>(null)
-  const [isPitchLoading, setIsPitchLoading] = useState(false)
-  const resolvedParams = React.use(params)
+export function PitchDetailsView({ pitchId, backHref, showInvestmentForm }: PitchDetailsViewProps) {
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+  const [pitch, setPitch] = useState<Pitch | null>(null);
+  const [isPitchLoading, setIsPitchLoading] = useState(true);
 
-
-    useEffect(() => {
+  useEffect(() => {
     async function fetchPitch() {
       if (!isLoading && !user) {
-        router.push("/signin")
-        return
+        setPitch(null);
+        setIsPitchLoading(false);
+        return;
       }
-      const foundPitch = await getPitchById(resolvedParams.id)
-      if (!foundPitch) {
-        router.push("/investor")
-        return
-      }
-      setPitch(foundPitch)
+      setIsPitchLoading(true);
+      const foundPitch = await getPitchById(pitchId);
+      setPitch(foundPitch);
+      setIsPitchLoading(false);
     }
-    setIsPitchLoading(true)
-    const foundPitch = await getPitchById(resolvedParams.id)
-    setPitch(foundPitch)
-    setIsPitchLoading(false)
-  }
-  useEffect(() => {
-    fetchPitch()
-  }, [user, isLoading, resolvedParams.id])
+    fetchPitch();
+  }, [user, isLoading, pitchId]);
 
-  if (isPageLoading || isPitchLoading || isLoading) {
+  if (isLoading || user === undefined || user === null || isPitchLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  if (!pitch) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <div className="flex items-center justify-center min-h-[400px]">Loading pitch details...</div>
+      <div className="flex flex-col items-center justify-center min-h-screen text-red-600 font-bold">
+        <div>Error: Pitch not found or unavailable</div>
+        <div className="bg-gray-100 text-black p-4 mt-4 rounded w-full max-w-2xl text-xs text-left overflow-x-auto">
+          <strong>pitchId:</strong> <pre>{String(pitchId)}</pre>
+          <strong>user:</strong> <pre>{JSON.stringify(user, null, 2)}</pre>
+          <strong>pitch:</strong> <pre>{JSON.stringify(pitch, null, 2)}</pre>
+        </div>
       </div>
     );
   }
 
-  if (!user || !pitch) {
-    return null
-  }
-
-  const fundingProgress = (pitch.current_amount / pitch.target_amount) * 100
-  const endDate = typeof pitch.end_date === "string" ? new Date(pitch.end_date) : pitch.end_date
-  const daysLeft = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-  // Only allow investors to invest
-  const canInvest = user.role === "investor"
+  const fundingProgress = (pitch.current_amount / pitch.target_amount) * 100;
+  const endDate = typeof pitch.end_date === "string" ? new Date(pitch.end_date) : pitch.end_date;
+  const daysLeft = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+  const canInvest = user.role === "investor";
 
   const formatDate = (date: Date | string) => {
-    const d = typeof date === "string" ? new Date(date) : date
+    const d = typeof date === "string" ? new Date(date) : date;
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
-    }).format(d)
-  }
+    }).format(d);
+  };
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-6">
-        <Link href={user && user.role === "business" ? "/business/other-pitches" : "/investor/browse-pitches"}>
+        <Link href={backHref}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Opportunities
@@ -88,14 +87,12 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
           <Card>
-
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
                   <CardTitle className="text-2xl mb-2">{pitch.title}</CardTitle>
                   <CardDescription className="text-lg">{pitch.elevator_pitch}</CardDescription>
                 </div>
-
                 <Badge variant="default" className="text-lg px-3 py-1">
                   {pitch.profit_share}% Shares
                 </Badge>
@@ -105,11 +102,9 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
 
           {pitch.supporting_media && pitch.supporting_media.length > 0 && (
             <Card>
-
               <CardHeader>
                 <CardTitle>Supporting Media</CardTitle>
               </CardHeader>
-
               <CardContent>
                 <div className="grid gap-4">
                   {(pitch.supporting_media as string[]).map((media: string, index: number) => (
@@ -131,7 +126,6 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
             <CardHeader>
               <CardTitle>Business Case</CardTitle>
             </CardHeader>
-
             <CardContent>
               <div className="prose prose-sm max-w-none">
                 <p className="whitespace-pre-wrap">{pitch.detailed_pitch}</p>
@@ -141,29 +135,28 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
 
           <Card>
             <CardHeader>
-
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
                 Investment Tiers
               </CardTitle>
               <CardDescription>Higher tiers receive increased profit share multipliers</CardDescription>
             </CardHeader>
-
             <CardContent>
               {(() => {
                 const normalizedTiers = (pitch.investment_tiers as any[]).map((tier) => ({
                   ...tier,
-
                   min_amount:
                     typeof tier.min_amount === "number"
                       ? tier.min_amount
                       : Number(tier.minAmount ?? 0),
 
+
                   max_amount:
                     typeof tier.max_amount === "number"
                       ? tier.max_amount
                       : Number(tier.maxAmount ?? 0),
-                      
+
+
                   multiplier:
                     typeof tier.multiplier === "number"
                       ? tier.multiplier
@@ -173,7 +166,7 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
 
 
 
-
+              
                 return (
                   <div className="grid md:grid-cols-2 gap-4">
                     {normalizedTiers.map((tier: InvestmentTier, index: number) => (
@@ -232,7 +225,6 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
                 <CardHeader>
                   <CardTitle>Key Details</CardTitle>
                 </CardHeader>
-
                 <CardContent className="space-y-4">
                   <div className="flex items-center gap-3">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -269,23 +261,24 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
             </CardContent>
           </Card>
 
-          {pitch.status === "active" && daysLeft > 0 && (
+          {/* Only show investment form if allowed */}
+          {showInvestmentForm && pitch.status === "active" && daysLeft > 0 && (
             <InvestmentForm
               pitch={pitch}
               canInvest={canInvest}
-              onInvestmentComplete={async () => {
-                setIsPageLoading(true);
-                await fetchPitch();
-                setIsPageLoading(false);
-              }}
             />
           )}
 
-          {(pitch.status !== "active" || daysLeft <= 0) && (
+          {/* Message if not investable */}
+          {(!showInvestmentForm || pitch.status !== "active" || daysLeft <= 0) && (
             <Card>
               <CardContent className="pt-6 text-center">
                 <p className="text-muted-foreground">
-                  {pitch.status !== "active" ? "This pitch is no longer accepting investments" : "Investment window has closed"}
+                  {pitch.status !== "active"
+                    ? "This pitch is no longer accepting investments"
+                    : !showInvestmentForm
+                    ? "Investment is disabled for your account type"
+                    : "Investment window has closed"}
                 </p>
               </CardContent>
             </Card>
@@ -293,10 +286,5 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
     </div>
-
-
-
-
-
-  )
+  );
 }

@@ -19,6 +19,7 @@ export interface User {
   name: string;
   role: UserRole;
   createdAt: Date;
+  account_balance: number;
 }
 
 interface AuthContextType {
@@ -38,27 +39,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchUserProfile = useCallback(
     async (supabaseUser: SupabaseUser) => {
       try {
+        console.log("[AuthProvider] Fetching user profile for:", supabaseUser.email);
         const { data, error } = await supabase
           .from("user")
-          .select("first_name, last_name, account_type, created_at")
+          .select("first_name, last_name, account_type, created_at, account_balance")
           .eq("email", supabaseUser.email)
           .single();
 
-        if (error || !data) {
-          console.error("Error fetching user profile:", error);
+
+        if (error) {
+          console.error("[AuthProvider] Error fetching user profile from DB:", error, "for email:", supabaseUser.email);
           setUser(null);
           return;
         }
-
-        setUser({
-          id: supabaseUser.id,
-          email: supabaseUser.email!,
-          name: `${data.first_name} ${data.last_name}`,
-          role: data.account_type as UserRole,
-          createdAt: new Date(data.created_at),
-        });
+            
+        if (data) {
+          const user: User = {
+            id: supabaseUser.id,
+            email: supabaseUser.email!,
+            name: `${data.first_name} ${data.last_name}`,
+            role: data.account_type as UserRole,
+            createdAt: new Date(data.created_at),
+            account_balance: typeof data.account_balance === 'number' ? data.account_balance : 0,
+          };
+          console.log("[AuthProvider] User profile loaded:", user);
+          setUser(user);
+        } else {
+          console.error("[AuthProvider] No user data found in DB for email:", supabaseUser.email);
+          setUser(null);
+        }
       } catch (error) {
-        console.error("Error fetching user profile:", error);
+        console.error("[AuthProvider] Exception fetching user profile:", error, "for email:", supabaseUser.email);
         setUser(null);
       }
     },
@@ -67,17 +78,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Initial session and auth state changes
   useEffect(() => {
-    let mounted = true;
+    //  initial session
 
-    const getSessionAndListen = async () => {
-      // Get initial session
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (mounted && session?.user) {
-        await fetchUserProfile(session.user);
+    const getInitialSession = async () => {
+      console.log("[AuthProvider] Getting initial session");
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (session?.user) {
+          console.log("[AuthProvider] Session user found:", session.user.email);
+          await fetchUserProfile(session.user);
+        } else {
+          console.log("[AuthProvider] No session user found");
+        }
+        console.log("[AuthProvider] Session fetched");
+      } catch (err) {
+        console.error("[AuthProvider] Error in getInitialSession", err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
+    };
+    getInitialSession();
+
+    // auth changes - server actions signup)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log(`[AuthProvider] Auth state changed: ${event}`, session?.user?.email);
+      try {
+        if (session?.user) {
+          await fetchUserProfile(session.user);
+        } else {
+          setUser(null);
+        }
+      } catch (err) {
+        console.error("[AuthProvider] Error in onAuthStateChange", err);
+      } finally {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [fetchUserProfile]);
 
       // Listen to auth changes
       const {

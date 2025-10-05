@@ -4,35 +4,7 @@ export interface InvestmentTier {
   max_amount: number
   multiplier: number
 }
-{/*
-export interface Pitch {
-  id: string
-  business_id: string
-  product_title: string
-  elevator_pitch: string
-  detailed_pitch: string
-  supporting_media: string[]
-  target_amount: number
-  investment_window_end: Date
-  profit_share_percentage: number
-  investment_tiers: InvestmentTier[]
-  current_amount: number
-  status: "draft" | "active" | "funded" | "cancelled" | "completed"
-  created_at: Date
-  updated_at: Date
-  ai_analysis?: AIAnalysis
-}
 
-export interface AIAnalysis {
-  rag_score: "red" | "amber" | "green"
-  overall_score: number
-  feedback: string[]
-  suggestions: string[]
-  analyzed_at: Date
-}
-*/}
-
-// for now to match sujal table but needs changing.
 export interface Pitch {
   id: string
   title: string
@@ -62,12 +34,16 @@ export interface Investment {
   tier: InvestmentTier
   invested_at: Date
   returns: ProfitDistribution[]
+  effective_share?: number
+  refunded?: boolean;
+  refunded_amount?: number;
 }
 
 export interface ProfitDistribution {
   id: string
   pitch_id: string
   total_profit: number
+  business_profit: number
   distribution_date: Date
 }
 export interface InvestorPayout {

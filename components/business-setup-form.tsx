@@ -1,13 +1,13 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, Globe, Phone, MapPin, Image } from "lucide-react";
+import { Building2, Globe, Phone, MapPin } from "lucide-react";
 import { createBusinessUser } from "@/lib/action";
 
 export function BusinessSetupForm() {
@@ -19,10 +19,81 @@ export function BusinessSetupForm() {
     phoneNumber: "",
     location: "",
   });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "phoneNumber") {
+      validatePhone(value);
+    }
   };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setLogoFile(e.target.files[0]);
+    }
+  };
+
+  const uploadLogoToSupabase = async (file: File): Promise<string | null> => {
+    const { createClient } = await import("@/utils/supabase/client");
+    const supabase = createClient();
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+    const filePath = `business-logos/${fileName}`;
+    const { data, error } = await supabase.storage.from("Pitch_image").upload(filePath, file);
+    if (error) {
+      alert("Failed to upload logo: " + error.message);
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from("Pitch_image").getPublicUrl(filePath);
+    return urlData?.publicUrl || null;
+  };
+
+  const validatePhone = (value: string) => {
+    const phoneRegex = /^\+[1-9]\d{9,14}$/;
+    if (!value) {
+      setPhoneError("");
+      return false;
+    }
+    if (!phoneRegex.test(value)) {
+      setPhoneError("Enter a valid international phone number (e.g. +441234567890)");
+      return false;
+    } else {
+      setPhoneError("");
+      return true;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const isPhoneValid = validatePhone(formData.phoneNumber);
+    if (!isPhoneValid) return;
+    let logoUrl = formData.logoUrl;
+    if (logoFile) {
+      setIsUploading(true);
+      const uploadedUrl = await uploadLogoToSupabase(logoFile);
+      setIsUploading(false);
+      if (uploadedUrl) {
+        logoUrl = uploadedUrl;
+      }
+    }
+    const submitData = new FormData();
+    submitData.set("businessName", formData.businessName);
+    submitData.set("description", formData.description);
+    submitData.set("website", formData.website);
+    submitData.set("logoUrl", logoUrl);
+    submitData.set("phoneNumber", formData.phoneNumber);
+    submitData.set("location", formData.location);
+    await createBusinessUser(submitData);
+  };
+
+  const countryList = [
+    "United States", "United Kingdom", "Canada", "Australia", "Germany", "France", "India", "China", "Japan", "Brazil", "South Africa", "Nigeria", "Egypt", "Saudi Arabia", "Turkey", "Russia", "Italy", "Spain", "Mexico", "Argentina", "Netherlands", "Sweden", "Norway", "Denmark", "Finland", "Poland", "Switzerland", "Belgium", "Austria", "Ireland", "Singapore", "New Zealand", "South Korea", "Indonesia", "Malaysia", "Thailand", "Vietnam", "Philippines", "Pakistan", "Bangladesh", "Ukraine", "Romania", "Greece", "Portugal", "Czech Republic", "Hungary", "Israel", "Chile", "Colombia", "Peru", "Venezuela", "Morocco", "Kenya", "Ghana", "Ethiopia", "Algeria", "UAE", "Qatar", "Kuwait", "Oman", "Jordan", "Lebanon", "Iraq", "Iran", "Afghanistan", "Sri Lanka", "Nepal", "Cambodia", "Laos", "Myanmar", "Kazakhstan", "Uzbekistan", "Azerbaijan", "Georgia", "Belarus", "Slovakia", "Slovenia", "Croatia", "Serbia", "Bulgaria", "Lithuania", "Latvia", "Estonia", "Luxembourg", "Iceland", "Malta", "Cyprus", "Monaco", "Liechtenstein", "Andorra", "San Marino", "Vatican City", "Other"
+  ];
 
   return (
     <Card className="w-full">
@@ -34,7 +105,7 @@ export function BusinessSetupForm() {
       </CardHeader>
 
       <CardContent>
-        <form action={createBusinessUser} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="businessName">Business Name *</Label>
             <Input
@@ -72,7 +143,7 @@ export function BusinessSetupForm() {
               <Input
                 id="website"
                 name="website"
-                type="url"
+                type="text"
                 placeholder="https://yourcompany.com"
                 value={formData.website}
                 onChange={(e) => handleInputChange("website", e.target.value)}
@@ -88,27 +159,64 @@ export function BusinessSetupForm() {
                 id="phoneNumber"
                 name="phoneNumber"
                 type="tel"
-                placeholder="+1 (555) 123-4567"
+                placeholder="+44 7242 827218"
                 value={formData.phoneNumber}
-                onChange={(e) =>
-                  handleInputChange("phoneNumber", e.target.value)
-                }
+                onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
+                required
+                className={phoneError ? "border-red-500" : ""}
               />
+              {phoneError && (
+                <p className="text-xs text-red-600 mt-1">{phoneError}</p>
+              )}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="logoUrl" className="flex items-center gap-2">
-              <Image className="h-4 w-4" />
-              Logo URL
-            </Label>
-            <Input
-              id="logoUrl"
-              name="logoUrl"
-              type="url"
-              placeholder="https://example.com/logo.png"
-              value={formData.logoUrl}
-              onChange={(e) => handleInputChange("logoUrl", e.target.value)}
+          <div>
+            <div className="mb-1 flex items-center text-left font-medium text-sm text-black gap-2">
+              <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <circle cx="8.5" cy="10.5" r="1.5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                <path d="M21 19l-5.5-7-4.5 6-3-4-4 5" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              </svg>
+              <span>Business Logo</span>
+            </div>
+            {logoFile ? (
+              <div className="flex flex-col items-center gap-2">
+                <img
+                  src={URL.createObjectURL(logoFile)}
+                  alt="Selected logo"
+                  className="w-24 h-24 object-contain rounded border border-gray-200 bg-gray-50"
+                />
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-xs text-primary mt-2 hover:text-primary/80"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload Logo
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} onClick={(e) => { e.stopPropagation(); setLogoFile(null); }} style={{ cursor: 'pointer' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <label htmlFor="logoFile" className="block w-full">
+                <button
+                  type="button"
+                  className="w-full border border-gray-300 rounded-md bg-white text-gray-500 py-2 px-4 text-center font-medium text-xs transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Upload Logo
+                </button>
+              </label>
+            )}
+            <input
+              id="logoFile"
+              name="logoFile"
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              onChange={handleLogoChange}
+              style={{ display: 'none' }}
             />
           </div>
 
@@ -117,15 +225,19 @@ export function BusinessSetupForm() {
               <MapPin className="h-4 w-4" />
               Location *
             </Label>
-            <Input
+            <select
               id="location"
               name="location"
-              type="text"
-              placeholder="City, State, Country"
               value={formData.location}
               onChange={(e) => handleInputChange("location", e.target.value)}
               required
-            />
+              className="w-full border border-gray-300 rounded-md py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">Select a country</option>
+              {countryList.map((country) => (
+                <option key={country} value={country}>{country}</option>
+              ))}
+            </select>
           </div>
 
           <Button type="submit" className="w-full" size="lg">

@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, Loader2, BarChart3, RefreshCw } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { CreatePitchDialog } from "@/components/business/create-pitch-dialog";
 import { PitchCard } from "@/components/business/pitch-card";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
@@ -13,7 +14,15 @@ import type { Pitch } from "@/lib/types/pitch";
 import { toast } from "sonner";
 import { DeclareProfitsDialog } from "@/components/business/declare-profits-dialog";
 
+const PITCH_TABS = [
+  { key: "draft", label: "Drafts" },
+  { key: "active", label: "Active" },
+  { key: "funded", label: "Funded" },
+  { key: "closed", label: "Closed" },
+];
+
 export function MyPitches() {
+  const [selectedTab, setSelectedTab] = useState<string>("active");
   const { pitches, loading, error } = usePitch();
   const { loadPitches, deleteExistingPitch, updateExistingPitch } = usePitchActions();
   const [deletingPitchId, setDeletingPitchId] = useState<string | null>(null);
@@ -122,11 +131,12 @@ export function MyPitches() {
     );
   }
 
-  const drafts = pitches.filter(p => p.status === "draft");
-  const active = pitches.filter(p => p.status === "active");
-  const closed = pitches.filter(p => p.status === "closed");
-
-  const funded = pitches.filter(p => p.status === "funded" || (p.current_amount >= p.target_amount));
+  const pitchesByStatus = {
+    draft: pitches.filter((p) => p.status === "draft"),
+    active: pitches.filter((p) => p.status === "active"),
+    funded: pitches.filter((p) => p.status === "funded"),
+    closed: pitches.filter((p) => p.status === "closed"),
+  };
 
   const handlePublishPitch = async (pitchId: string) => {
   const handleDeclareProfits = (pitch: Pitch) => {
@@ -157,97 +167,122 @@ export function MyPitches() {
           <CreatePitchDialog/>
         </div>
 
-        <SectionHeading title="Drafts" />
-        <SubcategoryDescription text="Draft pitches are not visible to investors. Publish when ready." />
-        {drafts.length === 0 ? (
-          <EmptySection message="No draft pitches. Create a new pitch." />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
-            {drafts.map((pitch) => (
-              <div key={pitch.id}>
+        <div className="mb-8 flex gap-2 border-b border-gray-200">
+          {PITCH_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`px-4 py-2 font-medium border-b-2 transition-colors duration-150 focus:outline-none ${selectedTab === tab.key ? "border-blue-600 text-blue-600" : "border-transparent text-gray-600 hover:text-blue-600"}`}
+              onClick={() => setSelectedTab(tab.key)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-                <PitchCard
-                  pitch={pitch}
-                  onEdit={handleEditPitch}
-                  onDelete={handleDeletePitch}
-                  onStatusToggle={() => {}} 
-                  isDeleting={deletingPitchId === pitch.id}
-                />
-
-                <Button
-                  className="mt-2 w-full"
-                  onClick={() => handlePublishPitch(pitch.id)}
-                  variant="default"
-                >
-                  Publish Pitch
-                </Button>
+        {selectedTab === "draft" && (
+          <>
+            <SectionHeading title="Drafts" />
+            <SubcategoryDescription text="Draft pitches are not visible to investors. Publish when ready." />
+            {pitchesByStatus.draft.length === 0 ? (
+              <EmptySection message="No draft pitches. Create a new pitch." />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+                {pitchesByStatus.draft.map((pitch) => (
+                  <div key={pitch.id}>
+                    <PitchCard
+                      pitch={pitch}
+                      onEdit={handleEditPitch}
+                      onDelete={handleDeletePitch}
+                      onStatusToggle={() => {}}
+                      isDeleting={deletingPitchId === pitch.id}
+                    />
+                    <Button
+                      className="mt-2 w-full"
+                      onClick={() => handlePublishPitch(pitch.id)}
+                      variant="default"
+                    >
+                      Publish Pitch
+                    </Button>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
-
-        <SectionHeading title="Active" />
-        <SubcategoryDescription text="Active pitches are open for investment and visible to investors." />
-        {active.length === 0 ? (
-          <EmptySection message="No active pitches." />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
-            {active.map((pitch) => (
-              <PitchCard
-                key={pitch.id}
-                pitch={pitch}
-                onEdit={handleEditPitch}
-                onDelete={handleDeletePitch}
-                onStatusToggle={handleStatusToggle}
-                isDeleting={deletingPitchId === pitch.id}
-              />
-            ))}
-          </div>
-        )}
-        <SectionHeading title="Funded" />
-       <SubcategoryDescription text="Funded pitches have reached their target and are ready for profit distribution." />
-        {funded.length === 0 ? (
-          <EmptySection message="No funded pitches yet." />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
-            {funded.map((pitch) => (
-              <div key={pitch.id}>
-                <PitchCard
-                  pitch={pitch}
-                  onEdit={handleEditPitch}
-                  onDelete={handleDeletePitch}
-                  onStatusToggle={() => {}} 
-                  isDeleting={deletingPitchId === pitch.id}
-                />
-                <Button
-                  className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white"
-                  onClick={() => handleDeclareProfits(pitch)}
-                  variant="default"
-                >
-                  Declare Profits
-                </Button>
+        {selectedTab === "active" && (
+          <>
+            <SectionHeading title="Active" />
+            <SubcategoryDescription text="Active pitches are open for investment and visible to investors." />
+            {pitchesByStatus.active.length === 0 ? (
+              <EmptySection message="No active pitches." />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+                {pitchesByStatus.active.map((pitch) => (
+                  <PitchCard
+                    key={pitch.id}
+                    pitch={pitch}
+                    onEdit={handleEditPitch}
+                    onDelete={handleDeletePitch}
+                    onStatusToggle={handleStatusToggle}
+                    isDeleting={deletingPitchId === pitch.id}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
-
-        <SectionHeading title="Closed" />
-        <SubcategoryDescription text="Closed pitches are no longer accepting investments." />
-        {closed.length === 0 ? (
-          <EmptySection message="No closed pitches." />
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
-            {closed.map((pitch) => (
-              <PitchCard
-                key={pitch.id}
-                pitch={pitch}
-                onEdit={handleEditPitch}
-                onDelete={handleDeletePitch}
-                onStatusToggle={() => {}} 
-                isDeleting={deletingPitchId === pitch.id}
-              />
-            ))}
-          </div>
+        {selectedTab === "funded" && (
+          <>
+            <SectionHeading title="Funded" />
+            <SubcategoryDescription text="Funded pitches have reached their target and are ready for profit distribution." />
+            {pitchesByStatus.funded.length === 0 ? (
+              <EmptySection message="No funded pitches yet." />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+                {pitchesByStatus.funded.map((pitch) => (
+                  <div key={pitch.id}>
+                    <PitchCard
+                      pitch={pitch}
+                      onEdit={handleEditPitch}
+                      onDelete={handleDeletePitch}
+                      onStatusToggle={() => {}}
+                      isDeleting={deletingPitchId === pitch.id}
+                    />
+                    <Button
+                      className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white"
+                      onClick={() => handleDeclareProfits(pitch)}
+                      variant="default"
+                    >
+                      Declare Profits
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        {selectedTab === "closed" && (
+          <>
+            <SectionHeading title="Closed" />
+            <SubcategoryDescription text="Closed pitches are no longer accepting investments." />
+            {pitchesByStatus.closed.length === 0 ? (
+              <EmptySection message="No closed pitches." />
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
+                {pitchesByStatus.closed.map((pitch) => (
+                  <PitchCard
+                    key={pitch.id}
+                    pitch={pitch}
+                    onEdit={handleEditPitch}
+                    onDelete={handleDeletePitch}
+                    onStatusToggle={() => {}}
+                    isDeleting={deletingPitchId === pitch.id}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         <EditPitchDialog

@@ -44,6 +44,7 @@ import {
   ThumbsUp,
   Lightbulb,
   X,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -105,9 +106,61 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
     "Other",
   ];
 
+  const getTitleError = () => {
+    if (formData.title.trim() === "") return "Product title is required.";
+    return null;
+  };
+  const getElevatorPitchError = () => {
+    if (formData.elevatorPitch.trim() === "") return "Elevator pitch is required.";
+    return null;
+  };
+  const getDetailedPitchError = () => {
+    if (formData.detailedPitch.trim() === "") return "Detailed business case is required.";
+    return null;
+  };
+  const getTargetAmountError = () => {
+    if (formData.targetAmount === "") return null;
+    const val = Number(formData.targetAmount);
+    if (isNaN(val) || val < 1000 || val > 1000000000) return "Target amount must be between £1,000 and £1,000,000,000.";
+    return null;
+  };
+
+
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const getTierValidationError = (index: number) => {
+    const t = formData.tiers[index];
+    if (t.minAmount === "" || t.maxAmount === "" || t.multiplier === "") return "All fields are required.";
+    const min = Number(t.minAmount);
+    const max = Number(t.maxAmount);
+    const mult = Number(t.multiplier);
+    if (isNaN(min) || isNaN(max)) return "Min and Max must be numbers.";
+    if (min <= 0 || max <= 0) return "Min and Max must be greater than 0.";
+    if (min > max) return "Min must be less than or equal to Max.";
+    if (index > 0) {
+      const prevMax = Number(formData.tiers[index - 1].maxAmount);
+      if (isNaN(prevMax) || min <= prevMax) return "Min must be greater than previous tier's Max (no overlap).";
+      const prevMult = Number(formData.tiers[index - 1].multiplier);
+      if (!isNaN(prevMult) && mult < prevMult) return "Multiplier must be greater than or equal to previous tier's multiplier.";
+    }
+    if (
+      index === formData.tiers.length - 1 &&
+      formData.targetAmount !== ""
+    ) {
+      const target = Number(formData.targetAmount);
+      if (!isNaN(target) && max > target) return "Max for last tier cannot exceed target investment amount.";
+    }
+    return null;
+  };
+
+  const getProfitShareError = () => {
+    if (formData.profitShare === "") return null;
+    const val = Number(formData.profitShare);
+    if (isNaN(val) || val < 1 || val > 100) return "Profit share must be between 1 and 100.";
+    return null;
+  };
 
   const isStepValid = (step: number) => {
     switch (step) {
@@ -117,23 +170,38 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
         );
       case 2:
         return formData.detailedPitch.trim() !== "";
-      case 3:
+      case 3: {
+        const profitShareNum = Number(formData.profitShare);
+        const targetAmountNum = Number(formData.targetAmount);
         return (
           formData.targetAmount !== "" &&
+          !isNaN(targetAmountNum) &&
+          targetAmountNum >= 1000 &&
+          targetAmountNum <= 1000000000 &&
           formData.profitShare !== "" &&
-          formData.endDate
+          formData.endDate &&
+          !isNaN(profitShareNum) &&
+          profitShareNum >= 1 &&
+          profitShareNum <= 100
         );
-      case 4:
-        return (
-          formData.tiers.length > 0 &&
-          formData.tiers.every(
-            (t) =>
-              t.name.trim() !== "" &&
-              t.minAmount !== "" &&
-              t.maxAmount !== "" &&
-              t.multiplier !== ""
-          )
-        );
+      }
+      case 4: {
+        const tiers = formData.tiers;
+        for (let i = 0; i < tiers.length; i++) {
+          const t = tiers[i];
+          if (t.minAmount === "" || t.maxAmount === "" || t.multiplier === "") return false;
+          const min = Number(t.minAmount);
+          const max = Number(t.maxAmount);
+          if (isNaN(min) || isNaN(max)) return false;
+          if (min <= 0 || max <= 0) return false;
+          if (min > max) return false;
+          if (i > 0) {
+            const prevMax = Number(tiers[i - 1].maxAmount);
+            if (isNaN(prevMax) || min <= prevMax) return false;
+          }
+        }
+        return true;
+      }
       case 5:
         return true; // Supporting media is optional
       case 6:
@@ -274,10 +342,18 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       return;
     }
 
+    // make sure to normalize tiers to make sure fields are there and correct type
+    const normalizedTiers = (formData.tiers || []).map((tier) => ({
+      name: tier.name || "",
+      minAmount: tier.minAmount ?? "",
+      maxAmount: tier.maxAmount ?? "",
+      multiplier: tier.multiplier ?? "1.0",
+    }));
+
     setIsCreating(true);
     try {
       const result = await createNewPitch(
-        formData,
+        { ...formData, tiers: normalizedTiers },
         aiAnalysis || undefined,
         uploadedFileUrls
       );
@@ -393,7 +469,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
           Create New Pitch
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Create Investment Pitch
@@ -466,6 +542,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       placeholder="e.g., EcoTech Smart Home Solutions"
                       className="border-gray-300 focus:border-black focus:ring-black"
                     />
+                    {getTitleError() && (
+                      <p className="text-xs text-red-600 mt-1">{getTitleError()}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label
@@ -487,6 +566,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       placeholder="Revolutionary IoT devices that reduce energy consumption by 40%..."
                     />
+                    {getElevatorPitchError() && (
+                      <p className="text-xs text-red-600 mt-1">{getElevatorPitchError()}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -523,6 +605,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       placeholder="Describe your product/service, market opportunity, target customers..."
                     />
+                    {getDetailedPitchError() && (
+                      <p className="text-xs text-red-600 mt-1">{getDetailedPitchError()}</p>
+                    )}
                   </div>
                   {/* Pitch Tags moved here */}
                   <div className="space-y-2">
@@ -639,7 +724,8 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         <Input
                           id="targetAmount"
                           type="number"
-                          min="1"
+                          min="1000"
+                          max="1000000000"
                           value={formData.targetAmount}
                           onChange={(e) =>
                             setFormData({
@@ -651,7 +737,11 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                           className="border-gray-300 focus:border-black focus:ring-black"
                         />
                         <p className="text-xs text-gray-500">
-                          Enter the total amount you want to raise (minimum £1)
+                          Enter the total amount you want to raise (min £1,000, max £1,000,000,000)
+
+                        {getTargetAmountError() && (
+                          <p className="text-xs text-red-600 font-medium mt-1">{getTargetAmountError()}</p>
+                        )}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -721,6 +811,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         <p className="text-xs text-gray-500">
                           Percentage of profits to share with investors (1-100%)
                         </p>
+                        {getProfitShareError() && (
+                          <p className="text-xs text-red-600 font-medium mt-1">{getProfitShareError()}</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label
@@ -898,6 +991,143 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       </div>
                     </>
                   )}
+                  {formData.tiers.map((tier, index) => (
+                    <Card
+                      key={index}
+                      className="border border-gray-200 shadow-sm relative"
+                    >
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <CardTitle className="text-lg font-semibold text-gray-800">
+                                  <Input
+                                    type="text"
+                                    value={tier.name}
+                                    onChange={(e) => {
+                                      const t = [...formData.tiers];
+                                      t[index].name = e.target.value;
+                                      setFormData({ ...formData, tiers: t });
+                                    }}
+                                    className="w-20 border-gray-300 focus:border-black focus:ring-black text-base font-semibold px-2 py-1"
+                                  />
+                              {" "}Tier
+                            </CardTitle>
+                            <CardDescription className="text-gray-600">
+                              Define the range and multiplier for this investment tier
+                            </CardDescription>
+                          </div>
+                          {formData.tiers.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="ml-2 h-8 w-8 p-0 rounded-full hover:bg-red-100 hover:text-red-600"
+                              onClick={() => {
+                                const t = formData.tiers.filter((_, i) => i !== index);
+                                setFormData({ ...formData, tiers: t });
+                              }}
+                              title="Remove tier"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </Button>
+                          )}
+                        </div>
+                      </CardHeader>
+                      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">
+                            Min Amount (£) *
+                          </Label>
+                          <Input
+                            type="number"
+                            value={tier.minAmount}
+                            onChange={(e) => {
+                              const t = [...formData.tiers];
+                              t[index].minAmount = e.target.value;
+                              setFormData({ ...formData, tiers: t });
+                            }}
+                            placeholder={
+                              index === 0
+                                ? "1000"
+                                : index === 1
+                                ? "5000"
+                                : "15000"
+                            }
+                            className="border-gray-300 focus:border-black focus:ring-black"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">
+                            Max Amount (£) *
+                          </Label>
+                          <Input
+                            type="number"
+                            value={tier.maxAmount}
+                            onChange={(e) => {
+                              const t = [...formData.tiers];
+                              t[index].maxAmount = e.target.value;
+                              setFormData({ ...formData, tiers: t });
+                            }}
+                            placeholder={
+                              index === 0
+                                ? "4999"
+                                : index === 1
+                                ? "14999"
+                                : "50000"
+                            }
+                            className="border-gray-300 focus:border-black focus:ring-black"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-gray-700">
+                            Multiplier *
+                          </Label>
+                          <Input
+                            type="number"
+                            step="0.1"
+                            value={tier.multiplier}
+                            onChange={(e) => {
+                              const t = [...formData.tiers];
+                              t[index].multiplier = e.target.value;
+                              setFormData({ ...formData, tiers: t });
+                            }}
+                            placeholder={
+                              index === 0 ? "1.0" : index === 1 ? "1.2" : "1.5"
+                            }
+                            className="border-gray-300 focus:border-black focus:ring-black"
+                          />
+                        </div>
+                        {getTierValidationError(index) && (
+                          <div className="col-span-3 mt-1">
+                            <p className="text-xs text-red-600 font-medium">{getTierValidationError(index)}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                  <div className="flex justify-end mt-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="border-gray-400 text-gray-700 hover:bg-gray-50"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          tiers: [
+                            ...formData.tiers,
+                            {
+                              name: `Tier ${formData.tiers.length + 1}`,
+                              minAmount: "",
+                              maxAmount: "",
+                              multiplier: "1.0",
+                            },
+                          ],
+                        });
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" /> Add Tier
+                   = </Button>
+                  </div>
                 </div>
               </div>
             )}

@@ -54,9 +54,13 @@ export async function getProfitDistributionsByPitchId(pitchId: string): Promise<
   const supabase = createClient();
   const { data, error } = await supabase
     .from("profit_distribution")
-    .select("*")
+    .select("id, pitch_id, total_profit, business_profit, distribution_date")
     .eq("pitch_id", pitchId);
-  return data ?? [];
+  return (data ?? []).map((dist) => ({
+    ...dist,
+    business_profit: dist.business_profit !== null && dist.business_profit !== undefined ? Number(dist.business_profit) : 0,
+    total_profit: dist.total_profit !== null && dist.total_profit !== undefined ? Number(dist.total_profit) : 0,
+  }));
 }
 
 export async function updatePitch(id: string, updates: Partial<Pitch>): Promise<boolean> {
@@ -80,32 +84,70 @@ export async function createPitch(pitch: Omit<Pitch, "id" | "createdAt" | "updat
 export async function createInvestment(investment: Omit<Investment, "id" | "investedAt" | "returns">): Promise <Investment | null> {
   const supabase = createClient();
 
-  const { data: pitchData, error: pitchError } = await supabase
+  const { data: pitch, error: pitchError } = await supabase
     .from("pitch")
-    .select("current_amount, target_amount")
+    .select("id, current_amount, target_amount, investment_pool, business_id, released_at")
     .eq("id", investment.pitch_id)
     .single();
+  if (!pitch || pitchError) return null;
 
-  if (!pitchData || pitchError) return null;
-
-  const { current_amount = 0, target_amount = 0 } = pitchData;
-  if (current_amount + investment.investment_amount > target_amount) {
-    return null;
-  }
-
+  const effectiveValue = investment.investment_amount * (investment.tier?.multiplier ?? 1);
+  const newPool = (pitch.investment_pool ?? 0) + investment.amount;
+  const newCurrentAmount = (pitch.current_amount ?? 0) + investment.investment_amount;
+  const isFullyFunded = newCurrentAmount >= (pitch.target_amount ?? 0);
+  
   const { data, error } = await supabase
     .from("investment")
     .insert([investment])
     .select()
     .single();
-
   if (!data || error) return null;
 
-  const newAmount = current_amount + investment.investment_amount;
-  await supabase
-    .from("pitch")
-    .update({ current_amount: newAmount })
-    .eq("id", investment.pitch_id);
+  if (isFullyFunded && !pitch.released_at) {
+    const businessId = pitch.business_id;
+    const { data: businessUser, error: businessUserError } = await supabase
+      .from("businessuser")
+      .select("user_id")
+      .eq("id", businessId)
+      .single();
+    if (!businessUser || businessUserError) return null;
+
+    const { data: userRow, error: userError } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", businessUser.user_id)
+      .single();
+    if (!userRow || userError) return null;
+
+    const updatedBalance = (userRow.account_balance ?? 0) + newPool;
+
+    const { error: updateUserError } = await supabase
+      .from("user")
+      .update({ account_balance: updatedBalance })
+      .eq("id", businessUser.user_id);
+    if (updateUserError) return null;
+
+    const { error: updatePitchError } = await supabase
+      .from("pitch")
+      .update({
+        current_amount: newCurrentAmount,
+        status: "funded",
+        investment_pool: 0,
+        released_at: new Date().toISOString(),
+      })
+      .eq("id", investment.pitch_id);
+    if (updatePitchError) return null;
+  } else {
+
+    const { error: updatePitchError } = await supabase
+      .from("pitch")
+      .update({
+        investment_pool: newPool,
+        current_amount: newCurrentAmount,
+      })
+      .eq("id", investment.pitch_id);
+    if (updatePitchError) return null;
+  }
 
   return data;
 }
@@ -176,4 +218,45 @@ export async function getOverallROI(userId: string): Promise<number> {
   const invested = await getTotalInvested(userId);
   const returns = await getTotalReturns(userId);
   return invested > 0 ? (returns / invested) * 100 : 0;
+}
+
+
+export async function refundInvestorsIfPitchClosed(pitchId: string): Promise<void> {
+  const supabase = createClient();
+
+  const { data: pitch } = await supabase
+    .from("pitch")
+    .select("id, current_amount, target_amount, status")
+    .eq("id", pitchId)
+    .single();
+  if (!pitch) return;
+
+  if (pitch.current_amount >= pitch.target_amount) return;
+
+  const { data: investments } = await supabase
+    .from("investment")
+    .select("id, investor_id, investment_amount, refunded, refunded_amount")
+    .eq("pitch_id", pitchId);
+  if (!investments) return;
+
+  for (const inv of investments) {
+    if (inv.refunded) continue;
+
+    const { data: userRow } = await supabase
+      .from("user")
+      .select("account_balance")
+      .eq("id", inv.investor_id)
+      .single();
+    if (!userRow) continue;
+    const updatedBalance = (userRow.account_balance ?? 0) + (inv.investment_amount ?? 0);
+    await supabase
+      .from("user")
+      .update({ account_balance: updatedBalance })
+      .eq("id", inv.investor_id);
+
+    await supabase
+      .from("investment")
+      .update({ refunded: true, refunded_amount: inv.investment_amount })
+      .eq("id", inv.id);
+  }
 }
