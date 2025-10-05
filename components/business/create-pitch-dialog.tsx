@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { usePitchActions } from "@/hooks/usePitchActions";
+import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
 import type { PitchFormData, AIAnalysis } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
 import { generatePitchAnalysisDirect } from "@/lib/ai/gemini-direct";
@@ -65,7 +65,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const { createNewPitch } = usePitchActions();
+  const { createNewPitch } = useBusinessPitchActions();
 
   const [formData, setFormData] = useState<PitchFormData>({
     title: "",
@@ -322,12 +322,12 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       }}
     >
       <DialogTrigger asChild>
-          <Button className="gap-2 bg-black hover:bg-gray-900 text-white font-medium px-4 py-2">
-            <Plus className="h-4 w-4" />
-            Create New Pitch
-          </Button>
+        <Button className="gap-2 bg-black hover:bg-gray-900 text-white font-medium px-4 py-2">
+          <Plus className="h-4 w-4" />
+          Create New Pitch
+        </Button>
       </DialogTrigger>
-  <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Create Investment Pitch
@@ -600,20 +600,21 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <CardTitle className="text-lg font-semibold text-gray-800">
-                                  <Input
-                                    type="text"
-                                    value={tier.name}
-                                    onChange={(e) => {
-                                      const t = [...formData.tiers];
-                                      t[index].name = e.target.value;
-                                      setFormData({ ...formData, tiers: t });
-                                    }}
-                                    className="w-20 border-gray-300 focus:border-black focus:ring-black text-base font-semibold px-2 py-1"
-                                  />
-                              {" "}Tier
+                              <Input
+                                type="text"
+                                value={tier.name}
+                                onChange={(e) => {
+                                  const t = [...formData.tiers];
+                                  t[index].name = e.target.value;
+                                  setFormData({ ...formData, tiers: t });
+                                }}
+                                className="w-20 border-gray-300 focus:border-black focus:ring-black text-base font-semibold px-2 py-1"
+                              />{" "}
+                              Tier
                             </CardTitle>
                             <CardDescription className="text-gray-600">
-                              Define the range and multiplier for this investment tier
+                              Define the range and multiplier for this
+                              investment tier
                             </CardDescription>
                           </div>
                           {formData.tiers.length > 1 && (
@@ -623,7 +624,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                               size="icon"
                               className="ml-2 h-8 w-8 p-0 rounded-full hover:bg-red-100 hover:text-red-600"
                               onClick={() => {
-                                const t = formData.tiers.filter((_, i) => i !== index);
+                                const t = formData.tiers.filter(
+                                  (_, i) => i !== index
+                                );
                                 setFormData({ ...formData, tiers: t });
                               }}
                               title="Remove tier"

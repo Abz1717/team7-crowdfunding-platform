@@ -1,13 +1,11 @@
-import { PitchProvider } from "@/context/PitchContext";
+"use client";
+
+import { BusinessProvider } from "@/context/BusinessContext";
 
 export default function BusinessLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <PitchProvider>
-      <div className="min-h-screen bg-gray-50">{children}</div>
-    </PitchProvider>
-  );
+  return <BusinessProvider>{children}</BusinessProvider>;
 }

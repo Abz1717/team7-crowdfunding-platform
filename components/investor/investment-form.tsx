@@ -143,7 +143,9 @@ export function InvestmentForm({
     }
 
     // prevent profit share from exceeding pitch.profit_share
-    const userProfitShare = ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share;
+    const userProfitShare =
+      ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) *
+      pitch.profit_share;
     if (userProfitShare > pitch.profit_share) {
       toast({
         title: "Investment Too Large",
@@ -168,7 +170,9 @@ export function InvestmentForm({
     setIsProcessing(true);
     await new Promise((res) => setTimeout(res, 500)); // short delay for UX
     // Calculate effective share (same as UI logic)
-    const effectiveShare = ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share;
+    const effectiveShare =
+      ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) *
+      pitch.profit_share;
 
     // Insert investment
     const investmentResult = await createInvestment({
@@ -194,6 +198,7 @@ export function InvestmentForm({
       await updateAccountBalance(user.id, accountBalance - investmentAmount);
       setAccountBalance(accountBalance - investmentAmount);
     }
+
     setIsProcessing(false);
     setSuccessDialogOpen(true);
   };
@@ -332,7 +337,11 @@ export function InvestmentForm({
                   <span>Your Profit Share:</span>
                   <span className="font-medium">
                     {selectedTier && pitch.target_amount && investmentAmount > 0
-                      ? (((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share).toFixed(6) + "%"
+                      ? (
+                          ((investmentAmount * selectedTier.multiplier) /
+                            pitch.target_amount) *
+                          pitch.profit_share
+                        ).toFixed(6) + "%"
                       : "0%"}
                   </span>
                 </div>
@@ -355,8 +364,13 @@ export function InvestmentForm({
               investmentAmount === 0 ||
               isProcessing ||
               Boolean(
-                selectedTier && pitch.target_amount && investmentAmount > 0 &&
-                (((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share > pitch.profit_share)
+                selectedTier &&
+                  pitch.target_amount &&
+                  investmentAmount > 0 &&
+                  ((investmentAmount * selectedTier.multiplier) /
+                    pitch.target_amount) *
+                    pitch.profit_share >
+                    pitch.profit_share
               )
             }
             className="w-full"
@@ -381,7 +395,9 @@ export function InvestmentForm({
         onOpenChange={setConfirmDialogOpen}
         onConfirm={doInvestment}
         title={`Confirm Investment`}
-        description={`Are you sure you want to invest $${investmentAmount.toLocaleString()} in ${pitch.title}?`}
+        description={`Are you sure you want to invest $${investmentAmount.toLocaleString()} in ${
+          pitch.title
+        }?`}
         confirmText="Yes, Invest"
         cancelText="No"
         isLoading={isProcessing}
@@ -396,7 +412,9 @@ export function InvestmentForm({
           }
         }}
         title="Investment Confirmed!"
-        description={`Your investment of $${investmentAmount.toLocaleString()} in ${pitch.title} was successful.`}
+        description={`Your investment of $${investmentAmount.toLocaleString()} in ${
+          pitch.title
+        } was successful.`}
         confirmText="OK"
       />
       <InsufficientBalanceDialog
