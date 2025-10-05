@@ -42,7 +42,13 @@ export function Portfolio() {
   const [investments, setInvestments] = useState<Investment[]>([])
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
+  // Filter state for Group By and Status
+  const [groupBy, setGroupBy] = useState<'combined' | 'all'>('all');
+  const [status, setStatus] = useState<'active' | 'funded' | 'closed'>('active');
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [groupBy, status]);
 
   useEffect(() => {
     if (user) {
@@ -63,7 +69,53 @@ export function Portfolio() {
   const [currentPage, setCurrentPage] = useState(1);
   const investmentsPerPage = 3;
 
-  const sortedInvestments = [...investmentDetails].sort((a, b) => {
+
+  // --- FILTER/GROUP LOGIC FOR INVESTMENT LIST ---
+  // Helper: status filter
+  const statusMatches = (pitchStatus: string) => {
+    if (status === 'active') return pitchStatus === 'active';
+    if (status === 'funded') return pitchStatus === 'funded';
+    if (status === 'closed') return pitchStatus === 'closed' || pitchStatus === 'refunded';
+    return true;
+  };
+
+  let filteredInvestments = investmentDetails.filter(({ pitch }) => pitch && statusMatches(pitch.status));
+
+  type DisplayInvestment = typeof investmentDetails[number] & { totalShares?: number };
+  let displayInvestments: DisplayInvestment[] = [];
+  if (groupBy === 'combined') {
+
+    const grouped: Record<string, { investment: Investment, pitch: any, investmentReturns: number, roi: number, totalAmount: number, totalShares: number }> = {};
+    for (const { investment, pitch, investmentReturns } of filteredInvestments) {
+      if (!grouped[pitch.id]) {
+        grouped[pitch.id] = {
+          investment: { ...investment },
+          pitch,
+          investmentReturns: 0,
+          roi: 0,
+          totalAmount: 0,
+          totalShares: 0,
+        };
+      }
+      grouped[pitch.id].totalAmount += investment.investment_amount;
+      grouped[pitch.id].totalShares += investment.investment_amount * (investment.tier?.multiplier || 1);
+      grouped[pitch.id].investmentReturns += investmentReturns;
+    }
+    displayInvestments = Object.values(grouped).map(g => ({
+      investment: {
+        ...g.investment,
+        investment_amount: g.totalAmount,
+      },
+      pitch: g.pitch,
+      investmentReturns: g.investmentReturns,
+      roi: g.totalAmount > 0 ? (g.investmentReturns / g.totalAmount) * 100 : 0,
+      totalShares: g.totalShares,
+    }));
+  } else {
+    displayInvestments = filteredInvestments;
+  }
+
+  const sortedInvestments = [...displayInvestments].sort((a, b) => {
     const dateA = new Date(a.investment.invested_at).getTime();
     const dateB = new Date(b.investment.invested_at).getTime();
     return dateB - dateA;
@@ -283,12 +335,76 @@ useEffect(() => {
       {/* Investment List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            My Investments
-          </CardTitle>
-          <CardDescription>Track your investments and their performance over time</CardDescription>
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                My Investments
+              </CardTitle>
+              <CardDescription>Track your investments and their performance over time</CardDescription>
+            </div>
+
+            <div className="flex gap-6 items-center">
+              <div className="flex flex-col items-start">
+                <span className="text-xs font-medium text-muted-foreground mb-1">Group By</span>
+                <div className="flex rounded-md bg-muted/40 p-1 border border-muted-foreground/10">
+                  <Button
+                    size="sm"
+                    variant={groupBy === 'combined' ? 'secondary' : 'outline'}
+                    className={`rounded-l-md rounded-r-none font-normal px-3 py-1 text-xs border-none shadow-none ${groupBy === 'combined' ? 'bg-black text-white !hover:bg-black !hover:text-white' : ''}`}
+                    onClick={() => setGroupBy('combined')}
+                    style={groupBy === 'combined' ? { pointerEvents: 'none' } : {}}
+                  >
+                    Combined by Pitch
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={groupBy === 'all' ? 'secondary' : 'outline'}
+                    className={`rounded-r-md rounded-l-none font-normal px-3 py-1 text-xs border-none shadow-none ${groupBy === 'all' ? 'bg-black text-white !hover:bg-black !hover:text-white' : ''}`}
+                    onClick={() => setGroupBy('all')}
+                    style={groupBy === 'all' ? { pointerEvents: 'none' } : {}}
+                  >
+                    Show All Investments
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-start">
+                <span className="text-xs font-medium text-muted-foreground mb-1">Status</span>
+                <div className="flex rounded-md bg-muted/40 p-1 border border-muted-foreground/10">
+                  <Button
+                    size="sm"
+                    variant={status === 'active' ? 'secondary' : 'outline'}
+                    className={`rounded-l-md font-normal px-3 py-1 text-xs border-none shadow-none ${status === 'active' ? 'bg-black text-white !hover:bg-black !hover:text-white' : ''}`}
+                    onClick={() => setStatus('active')}
+                    style={status === 'active' ? { pointerEvents: 'none' } : {}}
+                  >
+                    Active
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={status === 'funded' ? 'secondary' : 'outline'}
+                    className={`font-normal px-3 py-1 text-xs border-none shadow-none ${status === 'funded' ? 'bg-black text-white !hover:bg-black !hover:text-white' : ''}`}
+                    onClick={() => setStatus('funded')}
+                    style={status === 'funded' ? { pointerEvents: 'none' } : {}}
+                  >
+                    Funded
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={status === 'closed' ? 'secondary' : 'outline'}
+                    className={`rounded-r-md font-normal px-3 py-1 text-xs border-none shadow-none ${status === 'closed' ? 'bg-black text-white !hover:bg-black !hover:text-white' : ''}`}
+                    onClick={() => setStatus('closed')}
+                    style={status === 'closed' ? { pointerEvents: 'none' } : {}}
+                  >
+                    Closed/Refunded
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </CardHeader>
+        
         <CardContent>
           {investments.length === 0 ? (
             <div className="text-center py-8">
@@ -306,10 +422,53 @@ useEffect(() => {
           ) : (
             <>
               <div className="space-y-4">
-                {pagedInvestments.map(({ investment, pitch, investmentReturns, roi }) => {
+                {pagedInvestments.map((item) => {
+                  const { investment, pitch, investmentReturns, roi, totalShares } = item;
                   if (!pitch) return null;
-
                   const isRefunded = investment.refunded === true;
+
+                  // total
+                  const shares = typeof totalShares === 'number'
+                    ? totalShares
+                    : investment.investment_amount && investment.tier?.multiplier
+                      ? investment.investment_amount * investment.tier.multiplier
+                      : undefined;
+
+                  // group display
+                  let showMultipleTier = false;
+                  let showMultipleMultiplier = false;
+                  let tierDisplay = investment.tier?.name;
+                  let multiplierDisplay = investment.tier?.multiplier;
+                  let dateDisplay = investment.invested_at;
+                  let dateText = null;
+                  if (groupBy === 'combined') {
+                    // all unique
+                    const pitchId = pitch.id;
+                    const allTiers = filteredInvestments.filter(({ pitch }) => pitch.id === pitchId).map(({ investment }) => investment.tier?.name).filter(Boolean);
+                    const allMultipliers = filteredInvestments.filter(({ pitch }) => pitch.id === pitchId).map(({ investment }) => investment.tier?.multiplier).filter(m => m !== undefined);
+                    const allDates = filteredInvestments.filter(({ pitch }) => pitch.id === pitchId).map(({ investment }) => investment.invested_at).filter(Boolean).map(d => new Date(d));
+                    const uniqueTiers = Array.from(new Set(allTiers));
+                    const uniqueMultipliers = Array.from(new Set(allMultipliers));
+                    if (uniqueTiers.length > 1) showMultipleTier = true;
+                    if (uniqueMultipliers.length > 1) showMultipleMultiplier = true;
+                    if (allDates.length > 1) {
+                      allDates.sort((a, b) => a.getTime() - b.getTime());
+                      const first = allDates[0];
+                      const last = allDates[allDates.length - 1];
+                      // Compare only Y/M/D, not time
+                      const sameDay = first.getFullYear() === last.getFullYear() &&
+                        first.getMonth() === last.getMonth() &&
+                        first.getDate() === last.getDate();
+                      if (sameDay) {
+                        dateText = formatDate(first);
+                      } else {
+                        dateText = `${formatDate(first)} - ${formatDate(last)}`;
+                      }
+                    } else if (allDates.length === 1) {
+                      dateText = formatDate(allDates[0]);
+                    }
+                  }
+
                   return (
                     <Card
                       key={investment.id}
@@ -325,7 +484,12 @@ useEffect(() => {
                             <h4 className="font-semibold text-lg">{pitch.title}</h4>
                             <p className="text-sm text-muted-foreground">{pitch.elevator_pitch}</p>
                           </div>
-                          <TierBadge tier={investment.tier.name} />
+
+                          {groupBy === 'combined' && showMultipleTier ? (
+                            <Badge className="bg-white text-black border-2 font-semibold">Multiple Tiers</Badge>
+                          ) : (
+                            <TierBadge tier={tierDisplay || ''} />
+                          )}
                         </div>
                         <div className="grid md:grid-cols-5 gap-4">
                           <div>
@@ -335,12 +499,16 @@ useEffect(() => {
                           <div>
                             <div className="text-sm text-muted-foreground">Tier & Multiplier</div>
                             <div className="font-semibold">
-                              {investment.tier.name} ({investment.tier.multiplier}x)
+                              {groupBy === 'combined' && (showMultipleTier || showMultipleMultiplier)
+                                ? 'Multiple'
+                                : `${tierDisplay || ''} (${typeof multiplierDisplay === 'number' ? multiplierDisplay : ''}x)`}
                             </div>
                           </div>
                           <div>
                             <div className="text-sm text-muted-foreground">Investment Date</div>
-                            <div className="font-semibold">{formatDate(investment.invested_at)}</div>
+                            <div className="font-semibold">
+                              {groupBy === 'combined' && dateText ? dateText : formatDate(investment.invested_at)}
+                            </div>
                           </div>
                           <div>
                             <div className="text-sm text-muted-foreground">Returns Received</div>
@@ -349,9 +517,7 @@ useEffect(() => {
                           <div>
                             <div className="text-sm text-muted-foreground">Your Shares</div>
                             <div className="font-semibold">
-                              {investment.investment_amount && investment.tier?.multiplier
-                                ? (investment.investment_amount * investment.tier.multiplier).toLocaleString()
-                                : 'N/A'}
+                              {typeof shares === 'number' ? shares.toLocaleString() : 'N/A'}
                             </div>
                           </div>
                         </div>
