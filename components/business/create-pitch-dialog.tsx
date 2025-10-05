@@ -81,9 +81,60 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
     ],
   });
 
+  const getTitleError = () => {
+    if (formData.title.trim() === "") return "Product title is required.";
+    return null;
+  };
+  const getElevatorPitchError = () => {
+    if (formData.elevatorPitch.trim() === "") return "Elevator pitch is required.";
+    return null;
+  };
+  const getDetailedPitchError = () => {
+    if (formData.detailedPitch.trim() === "") return "Detailed business case is required.";
+    return null;
+  };
+  const getTargetAmountError = () => {
+    if (formData.targetAmount === "") return null;
+    const val = Number(formData.targetAmount);
+    if (isNaN(val) || val < 1000 || val > 1000000000) return "Target amount must be between £1,000 and £1,000,000,000.";
+    return null;
+  };
+
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const getTierValidationError = (index: number) => {
+    const t = formData.tiers[index];
+    if (t.minAmount === "" || t.maxAmount === "" || t.multiplier === "") return "All fields are required.";
+    const min = Number(t.minAmount);
+    const max = Number(t.maxAmount);
+    const mult = Number(t.multiplier);
+    if (isNaN(min) || isNaN(max)) return "Min and Max must be numbers.";
+    if (min <= 0 || max <= 0) return "Min and Max must be greater than 0.";
+    if (min > max) return "Min must be less than or equal to Max.";
+    if (index > 0) {
+      const prevMax = Number(formData.tiers[index - 1].maxAmount);
+      if (isNaN(prevMax) || min <= prevMax) return "Min must be greater than previous tier's Max (no overlap).";
+      const prevMult = Number(formData.tiers[index - 1].multiplier);
+      if (!isNaN(prevMult) && mult < prevMult) return "Multiplier must be greater than or equal to previous tier's multiplier.";
+    }
+    if (
+      index === formData.tiers.length - 1 &&
+      formData.targetAmount !== ""
+    ) {
+      const target = Number(formData.targetAmount);
+      if (!isNaN(target) && max > target) return "Max for last tier cannot exceed target investment amount.";
+    }
+    return null;
+  };
+
+  const getProfitShareError = () => {
+    if (formData.profitShare === "") return null;
+    const val = Number(formData.profitShare);
+    if (isNaN(val) || val < 1 || val > 100) return "Profit share must be between 1 and 100.";
+    return null;
+  };
 
   const isStepValid = (step: number) => {
     switch (step) {
@@ -93,16 +144,38 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
         );
       case 2:
         return formData.detailedPitch.trim() !== "";
-      case 3:
+      case 3: {
+        const profitShareNum = Number(formData.profitShare);
+        const targetAmountNum = Number(formData.targetAmount);
         return (
           formData.targetAmount !== "" &&
+          !isNaN(targetAmountNum) &&
+          targetAmountNum >= 1000 &&
+          targetAmountNum <= 1000000000 &&
           formData.profitShare !== "" &&
-          formData.endDate
+          formData.endDate &&
+          !isNaN(profitShareNum) &&
+          profitShareNum >= 1 &&
+          profitShareNum <= 100
         );
-      case 4:
-        return formData.tiers.every(
-          (t) => t.minAmount !== "" && t.maxAmount !== "" && t.multiplier !== ""
-        );
+      }
+      case 4: {
+        const tiers = formData.tiers;
+        for (let i = 0; i < tiers.length; i++) {
+          const t = tiers[i];
+          if (t.minAmount === "" || t.maxAmount === "" || t.multiplier === "") return false;
+          const min = Number(t.minAmount);
+          const max = Number(t.maxAmount);
+          if (isNaN(min) || isNaN(max)) return false;
+          if (min <= 0 || max <= 0) return false;
+          if (min > max) return false;
+          if (i > 0) {
+            const prevMax = Number(tiers[i - 1].maxAmount);
+            if (isNaN(prevMax) || min <= prevMax) return false;
+          }
+        }
+        return true;
+      }
       case 5:
         return true; // Supporting media is optional
       case 6:
@@ -400,6 +473,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       placeholder="e.g., EcoTech Smart Home Solutions"
                       className="border-gray-300 focus:border-black focus:ring-black"
                     />
+                    {getTitleError() && (
+                      <p className="text-xs text-red-600 mt-1">{getTitleError()}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label
@@ -421,6 +497,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       placeholder="Revolutionary IoT devices that reduce energy consumption by 40%..."
                     />
+                    {getElevatorPitchError() && (
+                      <p className="text-xs text-red-600 mt-1">{getElevatorPitchError()}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -457,6 +536,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       placeholder="Describe your product/service, market opportunity, target customers..."
                     />
+                    {getDetailedPitchError() && (
+                      <p className="text-xs text-red-600 mt-1">{getDetailedPitchError()}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -491,7 +573,8 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         <Input
                           id="targetAmount"
                           type="number"
-                          min="1"
+                          min="1000"
+                          max="1000000000"
                           value={formData.targetAmount}
                           onChange={(e) =>
                             setFormData({
@@ -503,7 +586,11 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                           className="border-gray-300 focus:border-black focus:ring-black"
                         />
                         <p className="text-xs text-gray-500">
-                          Enter the total amount you want to raise (minimum £1)
+                          Enter the total amount you want to raise (min £1,000, max £1,000,000,000)
+
+                        {getTargetAmountError() && (
+                          <p className="text-xs text-red-600 font-medium mt-1">{getTargetAmountError()}</p>
+                        )}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -573,6 +660,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         <p className="text-xs text-gray-500">
                           Percentage of profits to share with investors (1-100%)
                         </p>
+                        {getProfitShareError() && (
+                          <p className="text-xs text-red-600 font-medium mt-1">{getProfitShareError()}</p>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -697,6 +787,11 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                             className="border-gray-300 focus:border-black focus:ring-black"
                           />
                         </div>
+                        {getTierValidationError(index) && (
+                          <div className="col-span-3 mt-1">
+                            <p className="text-xs text-red-600 font-medium">{getTierValidationError(index)}</p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ))}
