@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = path === "/signin" || path === "/signup";
   const isBusinessRoute =
     path.startsWith("/business") || path.startsWith("/business-setup");
-  const isInvestorRoute = path.startsWith("/investor");
+  const isInvestorRoute = path.startsWith("/investor/portfolio");
 
   // If user is authenticated, get their role from the database
   let userRole: "business" | "investor" | null = null;
@@ -65,7 +65,7 @@ export async function middleware(request: NextRequest) {
   if (user && userRole) {
     // Authenticated users cannot access signin/signup pages
     if (isAuthRoute) {
-      const redirectUrl = userRole === "business" ? "/business" : "/investor";
+      const redirectUrl = userRole === "business" ? "/business" : "/investor/portfolio";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
 
@@ -87,7 +87,7 @@ export async function middleware(request: NextRequest) {
 
     // Investor users cannot access business routes
     if (userRole === "investor" && isBusinessRoute) {
-      return NextResponse.redirect(new URL("/investor", request.url));
+      return NextResponse.redirect(new URL("/investor/portfolio", request.url));
     }
   } else {
     // Unauthenticated users cannot access protected routes
