@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,6 +83,13 @@ export function AccountSettings() {
   const [editingBusiness, setEditingBusiness] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("profile");
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab && ["profile","security","notifications","billing","data"].includes(tab)) {
+      setActiveSection(tab);
+    }
+  }, [searchParams]);
 
   const [notifications, setNotifications] = useState({
     email: true,

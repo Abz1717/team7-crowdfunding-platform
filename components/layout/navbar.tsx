@@ -42,9 +42,6 @@ export function Navbar() {
                   </>
                 ) : (
                   <>
-                    <Link href="/investor" className="text-sm text-muted-foreground hover:text-foreground">
-                      Dashboard
-                    </Link>
                     <Link href="/investor/browse-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       Browse Pitches
                     </Link>
@@ -87,9 +84,6 @@ export function Navbar() {
 
                   ) : (
                     <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/investor">Dashboard</Link>
-                      </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <Link href="/investor/browse-pitches">Browse Pitches</Link>
                       </DropdownMenuItem>

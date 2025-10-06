@@ -103,7 +103,7 @@ export function SignInForm() {
           }
 
           if (userDetails.account_type === "investor") {
-            window.location.href = "/investor";
+            window.location.href = "/investor/portfolio";
           } else if (userDetails.account_type === "business") {
             window.location.href = "/business";
           } else {

@@ -50,7 +50,7 @@ export async function login(formData: FormData) {
   });
 
   if (userDetails.account_type === "investor") {
-    redirect("/investor");
+    redirect("/investor/portfolio");
   } else if (userDetails.account_type === "business") {
     redirect("/business");
   } else {
@@ -126,7 +126,7 @@ export async function signup(formData: FormData) {
     if (data.accountType === "business") {
       redirect("/business-setup");
     } else {
-      redirect("/investor");
+      redirect("/investor/portfolio");
     }
   }
 }
