@@ -52,10 +52,30 @@ export function Portfolio() {
 
   useEffect(() => {
     if (user) {
-      getTotalInvested(user.id).then(setTotalInvested);
+      getInvestmentsByInvestorId(user.id).then((allInvestments) => {
+        setInvestments(allInvestments);
+        const invested = allInvestments.reduce((sum, inv) => {
+          if (inv.refunded) {
+            return sum;
+          } else {
+            return sum + (inv.investment_amount || 0);
+          }
+        }, 0);
+        setTotalInvested(invested);
+      });
       getTotalReturns(user.id).then(setTotalReturns);
       // Calculate ROI as ((returns - invested) / invested) * 100
-      Promise.all([getTotalInvested(user.id), getTotalReturns(user.id)]).then(([invested, returns]) => {
+      Promise.all([
+        getInvestmentsByInvestorId(user.id),
+        getTotalReturns(user.id)
+      ]).then(([allInvestments, returns]) => {
+        const invested = allInvestments.reduce((sum, inv) => {
+          if (inv.refunded) {
+            return sum;
+          } else {
+            return sum + (inv.investment_amount || 0);
+          }
+        }, 0);
         if (invested > 0) {
           setOverallROI(((returns - invested) / invested) * 100);
         } else {
@@ -63,7 +83,6 @@ export function Portfolio() {
         }
       });
       getAccountBalance(user.id).then(setAccountBalance);
-      getInvestmentsByInvestorId(user.id).then(setInvestments);
     }
   }, [user]);
 
