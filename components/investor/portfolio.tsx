@@ -54,7 +54,14 @@ export function Portfolio() {
     if (user) {
       getTotalInvested(user.id).then(setTotalInvested);
       getTotalReturns(user.id).then(setTotalReturns);
-      getOverallROI(user.id).then(setOverallROI);
+      // Calculate ROI as ((returns - invested) / invested) * 100
+      Promise.all([getTotalInvested(user.id), getTotalReturns(user.id)]).then(([invested, returns]) => {
+        if (invested > 0) {
+          setOverallROI(((returns - invested) / invested) * 100);
+        } else {
+          setOverallROI(0);
+        }
+      });
       getAccountBalance(user.id).then(setAccountBalance);
       getInvestmentsByInvestorId(user.id).then(setInvestments);
     }
@@ -108,7 +115,7 @@ export function Portfolio() {
       },
       pitch: g.pitch,
       investmentReturns: g.investmentReturns,
-      roi: g.totalAmount > 0 ? (g.investmentReturns / g.totalAmount) * 100 : 0,
+      roi: g.totalAmount > 0 ? ((g.investmentReturns - g.totalAmount) / g.totalAmount) * 100 : 0,
       totalShares: g.totalShares,
     }));
   } else {
@@ -151,8 +158,8 @@ useEffect(() => {
 
         const thisShare = getShares(investment);
         const investmentReturns = totalShares > 0 ? totalPayout * (thisShare / totalShares) : 0;
-        const roi = investment.investment_amount > 0 ? (investmentReturns / investment.investment_amount) * 100 : 0;
-        return { investment, pitch, investmentReturns, roi };
+  const roi = investment.investment_amount > 0 ? ((investmentReturns - investment.investment_amount) / investment.investment_amount) * 100 : 0;
+  return { investment, pitch, investmentReturns, roi };
       })
     );
     setInvestmentDetails(details)
@@ -322,9 +329,8 @@ useEffect(() => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              <span className={overallROI >= 0 ? "text-green-600" : "text-red-600"}>
-                {overallROI >= 0 ? "+" : ""}
-                {overallROI.toFixed(1)}%
+              <span className={overallROI < 0 ? "text-red-600" : "text-green-600"}>
+                {overallROI > 0 ? "+" : ""}{overallROI.toFixed(1)}%
               </span>
             </div>
             <p className="text-xs text-muted-foreground">Return on investment</p>
