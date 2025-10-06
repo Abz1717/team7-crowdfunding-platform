@@ -28,6 +28,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import React from "react";
+import { useInvestor } from "@/context/InvestorContext";
 
 export default function PitchDetailPage({
   params,
@@ -37,6 +38,7 @@ export default function PitchDetailPage({
   const [isPageLoading, setIsPageLoading] = useState(false);
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { refreshPortfolio, refreshPitches } = useInvestor();
   const [pitch, setPitch] = useState<Pitch | null>(null);
   const [isPitchLoading, setIsPitchLoading] = useState(false);
   const resolvedParams = React.use(params);
@@ -49,12 +51,8 @@ export default function PitchDetailPage({
       setIsPitchLoading(false);
       return;
     }
+    setIsPitchLoading(true);
     const foundPitch = await getPitchById(resolvedParams.id);
-    if (!foundPitch) {
-      router.push("/investor");
-      setIsPitchLoading(false);
-      return;
-    }
     setPitch(foundPitch);
     setIsPitchLoading(false);
   };
@@ -345,6 +343,9 @@ export default function PitchDetailPage({
               onInvestmentComplete={async () => {
                 setIsPageLoading(true);
                 await fetchPitch();
+                // Refresh context data after investment
+                await refreshPortfolio();
+                await refreshPitches();
                 setIsPageLoading(false);
               }}
             />

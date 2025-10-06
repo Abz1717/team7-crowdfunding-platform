@@ -32,8 +32,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { usePitchActions } from "@/hooks/usePitchActions";
-import type { Pitch, UpdatePitchData, InvestmentTier } from "@/lib/types/pitch";
+import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
+import type { Pitch } from "@/lib/types";
+import type { UpdatePitchData, InvestmentTier } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
 import {
   Select,
@@ -60,7 +61,7 @@ export function EditPitchDialog({
   onOpenChange,
   onDelete,
 }: EditPitchDialogProps) {
-  const { updateExistingPitch } = usePitchActions();
+  const { updateExistingPitch } = useBusinessPitchActions();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [supportingMedia, setSupportingMedia] = useState<string[]>([]);
@@ -98,7 +99,7 @@ export function EditPitchDialog({
           pitch.profit_distribution_frequency || "monthly",
         tags: pitch.tags || [],
         end_date: new Date(pitch.end_date),
-        status: pitch.status,
+        status: pitch.status as "draft" | "active" | "funded" | "closed",
         investment_tiers:
           pitch.investment_tiers?.length > 0 ? pitch.investment_tiers : [],
       });

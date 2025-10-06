@@ -47,7 +47,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { usePitchActions } from "@/hooks/usePitchActions";
+import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
 import type { PitchFormData, AIAnalysis } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
 import { generatePitchAnalysisDirect } from "@/lib/ai/gemini-direct";
@@ -72,7 +72,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const { createNewPitch } = usePitchActions();
+  const { createNewPitch } = useBusinessPitchActions();
 
   const [formData, setFormData] = useState<PitchFormData>({
     title: "",

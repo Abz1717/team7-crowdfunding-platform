@@ -12,18 +12,51 @@ import {
 } from "lucide-react";
 import { getTransactionHistory } from "@/lib/action";
 import type { Transaction } from "@/lib/types/transaction";
+import { useInvestorSafe } from "@/context/InvestorContext";
+import { useBusinessSafe } from "@/context/BusinessContext";
+import { useAuth } from "@/lib/auth";
 
 export function TransactionHistory() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { user: authUser } = useAuth();
+  const investorContext = useInvestorSafe();
+  const businessContext = useBusinessSafe();
 
+  // Determine which context to use
+  let cachedTransactions: Transaction[] = [];
+  if (authUser?.role === "investor" && investorContext) {
+    cachedTransactions = investorContext.transactions;
+  } else if (authUser?.role === "business" && businessContext) {
+    cachedTransactions = businessContext.transactions;
+  }
+
+  const [transactions, setTransactions] =
+    useState<Transaction[]>(cachedTransactions);
+  const [loading, setLoading] = useState(!cachedTransactions.length);
+
+  // Update when cached data changes
   useEffect(() => {
-    loadTransactions();
+    console.log(
+      "[TransactionHistory] Using CACHED data:",
+      cachedTransactions.length,
+      "transactions"
+    );
+    setTransactions(cachedTransactions);
+    if (cachedTransactions.length > 0) {
+      setLoading(false);
+    }
+  }, [cachedTransactions]);
+
+  // Fallback: Load directly if no cached data
+  useEffect(() => {
+    if (!cachedTransactions.length && authUser) {
+      loadTransactions();
+    }
   }, []);
 
   const loadTransactions = async () => {
     setLoading(true);
     try {
+      console.log("[TransactionHistory] Fetching from database (fallback)");
       const result = await getTransactionHistory();
       if (result.success && result.data) {
         setTransactions(result.data);
