@@ -745,8 +745,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                           className="border-gray-300 focus:border-black focus:ring-black"
                         />
                         <p className="text-xs text-gray-500">
-                          Enter the total amount you want to raise (min £1,000,
-                          max £1,000,000,000)
+                          
                           {getTargetAmountError() && (
                             <p className="text-xs text-red-600 font-medium mt-1">
                               {getTargetAmountError()}
