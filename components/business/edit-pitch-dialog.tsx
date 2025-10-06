@@ -66,6 +66,7 @@ export function EditPitchDialog({
   const [supportingMedia, setSupportingMedia] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [tagInput, setTagInput] = useState("");
 
   const [formData, setFormData] = useState({
     title: "",
@@ -73,13 +74,11 @@ export function EditPitchDialog({
     detailed_pitch: "",
     target_amount: "",
     profit_share: "",
+    profit_distribution_frequency: "monthly",
+    tags: [] as string[],
     end_date: undefined as Date | undefined,
     status: "draft" as "draft" | "active" | "funded" | "closed",
-    investment_tiers: [
-      { name: "Bronze", minAmount: "", maxAmount: "", multiplier: "1.0" },
-      { name: "Silver", minAmount: "", maxAmount: "", multiplier: "1.2" },
-      { name: "Gold", minAmount: "", maxAmount: "", multiplier: "1.5" },
-    ] as InvestmentTier[],
+    investment_tiers: [] as InvestmentTier[],
   });
 
   const isFunded = formData.status === "funded";
@@ -95,31 +94,13 @@ export function EditPitchDialog({
         detailed_pitch: pitch.detailed_pitch,
         target_amount: pitch.target_amount.toString(),
         profit_share: pitch.profit_share.toString(),
+        profit_distribution_frequency:
+          pitch.profit_distribution_frequency || "monthly",
+        tags: pitch.tags || [],
         end_date: new Date(pitch.end_date),
         status: pitch.status,
         investment_tiers:
-          pitch.investment_tiers?.length > 0
-            ? pitch.investment_tiers
-            : [
-                {
-                  name: "Bronze",
-                  minAmount: "",
-                  maxAmount: "",
-                  multiplier: "1.0",
-                },
-                {
-                  name: "Silver",
-                  minAmount: "",
-                  maxAmount: "",
-                  multiplier: "1.2",
-                },
-                {
-                  name: "Gold",
-                  minAmount: "",
-                  maxAmount: "",
-                  multiplier: "1.5",
-                },
-              ],
+          pitch.investment_tiers?.length > 0 ? pitch.investment_tiers : [],
       });
 
       // Set supporting media
@@ -164,6 +145,8 @@ export function EditPitchDialog({
           Number.parseInt(formData.target_amount) || pitch.target_amount,
         profit_share:
           Number.parseInt(formData.profit_share) || pitch.profit_share,
+        profit_distribution_frequency: formData.profit_distribution_frequency,
+        tags: formData.tags,
         end_date: formData.end_date.toISOString(),
         status: formData.status,
         investment_tiers: normalizedTiers.filter(
@@ -198,6 +181,40 @@ export function EditPitchDialog({
     const newTiers = [...formData.investment_tiers];
     newTiers[index] = { ...newTiers[index], [field]: value };
     setFormData({ ...formData, investment_tiers: newTiers });
+  };
+
+  const addTier = () => {
+    setFormData({
+      ...formData,
+      investment_tiers: [
+        ...formData.investment_tiers,
+        { name: "", minAmount: "", maxAmount: "", multiplier: "1.0" },
+      ],
+    });
+  };
+
+  const removeTier = (index: number) => {
+    setFormData({
+      ...formData,
+      investment_tiers: formData.investment_tiers.filter((_, i) => i !== index),
+    });
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tagInput.trim()],
+      });
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((tag) => tag !== tagToRemove),
+    });
   };
 
   const uploadFileToSupabase = async (file: File): Promise<string | null> => {
@@ -334,7 +351,7 @@ export function EditPitchDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-  <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg">
           <DialogHeader className="pb-6">
             <div className="flex items-center justify-between">
               <div>
@@ -422,9 +439,14 @@ export function EditPitchDialog({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-gray-700">Status</Label>
+                      <Label className="text-sm font-medium text-gray-700">
+                        Status
+                      </Label>
                       <Input
-                        value={formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+                        value={
+                          formData.status.charAt(0).toUpperCase() +
+                          formData.status.slice(1)
+                        }
                         disabled
                         readOnly
                         className="border-gray-300 bg-gray-100 text-gray-500"
@@ -492,7 +514,7 @@ export function EditPitchDialog({
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label
                       htmlFor="edit-target"
@@ -574,111 +596,230 @@ export function EditPitchDialog({
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="edit-profit"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Profit Share (%)
+                    </Label>
+                    <Input
+                      id="edit-profit"
+                      type="number"
+                      value={formData.profit_share}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          profit_share: e.target.value,
+                        })
+                      }
+                      placeholder="25"
+                      max="100"
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="edit-profit-dist"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Profit Distribution Frequency
+                    </Label>
+                    <select
+                      id="edit-profit-dist"
+                      value={formData.profit_distribution_frequency}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          profit_distribution_frequency: e.target.value,
+                        })
+                      }
+                      className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                    >
+                      <option value="monthly">Monthly</option>
+                      <option value="quarterly">Quarterly</option>
+                      <option value="semi-annually">Semi-Annually</option>
+                      <option value="annually">Annually</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tags Section */}
+              <div className="space-y-6">
+                <div className="border-b border-gray-200 pb-3">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Pitch Tags
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Categorize your pitch to help investors find it
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addTag();
+                        }
+                      }}
+                      placeholder="e.g., Technology, Healthcare, AI"
+                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <Button
+                      type="button"
+                      onClick={addTag}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {formData.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {formData.tags.map((tag) => (
+                        <div
+                          key={tag}
+                          className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                        >
+                          <span>{tag}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeTag(tag)}
+                            className="text-gray-500 hover:text-gray-700"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
               {/* Investment Tiers */}
               <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">
-                  Investment Tiers
-                </h3>
+                <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Investment Tiers
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Define custom tiers with different benefit levels
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={addTier}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-300"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Tier
+                  </Button>
+                </div>
 
                 <div className="space-y-4">
-                  {formData.investment_tiers.map((tier, index) => (
-                    <div
-                      key={index}
-                      className="p-4 border rounded-lg bg-gray-50 relative"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        {(!isFunded && !isActive) ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="text"
-                              value={tier.name}
-                              onChange={e => {
-                                const tiers = [...formData.investment_tiers];
-                                tiers[index].name = e.target.value;
-                                setFormData({ ...formData, investment_tiers: tiers });
-                              }}
-                              className="w-20 border-gray-300 focus:border-black focus:ring-black text-base font-semibold px-2 py-1"
-                            />
-                            <span className="font-semibold">Tier</span>
-                          </div>
-                        ) : (
-                          <h4 className="font-semibold">{tier.name} Tier</h4>
-                        )}
-                        {formData.investment_tiers.length > 1 && !isFunded && !isActive && (
+                  {formData.investment_tiers.length === 0 ? (
+                    <div className="text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+                      <p className="text-gray-500">
+                        No tiers defined. Add a tier to get started.
+                      </p>
+                    </div>
+                  ) : (
+                    formData.investment_tiers.map((tier, index) => (
+                      <div
+                        key={index}
+                        className="p-4 border rounded-lg bg-gray-50 relative"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="font-semibold text-gray-800">
+                            Tier {index + 1}
+                          </h4>
                           <Button
                             type="button"
                             variant="ghost"
-                            size="icon"
-                            className="ml-2 h-8 w-8 p-0 rounded-full hover:bg-red-100 hover:text-red-600"
-                            onClick={() => {
-                              const tiers = formData.investment_tiers.filter((_, i) => i !== index);
-                              setFormData({ ...formData, investment_tiers: tiers });
-                            }}
-                            title="Remove tier"
+                            size="sm"
+                            onClick={() => removeTier(index)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
                           >
-                            <Trash2 className="h-5 w-5" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        )}
+                        </div>
+                        <div className="space-y-3">
+                          <div className="space-y-2">
+                            <Label className="text-sm">Tier Name</Label>
+                            <Input
+                              type="text"
+                              value={tier.name}
+                              onChange={(e) =>
+                                handleTierChange(index, "name", e.target.value)
+                              }
+                              placeholder="e.g., Starter, Premium, Elite"
+                              className="border-gray-300"
+                            />
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm">Min Amount (£)</Label>
+                              <Input
+                                type="number"
+                                value={tier.minAmount}
+                                onChange={(e) =>
+                                  handleTierChange(
+                                    index,
+                                    "minAmount",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="1000"
+                                className="border-gray-300"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">Max Amount (£)</Label>
+                              <Input
+                                type="number"
+                                value={tier.maxAmount}
+                                onChange={(e) =>
+                                  handleTierChange(
+                                    index,
+                                    "maxAmount",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="5000"
+                                className="border-gray-300"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-sm">Multiplier</Label>
+                              <Input
+                                type="number"
+                                step="0.1"
+                                value={tier.multiplier}
+                                onChange={(e) =>
+                                  handleTierChange(
+                                    index,
+                                    "multiplier",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="1.0"
+                                className="border-gray-300"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2">
-                          <Label>Min Amount (£)</Label>
-                          <Input
-                            type="number"
-                            value={tier.minAmount}
-                            onChange={(e) =>
-                              handleTierChange(
-                                index,
-                                "minAmount",
-                                e.target.value
-                              )
-                            }
-                            placeholder="1000"
-                            disabled={isFunded || isActive}
-                            readOnly={isFunded || isActive}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Max Amount (£)</Label>
-                          <Input
-                            type="number"
-                            value={tier.maxAmount}
-                            onChange={(e) =>
-                              handleTierChange(
-                                index,
-                                "maxAmount",
-                                e.target.value
-                              )
-                            }
-                            placeholder="5000"
-                            disabled={isFunded || isActive}
-                            readOnly={isFunded || isActive}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Multiplier</Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={tier.multiplier}
-                            onChange={(e) =>
-                              handleTierChange(
-                                index,
-                                "multiplier",
-                                e.target.value
-                              )
-                            }
-                            placeholder="1.0"
-                            disabled={isFunded || isActive}
-                            readOnly={isFunded || isActive}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -690,10 +831,14 @@ export function EditPitchDialog({
 
                 <div className="space-y-4">
                   {/* Upload Section */}
-                  <div className={
-                    `border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors relative` +
-                    ((isFunded || isActive) ? ' bg-gray-100 opacity-70 pointer-events-none' : '')
-                  }>
+                  <div
+                    className={
+                      `border-2 border-dashed border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors relative` +
+                      (isFunded || isActive
+                        ? " bg-gray-100 opacity-70 pointer-events-none"
+                        : "")
+                    }
+                  >
                     {(isFunded || isActive) && (
                       <div className="absolute inset-0 bg-gray-100 opacity-60 z-10 rounded-lg" />
                     )}
@@ -716,7 +861,9 @@ export function EditPitchDialog({
                           <label htmlFor="media-upload">
                             <Button
                               type="button"
-                              disabled={isUploadingMedia || isFunded || isActive}
+                              disabled={
+                                isUploadingMedia || isFunded || isActive
+                              }
                               className="cursor-pointer"
                               asChild
                             >
@@ -742,9 +889,14 @@ export function EditPitchDialog({
 
                   {/* Media Grid */}
                   {supportingMedia.length > 0 && (
-                    <div className={
-                      `space-y-4 relative` + ((isFunded || isActive) ? ' bg-gray-100 opacity-70 pointer-events-none rounded-lg' : '')
-                    }>
+                    <div
+                      className={
+                        `space-y-4 relative` +
+                        (isFunded || isActive
+                          ? " bg-gray-100 opacity-70 pointer-events-none rounded-lg"
+                          : "")
+                      }
+                    >
                       {(isFunded || isActive) && (
                         <div className="absolute inset-0 bg-gray-100 opacity-60 z-10 rounded-lg" />
                       )}
@@ -806,26 +958,27 @@ export function EditPitchDialog({
           </Tabs>
 
           <div className="flex items-center justify-between gap-3 pt-6 border-t border-gray-200">
-            {onDelete && (formData.status === "draft" || formData.status === "closed") && (
-              <Button
-                variant="outline"
-                onClick={handleDeleteClick}
-                disabled={isUpdating || isDeleting}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Pitch
-                  </>
-                )}
-              </Button>
-            )}
+            {onDelete &&
+              (formData.status === "draft" || formData.status === "closed") && (
+                <Button
+                  variant="outline"
+                  onClick={handleDeleteClick}
+                  disabled={isUpdating || isDeleting}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Pitch
+                    </>
+                  )}
+                </Button>
+              )}
 
             {/* Right Side Buttons */}
             <div className="flex gap-3">
