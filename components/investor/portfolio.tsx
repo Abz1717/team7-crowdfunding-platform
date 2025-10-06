@@ -180,7 +180,10 @@ export function Portfolio() {
       },
       pitch: g.pitch,
       investmentReturns: g.investmentReturns,
-      roi: g.totalAmount > 0 ? (g.investmentReturns / g.totalAmount) * 100 : 0,
+      roi:
+        g.totalAmount > 0
+          ? ((g.investmentReturns - g.totalAmount) / g.totalAmount) * 100
+          : 0,
       totalShares: g.totalShares,
     }));
   } else {
