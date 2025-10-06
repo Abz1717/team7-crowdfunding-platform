@@ -187,30 +187,8 @@ useEffect(() => {
 }, [user, investments])
 
   
-  const handleWithdraw = async (amount: number) => {
-    if (!user || amount > accountBalance) return
-
-    setIsWithdrawing(true)
-
-    const newBalance = accountBalance - amount
-
-    setTimeout(async () => {
-      const success = await updateAccountBalance(user.id, newBalance)
-      if (success) {
-        setAccountBalance(newBalance)
-        toast({
-          title: "Withdrawal successful",
-          description: `$${amount.toLocaleString()} has been transferred to your bank account`,
-        })
-      } else {
-        toast({
-          title: "Withdrawal failed",
-          description: "Could not update your account balance.",
-          variant: "destructive",
-        })
-      }
-      setIsWithdrawing(false)
-    }, 1500)
+  const handleWithdraw = () => {
+    window.location.href = "/investor/settings?tab=billing";
   }
 
   const [profitPayouts, setProfitPayouts] = useState<{
@@ -308,13 +286,12 @@ useEffect(() => {
             <div className="text-2xl font-bold">${accountBalance.toLocaleString()}</div>
             <div className="flex gap-2 mt-2">
                 <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleWithdraw(15)}
-                disabled={isWithdrawing || accountBalance < 15}
-              >
-                {isWithdrawing ? "Processing..." : "Withdraw $15"}
-              </Button>
+                  size="sm"
+                  variant="outline"
+                  onClick={handleWithdraw}
+                >
+                  Withdraw
+                </Button>
               
             </div>
           </CardContent>
