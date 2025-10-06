@@ -187,19 +187,26 @@ export function InvestorProvider({ children }: InvestorProviderProps) {
     if (!user) return;
 
     try {
-      const [
-        investments,
-        accountBalance,
-        totalInvested,
-        totalReturns,
-        overallROI,
-      ] = await Promise.all([
+      const [investments, accountBalance, totalReturns] = await Promise.all([
         getInvestmentsByInvestorId(user.id),
         getAccountBalance(user.id),
-        getTotalInvested(user.id),
         getTotalReturns(user.id),
-        getOverallROI(user.id),
       ]);
+
+      // Calculate total invested excluding refunded investments (like original code)
+      const totalInvested = investments.reduce((sum, inv) => {
+        if (inv.refunded) {
+          return sum;
+        } else {
+          return sum + (inv.investment_amount || 0);
+        }
+      }, 0);
+
+      // Calculate overall ROI as ((returns - invested) / invested) * 100 (like original code)
+      const overallROI =
+        totalInvested > 0
+          ? ((totalReturns - totalInvested) / totalInvested) * 100
+          : 0;
 
       dispatch({ type: "SET_INVESTMENTS", payload: investments });
       dispatch({ type: "SET_ACCOUNT_BALANCE", payload: accountBalance });
@@ -223,13 +230,14 @@ export function InvestorProvider({ children }: InvestorProviderProps) {
                 inv.investor_id === investment.investor_id
             );
 
-            // Sum effective shares for this investor in this pitch
-            const totalEffectiveShare = allMyInvestments.reduce(
-              (sum, inv) =>
-                sum +
-                (typeof inv.effective_share === "number"
-                  ? inv.effective_share
-                  : 0),
+            // Calculate shares using investment_amount * tier.multiplier (like original code)
+            const getShares = (inv: Investment) =>
+              inv.investment_amount && inv.tier?.multiplier
+                ? inv.investment_amount * inv.tier.multiplier
+                : 0;
+
+            const totalShares = allMyInvestments.reduce(
+              (sum, inv) => sum + getShares(inv),
               0
             );
 
@@ -243,18 +251,15 @@ export function InvestorProvider({ children }: InvestorProviderProps) {
               });
             }
 
-            // Proportional payout for this investment
-            const thisShare =
-              typeof investment.effective_share === "number"
-                ? investment.effective_share
-                : 0;
+            // Proportional payout for this investment (like original code)
+            const thisShare = getShares(investment);
             const investmentReturns =
-              totalEffectiveShare > 0
-                ? totalPayout * (thisShare / totalEffectiveShare)
-                : 0;
+              totalShares > 0 ? totalPayout * (thisShare / totalShares) : 0;
             const roi =
               investment.investment_amount > 0
-                ? (investmentReturns / investment.investment_amount) * 100
+                ? ((investmentReturns - investment.investment_amount) /
+                    investment.investment_amount) *
+                  100
                 : 0;
 
             return { investment, pitch, investmentReturns, roi };

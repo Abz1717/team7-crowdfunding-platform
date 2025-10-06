@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { previewProfitDistribution, declareProfits } from "@/lib/action";
-import type { Pitch } from "@/lib/types";
+import type { Pitch } from "@/lib/types/pitch";
 import { useBusiness } from "@/context/BusinessContext";
 import {
   DollarSign,

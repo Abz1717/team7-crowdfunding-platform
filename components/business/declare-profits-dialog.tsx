@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ProfitDeclarationForm } from "@/components/business/profit-declaration-form";
-import type { Pitch } from "@/lib/types";
+import type { Pitch } from "@/lib/types/pitch";
 import { useBusiness } from "@/context/BusinessContext";
 
 interface DeclareProfitsDialogProps {

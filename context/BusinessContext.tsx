@@ -16,7 +16,8 @@ import {
   getInvestmentsByPitchId,
   getProfitDistributionsByPitchId,
 } from "@/lib/data";
-import type { Pitch, Investment, ProfitDistribution } from "@/lib/types";
+import type { Pitch } from "@/lib/types/pitch";
+import type { Investment, ProfitDistribution } from "@/lib/types";
 import type { User as UserType, BusinessUser } from "@/lib/types/user";
 import type { Transaction } from "@/lib/types/transaction";
 import {

@@ -35,7 +35,6 @@ function TierBadge({
 }
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
-import { updateAccountBalance } from "@/lib/data";
 import type { Investment } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
@@ -49,7 +48,6 @@ import {
   PieChart,
   Target,
 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 import { useInvestor } from "@/context/InvestorContext";
 
 function formatDate(date: string | Date): string {
@@ -204,32 +202,8 @@ export function Portfolio() {
   // Removed the useEffect that was fetching data - now using cached data from context
   // Removed the useEffect that was fetching data - now using cached data from context
 
-  const handleWithdraw = async (amount: number) => {
-    if (!user || amount > accountBalance) return;
-
-    setIsWithdrawing(true);
-
-    const newBalance = accountBalance - amount;
-
-    setTimeout(async () => {
-      const success = await updateAccountBalance(user.id, newBalance);
-      if (success) {
-        setAccountBalance(newBalance);
-        // Refresh portfolio data from context to get updated balance
-        await refreshPortfolio();
-        toast({
-          title: "Withdrawal successful",
-          description: `$${amount.toLocaleString()} has been transferred to your bank account`,
-        });
-      } else {
-        toast({
-          title: "Withdrawal failed",
-          description: "Could not update your account balance.",
-          variant: "destructive",
-        });
-      }
-      setIsWithdrawing(false);
-    }, 1500);
+  const handleWithdraw = () => {
+    window.location.href = "/investor/settings?tab=billing";
   };
 
   // Use cached profit payouts instead of fetching
@@ -281,13 +255,8 @@ export function Portfolio() {
               ${accountBalance.toLocaleString()}
             </div>
             <div className="flex gap-2 mt-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => handleWithdraw(15)}
-                disabled={isWithdrawing || accountBalance < 15}
-              >
-                {isWithdrawing ? "Processing..." : "Withdraw $15"}
+              <Button size="sm" variant="outline" onClick={handleWithdraw}>
+                Withdraw
               </Button>
             </div>
           </CardContent>
@@ -330,9 +299,9 @@ export function Portfolio() {
           <CardContent>
             <div className="text-2xl font-bold">
               <span
-                className={overallROI >= 0 ? "text-green-600" : "text-red-600"}
+                className={overallROI < 0 ? "text-red-600" : "text-green-600"}
               >
-                {overallROI >= 0 ? "+" : ""}
+                {overallROI > 0 ? "+" : ""}
                 {overallROI.toFixed(1)}%
               </span>
             </div>
@@ -346,13 +315,102 @@ export function Portfolio() {
       {/* Investment List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
-            My Investments
-          </CardTitle>
-          <CardDescription>
-            Track your investments and their performance over time
-          </CardDescription>
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                My Investments
+              </CardTitle>
+              <CardDescription>
+                Track your investments and their performance over time
+              </CardDescription>
+            </div>
+
+            <div className="flex gap-6 items-center">
+              <div className="flex flex-col items-start">
+                <span className="text-xs font-medium text-muted-foreground mb-1">
+                  Group By
+                </span>
+                <div className="flex rounded-md bg-muted/40 p-1 border border-muted-foreground/10">
+                  <Button
+                    size="sm"
+                    variant={groupBy === "combined" ? "secondary" : "outline"}
+                    className={`rounded-l-md rounded-r-none font-normal px-3 py-1 text-xs border-none shadow-none ${
+                      groupBy === "combined"
+                        ? "bg-black text-white !hover:bg-black !hover:text-white"
+                        : ""
+                    }`}
+                    onClick={() => setGroupBy("combined")}
+                    style={
+                      groupBy === "combined" ? { pointerEvents: "none" } : {}
+                    }
+                  >
+                    Combined by Pitch
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={groupBy === "all" ? "secondary" : "outline"}
+                    className={`rounded-r-md rounded-l-none font-normal px-3 py-1 text-xs border-none shadow-none ${
+                      groupBy === "all"
+                        ? "bg-black text-white !hover:bg-black !hover:text-white"
+                        : ""
+                    }`}
+                    onClick={() => setGroupBy("all")}
+                    style={groupBy === "all" ? { pointerEvents: "none" } : {}}
+                  >
+                    Show All Investments
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-start">
+                <span className="text-xs font-medium text-muted-foreground mb-1">
+                  Status
+                </span>
+                <div className="flex rounded-md bg-muted/40 p-1 border border-muted-foreground/10">
+                  <Button
+                    size="sm"
+                    variant={status === "active" ? "secondary" : "outline"}
+                    className={`rounded-l-md font-normal px-3 py-1 text-xs border-none shadow-none ${
+                      status === "active"
+                        ? "bg-black text-white !hover:bg-black !hover:text-white"
+                        : ""
+                    }`}
+                    onClick={() => setStatus("active")}
+                    style={status === "active" ? { pointerEvents: "none" } : {}}
+                  >
+                    Active
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={status === "funded" ? "secondary" : "outline"}
+                    className={`font-normal px-3 py-1 text-xs border-none shadow-none ${
+                      status === "funded"
+                        ? "bg-black text-white !hover:bg-black !hover:text-white"
+                        : ""
+                    }`}
+                    onClick={() => setStatus("funded")}
+                    style={status === "funded" ? { pointerEvents: "none" } : {}}
+                  >
+                    Funded
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={status === "closed" ? "secondary" : "outline"}
+                    className={`rounded-r-md font-normal px-3 py-1 text-xs border-none shadow-none ${
+                      status === "closed"
+                        ? "bg-black text-white !hover:bg-black !hover:text-white"
+                        : ""
+                    }`}
+                    onClick={() => setStatus("closed")}
+                    style={status === "closed" ? { pointerEvents: "none" } : {}}
+                  >
+                    Closed/Refunded
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </CardHeader>
 
         <CardContent>
@@ -372,77 +430,178 @@ export function Portfolio() {
           ) : (
             <>
               <div className="space-y-4">
-                {pagedInvestments.map(
-                  ({ investment, pitch, investmentReturns, roi }) => {
-                    if (!pitch) return null;
+                {pagedInvestments.map((item) => {
+                  const {
+                    investment,
+                    pitch,
+                    investmentReturns,
+                    roi,
+                    totalShares,
+                  } = item;
+                  if (!pitch) return null;
+                  const isRefunded = investment.refunded === true;
 
-                    return (
-                      <Card key={investment.id} className="bg-muted/30">
-                        <CardContent className="pt-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div>
-                              <h4 className="font-semibold text-lg">
-                                {pitch.title}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {pitch.elevator_pitch}
-                              </p>
-                            </div>
-                            <TierBadge tier={investment.tier.name} />
+                  // total
+                  const shares =
+                    typeof totalShares === "number"
+                      ? totalShares
+                      : investment.investment_amount &&
+                        investment.tier?.multiplier
+                      ? investment.investment_amount *
+                        investment.tier.multiplier
+                      : undefined;
+
+                  // group display
+                  let showMultipleTier = false;
+                  let showMultipleMultiplier = false;
+                  let tierDisplay = investment.tier?.name;
+                  let multiplierDisplay = investment.tier?.multiplier;
+                  let dateDisplay = investment.invested_at;
+                  let dateText = null;
+                  if (groupBy === "combined") {
+                    // all unique
+                    const pitchId = pitch.id;
+                    const allTiers = filteredInvestments
+                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .map(({ investment }) => investment.tier?.name)
+                      .filter(Boolean);
+                    const allMultipliers = filteredInvestments
+                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .map(({ investment }) => investment.tier?.multiplier)
+                      .filter((m) => m !== undefined);
+                    const allDates = filteredInvestments
+                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .map(({ investment }) => investment.invested_at)
+                      .filter(Boolean)
+                      .map((d) => new Date(d));
+                    const uniqueTiers = Array.from(new Set(allTiers));
+                    const uniqueMultipliers = Array.from(
+                      new Set(allMultipliers)
+                    );
+                    if (uniqueTiers.length > 1) showMultipleTier = true;
+                    if (uniqueMultipliers.length > 1)
+                      showMultipleMultiplier = true;
+                    if (allDates.length > 1) {
+                      allDates.sort((a, b) => a.getTime() - b.getTime());
+                      const first = allDates[0];
+                      const last = allDates[allDates.length - 1];
+                      // Compare only Y/M/D, not time
+                      const sameDay =
+                        first.getFullYear() === last.getFullYear() &&
+                        first.getMonth() === last.getMonth() &&
+                        first.getDate() === last.getDate();
+                      if (sameDay) {
+                        dateText = formatDate(first);
+                      } else {
+                        dateText = `${formatDate(first)} - ${formatDate(last)}`;
+                      }
+                    } else if (allDates.length === 1) {
+                      dateText = formatDate(allDates[0]);
+                    }
+                  }
+
+                  return (
+                    <Card
+                      key={investment.id}
+                      className={
+                        isRefunded
+                          ? "relative border-blue-200 shadow-md overflow-hidden"
+                          : "bg-muted/30"
+                      }
+                    >
+                      <CardContent className={isRefunded ? "pt-6" : "pt-6"}>
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h4 className="font-semibold text-lg">
+                              {pitch.title}
+                            </h4>
+                            <p className="text-sm text-muted-foreground">
+                              {pitch.elevator_pitch}
+                            </p>
                           </div>
-                          <div className="grid md:grid-cols-5 gap-4">
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                Investment Amount
-                              </div>
-                              <div className="font-semibold">
-                                ${investment.investment_amount.toLocaleString()}
-                              </div>
+
+                          {groupBy === "combined" && showMultipleTier ? (
+                            <Badge className="bg-white text-black border-2 font-semibold">
+                              Multiple Tiers
+                            </Badge>
+                          ) : (
+                            <TierBadge tier={tierDisplay || ""} />
+                          )}
+                        </div>
+                        <div className="grid md:grid-cols-5 gap-4">
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Investment Amount
                             </div>
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                Tier & Multiplier
-                              </div>
-                              <div className="font-semibold">
-                                {investment.tier.name} (
-                                {investment.tier.multiplier}x)
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                Investment Date
-                              </div>
-                              <div className="font-semibold">
-                                {formatDate(investment.invested_at)}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                Returns Received
-                              </div>
-                              <div className="font-semibold text-green-600">
-                                ${investmentReturns.toLocaleString()}
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-sm text-muted-foreground">
-                                Profit Share
-                              </div>
-                              <div className="font-semibold">
-                                {typeof investment.effective_share === "number"
-                                  ? `${investment.effective_share.toFixed(2)}%`
-                                  : "N/A"}
-                              </div>
+                            <div className="font-semibold">
+                              ${investment.investment_amount.toLocaleString()}
                             </div>
                           </div>
-                          <div className="mt-4 pt-4 border-t">
-                            <div className="flex items-center justify-between">
-                              <div className="text-sm text-muted-foreground">
-                                Pitch Status:{" "}
-                                <Badge variant="default" className="ml-1">
-                                  {pitch.status}
-                                </Badge>
-                              </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Tier & Multiplier
+                            </div>
+                            <div className="font-semibold">
+                              {groupBy === "combined" &&
+                              (showMultipleTier || showMultipleMultiplier)
+                                ? "Multiple"
+                                : `${tierDisplay || ""} (${
+                                    typeof multiplierDisplay === "number"
+                                      ? multiplierDisplay
+                                      : ""
+                                  }x)`}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Investment Date
+                            </div>
+                            <div className="font-semibold">
+                              {groupBy === "combined" && dateText
+                                ? dateText
+                                : formatDate(investment.invested_at)}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Returns Received
+                            </div>
+                            <div className="font-semibold text-green-600">
+                              ${investmentReturns.toLocaleString()}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-sm text-muted-foreground">
+                              Your Shares
+                            </div>
+                            <div className="font-semibold">
+                              {typeof shares === "number"
+                                ? shares.toLocaleString()
+                                : "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t relative">
+                          <div className="flex items-center justify-between">
+                            <div
+                              className={
+                                isRefunded
+                                  ? "relative z-40 text-sm text-muted-foreground pointer-events-auto"
+                                  : "text-sm text-muted-foreground"
+                              }
+                            >
+                              Pitch Status:{" "}
+                              <Badge variant="default" className="ml-1">
+                                {pitch.status}
+                              </Badge>
+                            </div>
+                            <div
+                              className={
+                                isRefunded
+                                  ? "relative z-40 pointer-events-auto"
+                                  : ""
+                              }
+                            >
                               <Link href={`/investor/pitch/${pitch?.id}`}>
                                 <Button variant="outline" size="sm">
                                   View Pitch Details
@@ -451,11 +610,36 @@ export function Portfolio() {
                               </Link>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  }
-                )}
+                        </div>
+                        {isRefunded && (
+                          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+                            <div className="absolute inset-0 rounded-xl bg-white/80 backdrop-blur-sm pointer-events-auto" />
+                            <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 py-4">
+                              <span className="text-green-600 text-xl font-bold mb-1">
+                                Refunded
+                              </span>
+                              <span className="text-gray-800 text-base mb-1">
+                                Investment in{" "}
+                                <span className="font-semibold">
+                                  {pitch.title}
+                                </span>{" "}
+                                refunded.
+                              </span>
+                              <span className="text-gray-600 text-sm mb-1">
+                                Business closed the pitch.
+                              </span>
+                              <span className="text-green-600 text-base font-semibold">
+                                +$
+                                {investment.refunded_amount?.toLocaleString?.() ??
+                                  investment.investment_amount?.toLocaleString?.()}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
 
               {totalPages > 1 && (

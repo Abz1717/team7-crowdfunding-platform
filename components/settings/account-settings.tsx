@@ -50,6 +50,7 @@ import { useAuth } from "@/lib/auth";
 
 export function AccountSettings() {
   const { user: authUser } = useAuth();
+  const searchParams = useSearchParams();
 
   // Use safe versions that don't throw errors
   const investorContext = useInvestorSafe();
@@ -86,7 +87,10 @@ export function AccountSettings() {
 
   useEffect(() => {
     const tab = searchParams?.get("tab");
-    if (tab && ["profile","security","notifications","billing","data"].includes(tab)) {
+    if (
+      tab &&
+      ["profile", "security", "notifications", "billing", "data"].includes(tab)
+    ) {
       setActiveSection(tab);
     }
   }, [searchParams]);

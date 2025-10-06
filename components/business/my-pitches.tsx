@@ -10,7 +10,7 @@ import { PitchCard } from "@/components/business/pitch-card";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
 import { useBusiness } from "@/context/BusinessContext";
 import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
-import type { Pitch } from "@/lib/types";
+import type { Pitch } from "@/lib/types/pitch";
 import { toast } from "sonner";
 import { DeclareProfitsDialog } from "@/components/business/declare-profits-dialog";
 

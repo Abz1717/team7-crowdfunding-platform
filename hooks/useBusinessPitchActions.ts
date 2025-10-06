@@ -45,6 +45,8 @@ export function useBusinessPitchActions() {
           detailed_pitch: formData.detailedPitch,
           target_amount: targetAmount,
           profit_share: profitShare,
+          profit_distribution_frequency: formData.profitDistributionFrequency,
+          tags: formData.tags,
           end_date: formData.endDate.toISOString(),
           investment_tiers: formData.tiers,
           ai_analysis: aiAnalysis,

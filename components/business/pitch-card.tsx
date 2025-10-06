@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import type { Pitch } from "@/lib/types";
+import type { Pitch } from "@/lib/types/pitch";
 
 interface PitchCardProps {
   pitch: Pitch;

@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Pitch } from "@/lib/types";
+import type { Pitch } from "@/lib/types/pitch";
 import Link from "next/link";
 import {
   Search,
@@ -38,9 +38,7 @@ export default function BusinessOtherPitches() {
   const router = useRouter();
   const { otherPitches: cachedPitches } = useBusiness();
 
-  const [pitches, setPitches] = useState<
-    (Pitch & { created_at: Date; end_date: Date })[]
-  >([]);
+  const [pitches, setPitches] = useState<Pitch[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterBy, setFilterBy] = useState("all");
@@ -53,14 +51,7 @@ export default function BusinessOtherPitches() {
 
   useEffect(() => {
     // Use cached pitches from BusinessContext
-    const pitchesWithDates = cachedPitches.map((pitch) => ({
-      ...pitch,
-      created_at: new Date(pitch.created_at),
-      end_date: new Date(pitch.end_date),
-    }));
-    setPitches(
-      pitchesWithDates as (Pitch & { created_at: Date; end_date: Date })[]
-    );
+    setPitches(cachedPitches);
   }, [cachedPitches]);
 
   if (isLoading) {
@@ -93,7 +84,9 @@ export default function BusinessOtherPitches() {
     .sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return b.created_at.getTime() - a.created_at.getTime();
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         case "funding-progress":
           return (
             b.current_amount / b.target_amount -
@@ -108,17 +101,19 @@ export default function BusinessOtherPitches() {
       }
     });
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string | Date) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
-    }).format(date);
+    }).format(dateObj);
   };
 
-  const getDaysLeft = (endDate: Date) => {
+  const getDaysLeft = (endDate: string | Date) => {
+    const dateObj = typeof endDate === "string" ? new Date(endDate) : endDate;
     const daysLeft = Math.ceil(
-      (endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+      (dateObj.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
     );
     return Math.max(0, daysLeft);
   };
