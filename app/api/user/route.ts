@@ -12,7 +12,17 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      const debugCookies = request.headers.get('cookie');
+      console.error('[API /api/user] Not authenticated', {
+        authError,
+        user,
+        cookies: debugCookies,
+      });
+      return NextResponse.json({
+        error: "Not authenticated",
+        authError: authError?.message || null,
+        cookies: debugCookies || null,
+      }, { status: 401 });
     }
 
     // Get user details from database
@@ -39,7 +49,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error in user API route:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: String(error) },
       { status: 500 }
     );
   }

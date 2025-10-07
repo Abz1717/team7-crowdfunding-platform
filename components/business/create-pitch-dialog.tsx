@@ -147,8 +147,8 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       if (isNaN(prevMax) || min <= prevMax)
         return "Min must be greater than previous tier's Max (no overlap).";
       const prevMult = Number(formData.tiers[index - 1].multiplier);
-      if (!isNaN(prevMult) && mult < prevMult)
-        return "Multiplier must be greater than or equal to previous tier's multiplier.";
+      if (!isNaN(prevMult) && mult <= prevMult)
+        return "Multiplier must be strictly greater than previous tier's multiplier.";
     }
     if (index === formData.tiers.length - 1 && formData.targetAmount !== "") {
       const target = Number(formData.targetAmount);
@@ -190,16 +190,20 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
         const tiers = formData.tiers;
         for (let i = 0; i < tiers.length; i++) {
           const t = tiers[i];
+          if (t.name.trim() === "") return false;
           if (t.minAmount === "" || t.maxAmount === "" || t.multiplier === "")
             return false;
           const min = Number(t.minAmount);
           const max = Number(t.maxAmount);
-          if (isNaN(min) || isNaN(max)) return false;
+          const mult = Number(t.multiplier);
+          if (isNaN(min) || isNaN(max) || isNaN(mult)) return false;
           if (min <= 0 || max <= 0) return false;
           if (min > max) return false;
           if (i > 0) {
             const prevMax = Number(tiers[i - 1].maxAmount);
             if (isNaN(prevMax) || min <= prevMax) return false;
+            const prevMult = Number(tiers[i - 1].multiplier);
+            if (!isNaN(prevMult) && mult <= prevMult) return false;
           }
         }
         return true;
@@ -928,6 +932,9 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                                 placeholder="e.g., Starter, Premium, Elite"
                                 className="border-gray-300 focus:border-black focus:ring-black"
                               />
+                              {tier.name.trim() === "" && (
+                                <p className="text-xs text-red-600 mt-1">Tier name is required.</p>
+                              )}
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="space-y-2">
@@ -986,6 +993,11 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                                 />
                               </div>
                             </div>
+                            {getTierValidationError(index) && (
+                              <div className="text-xs text-red-600 mt-2">
+                                {getTierValidationError(index)}
+                              </div>
+                            )}
                           </CardContent>
                         </Card>
                       ))}

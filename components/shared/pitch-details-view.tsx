@@ -25,6 +25,7 @@ import {
   Target,
 } from "lucide-react";
 import Link from "next/link";
+import { LinkWithLoader } from "@/components/link-with-loader";
 import Image from "next/image";
 import React from "react";
 
@@ -62,11 +63,7 @@ export function PitchDetailsView({
   }, [user, isLoading, pitchId]);
 
   if (isLoading || user === undefined || user === null || isPitchLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
+    return null;
   }
 
   if (!pitch) {
@@ -104,12 +101,12 @@ export function PitchDetailsView({
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-6">
-        <Link href={backHref}>
+        <LinkWithLoader href={backHref}>
           <Button variant="outline" size="sm">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Opportunities
           </Button>
-        </Link>
+        </LinkWithLoader>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">

@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Portfolio } from "@/components/investor/portfolio";
+import LoadingScreen from "@/components/loading-screen";
 
 export default function PortfolioPage() {
   const { user, isLoading } = useAuth();
@@ -16,11 +17,7 @@ export default function PortfolioPage() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!user || user.role !== "investor") {

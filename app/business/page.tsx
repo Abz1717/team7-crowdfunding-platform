@@ -1,27 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, ArrowDownLeft, Calendar } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth";
-import { useBusiness } from "@/context/BusinessContext";
+import {
+  useMyPitches,
+  useBusinessAccountBalance,
+  useProfitDistributions
+} from "@/hooks/useBusinessData";
+import LoadingScreen from "@/components/loading-screen";
 import { InvestorList } from "@/components/business/investor-list";
 
 export default function BusinessDashboardPage() {
+
   const { user } = useAuth();
-  const { myPitches, accountBalance, profitDistributions, loading } =
-    useBusiness();
+  const { data: myPitchesData, isLoading: loadingPitches } = useMyPitches();
+  const { data: accountBalance, isLoading: loadingBalance } = useBusinessAccountBalance();
+  const { data: profitDistributions, isLoading: loadingDistributions } = useProfitDistributions();
+
+  // Debug logging for account balance
+  if (typeof window !== "undefined") {
+    // eslint-disable-next-line no-console
+    console.log("[Dashboard] accountBalance:", accountBalance, "loadingBalance:", loadingBalance);
+  }
+  const myPitches = useMemo(() => myPitchesData?.pitches || [], [myPitchesData]);
   const [fundingActivity, setFundingActivity] = useState<any[]>([]);
+  const loading = loadingPitches || loadingBalance || loadingDistributions;
 
   useEffect(() => {
-    // Use cached pitches from BusinessContext
+    if (!myPitches) return;
     const releasedPitches = myPitches.filter(
       (p: any) => p.funds_released || p.released_at
     );
-
     const activity = releasedPitches.map((pitch: any) => ({
       id: pitch.id,
       title: pitch.title,
@@ -40,11 +54,10 @@ export default function BusinessDashboardPage() {
   }, [myPitches]);
 
   // Transform cached profit distributions into the format needed for display
-  const transformedProfitDistributions = profitDistributions
+  const transformedProfitDistributions = (profitDistributions || [])
     .flatMap((pitchDist) => {
       const pitch = myPitches.find((p) => p.id === pitchDist.pitchId);
       if (!pitch) return [];
-
       return pitchDist.distributions.map((dist) => ({
         pitchTitle: pitch.title,
         pitchId: pitch.id,
@@ -104,13 +117,18 @@ export default function BusinessDashboardPage() {
           <CardTitle>Account Balance</CardTitle>
         </CardHeader>
         <CardContent>
-          <span className="text-2xl font-bold text-green-600">
-            $
-            {accountBalance.toLocaleString(undefined, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
-          </span>
+          {loadingBalance ? (
+            <LoadingScreen />
+          ) : typeof accountBalance === "number" ? (
+            <span className="text-2xl font-bold text-green-600">
+              ${accountBalance.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </span>
+          ) : (
+            <span className="text-red-500">--</span>
+          )}
         </CardContent>
       </Card>
 
@@ -167,7 +185,7 @@ export default function BusinessDashboardPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div>Loading profit distributions...</div>
+            <LoadingScreen />
           ) : transformedProfitDistributions.length === 0 ? (
             <div>No profit distributions found.</div>
           ) : (

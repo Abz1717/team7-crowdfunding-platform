@@ -28,46 +28,40 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import React from "react";
-import { useInvestor } from "@/context/InvestorContext";
+import LoadingScreen from "@/components/loading-screen";
+import { useInvestorPortfolio } from "@/hooks/useInvestorData";
 
-export default function PitchDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+
+export default function PitchDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const [isPageLoading, setIsPageLoading] = useState(false);
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { refreshPortfolio, refreshPitches } = useInvestor();
   const [pitch, setPitch] = useState<Pitch | null>(null);
   const [isPitchLoading, setIsPitchLoading] = useState(false);
+
   const resolvedParams = React.use(params);
 
-  const fetchPitch = async () => {
-    setIsPitchLoading(true);
-    if (!isLoading && !user) {
-      router.push("/signin");
-      setPitch(null);
-      setIsPitchLoading(false);
-      return;
-    }
-    setIsPitchLoading(true);
-    const foundPitch = await getPitchById(resolvedParams.id);
-    setPitch(foundPitch);
-    setIsPitchLoading(false);
-  };
+  // swr to fetch pitch by id
   useEffect(() => {
+    const fetchPitch = async () => {
+      setIsPitchLoading(true);
+      if (!isLoading && !user) {
+        router.push("/signin");
+        setPitch(null);
+        setIsPitchLoading(false);
+        return;
+      }
+      const foundPitch = await getPitchById(resolvedParams.id);
+      setPitch(foundPitch);
+      setIsPitchLoading(false);
+    };
     fetchPitch();
   }, [user, isLoading, resolvedParams.id]);
 
+  const { mutate: refreshPortfolio } = useInvestorPortfolio(user?.id);
+
   if (isPageLoading || isPitchLoading || isLoading) {
-    return (
-      <div className="container mx-auto py-8 px-4 max-w-6xl">
-        <div className="flex items-center justify-center min-h-[400px]">
-          Loading pitch details...
-        </div>
-      </div>
-    );
+      return <LoadingScreen />;
   }
 
   if (!user || !pitch) {
@@ -97,18 +91,21 @@ export default function PitchDetailPage({
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-6">
-        <Link
-          href={
-            user && user.role === "business"
-              ? "/business/other-pitches"
-              : "/investor/browse-pitches"
-          }
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setIsPageLoading(true);
+            router.push(
+              user && user.role === "business"
+                ? "/business/other-pitches"
+                : "/investor/browse-pitches"
+            );
+          }}
         >
-          <Button variant="outline" size="sm">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Opportunities
-          </Button>
-        </Link>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Opportunities
+        </Button>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
@@ -342,10 +339,11 @@ export default function PitchDetailPage({
               canInvest={canInvest}
               onInvestmentComplete={async () => {
                 setIsPageLoading(true);
-                await fetchPitch();
-                // Refresh context data after investment
+                // fetch pitch data
+                const foundPitch = await getPitchById(resolvedParams.id);
+                setPitch(foundPitch);
+                // refresh investor portfolio data
                 await refreshPortfolio();
-                await refreshPitches();
                 setIsPageLoading(false);
               }}
             />

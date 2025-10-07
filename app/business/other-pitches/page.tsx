@@ -2,8 +2,9 @@
 
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useBusiness } from "@/context/BusinessContext";
+import { useState, useEffect } from "react";
+import { useOtherPitches } from "@/hooks/useBusinessData";
+import { useBusinessUser } from "@/hooks/useBusinessUser";
 import {
   Card,
   CardContent,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import type { Pitch } from "@/lib/types/pitch";
 import Link from "next/link";
+import { LinkWithLoader } from "@/components/link-with-loader";
 import {
   Search,
   Filter,
@@ -33,40 +35,36 @@ import {
   Users,
 } from "lucide-react";
 
+
 export default function BusinessOtherPitches() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { otherPitches: cachedPitches } = useBusiness();
-
-  const [pitches, setPitches] = useState<Pitch[]>([]);
+  const { data: otherPitches, isLoading: loadingOtherPitches } = useOtherPitches();
+  const { businessUser } = useBusinessUser(user ?? undefined);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterBy, setFilterBy] = useState("all");
 
+
+  // Redirect if not a business user 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== "business")) {
       router.push("/signin");
     }
-  }, [user, isLoading, router]);
-
-  useEffect(() => {
-    // Use cached pitches from BusinessContext
-    setPitches(cachedPitches);
-  }, [cachedPitches]);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!user || user.role !== "business") {
+  }, [isLoading, user, router]);
+  if (!isLoading && (!user || user.role !== "business")) {
     return null;
   }
 
-  const filteredPitches = pitches
+
+
+  if (isLoading || loadingOtherPitches || !otherPitches) {
+    return null;
+  }
+
+
+
+  const filteredPitches = otherPitches
     .filter((pitch) => {
       const matchesSearch =
         pitch.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,7 +180,7 @@ export default function BusinessOtherPitches() {
 
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredPitches.length} of {pitches.length} active pitches
+            Showing {filteredPitches.length} of {otherPitches.length} active pitches
           </p>
         </div>
 
@@ -204,6 +202,7 @@ export default function BusinessOtherPitches() {
               const fundingProgress =
                 (pitch.current_amount / pitch.target_amount) * 100;
               const daysLeft = getDaysLeft(pitch.end_date);
+              const isMine = businessUser && pitch.business_id === businessUser.id;
 
               return (
                 <Card
@@ -220,9 +219,16 @@ export default function BusinessOtherPitches() {
                           {pitch.elevator_pitch}
                         </CardDescription>
                       </div>
-                      <Badge variant="default">
-                        {pitch.profit_share}% Shares
-                      </Badge>
+                      <div className="flex flex-col items-end ml-4">
+                        <Badge variant="default">
+                          {pitch.profit_share}% Shares
+                        </Badge>
+                        {isMine && (
+                          <span className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full font-semibold text-xs mt-2 align-middle shadow">
+                            My Pitch
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -295,9 +301,9 @@ export default function BusinessOtherPitches() {
                       </div>
                     </div>
 
-                    <Link href={`/business/other-pitches/${pitch.id}`}>
+                    <LinkWithLoader href={`/business/other-pitches/${pitch.id}`}>
                       <Button>View Details</Button>
-                    </Link>
+                    </LinkWithLoader>
                   </CardContent>
                 </Card>
               );

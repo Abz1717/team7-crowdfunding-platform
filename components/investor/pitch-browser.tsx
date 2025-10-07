@@ -31,32 +31,23 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useBusinessUser } from "@/hooks/useBusinessUser";
-import { useInvestor } from "@/context/InvestorContext";
+import { useInvestorPitches } from "@/hooks/useInvestorData";
 
 export function PitchBrowser() {
   const { user } = useAuth();
   const { businessUser } = useBusinessUser(user ?? undefined);
-  const { pitches: cachedPitches } = useInvestor();
-  const [pitches, setPitches] = useState<
-    (Pitch & { created_at: Date; end_date: Date })[]
-  >([]);
+  const { data: pitches = [] } = useInvestorPitches();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterBy, setFilterBy] = useState("all");
 
-  useEffect(() => {
-    // Use cached pitches from InvestorContext instead of fetching
-    const pitchesWithDates = cachedPitches.map((pitch) => ({
-      ...pitch,
-      created_at: new Date(pitch.created_at),
-      end_date: new Date(pitch.end_date),
-    }));
-    setPitches(
-      pitchesWithDates as (Pitch & { created_at: Date; end_date: Date })[]
-    );
-  }, [cachedPitches]);
+  const pitchesWithDates = pitches.map((pitch) => ({
+    ...pitch,
+    created_at: new Date(pitch.created_at),
+    end_date: new Date(pitch.end_date),
+  }));
 
-  const filteredPitches = pitches
+  const filteredPitches = pitchesWithDates
     .filter((pitch) => {
       const matchesSearch =
         pitch.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,7 +95,7 @@ export function PitchBrowser() {
     return Math.max(0, daysLeft);
   };
 
-  return (
+    return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
@@ -305,5 +296,5 @@ export function PitchBrowser() {
         )}
       </div>
     </div>
-  );
+    );
 }

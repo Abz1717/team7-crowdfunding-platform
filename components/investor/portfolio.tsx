@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import LoadingScreen from "@/components/loading-screen";
 import {
   Card,
   CardContent,
@@ -48,7 +49,11 @@ import {
   PieChart,
   Target,
 } from "lucide-react";
-import { useInvestor } from "@/context/InvestorContext";
+import {
+  useInvestorPortfolio,
+  useInvestorInvestmentDetails,
+  useInvestorProfitPayouts
+} from "@/hooks/useInvestorData";
 
 function formatDate(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -59,67 +64,25 @@ function formatDate(date: string | Date): string {
   });
 }
 
+
 export function Portfolio() {
-  // Use cached data from InvestorContext instead of fetching
   const { user } = useAuth();
-  const {
-    accountBalance: cachedAccountBalance,
-    totalInvested: cachedTotalInvested,
-    totalReturns: cachedTotalReturns,
-    overallROI: cachedOverallROI,
-    investments: cachedInvestments,
-    investmentDetails: cachedInvestmentDetails,
-    profitPayouts: cachedProfitPayouts,
-    refreshPortfolio,
-  } = useInvestor();
-
-  const [accountBalance, setAccountBalance] = useState(0);
-  const [totalInvested, setTotalInvested] = useState(0);
-  const [totalReturns, setTotalReturns] = useState(0);
-  const [overallROI, setOverallROI] = useState(0);
-  const [investments, setInvestments] = useState<Investment[]>([]);
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-
-  useEffect(() => {
-    // Use cached data from InvestorContext
-    setAccountBalance(cachedAccountBalance);
-    setTotalInvested(cachedTotalInvested);
-    setTotalReturns(cachedTotalReturns);
-    setOverallROI(cachedOverallROI);
-    setInvestments(cachedInvestments);
-  }, [
-    cachedAccountBalance,
-    cachedTotalInvested,
-    cachedTotalReturns,
-    cachedOverallROI,
-    cachedInvestments,
-  ]);
-
-  // Use cached investment details instead of fetching
-  const [investmentDetails, setInvestmentDetails] = useState<
-    {
-      investment: Investment;
-      pitch: any;
-      investmentReturns: number;
-      roi: number;
-    }[]
-  >([]);
-  // Filter state for Group By and Status
+  const userId = user?.id;
+  const { data: portfolioData, isLoading: isPortfolioLoading } = useInvestorPortfolio(userId) || {};
+  const { data: investmentDetails = [], isLoading: isInvestmentsLoading } = useInvestorInvestmentDetails(userId) || {};
+  const { data: profitPayouts = [], isLoading: isProfitPayoutsLoading } = useInvestorProfitPayouts(userId) || {};
   const [groupBy, setGroupBy] = useState<"combined" | "all">("all");
-  const [status, setStatus] = useState<"active" | "funded" | "closed">(
-    "active"
-  );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [groupBy, status]);
-
-  useEffect(() => {
-    setInvestmentDetails(cachedInvestmentDetails);
-  }, [cachedInvestmentDetails]);
-
+  const [status, setStatus] = useState<"active" | "funded" | "closed">("active");
   const [currentPage, setCurrentPage] = useState(1);
+  const [profitPayoutsPage, setProfitPayoutsPage] = useState(1);
   const investmentsPerPage = 3;
+  const profitPayoutsPerPage = 3;
+  const accountBalance = portfolioData?.accountBalance || 0;
+  const totalInvested = portfolioData?.totalInvested || 0;
+  const totalReturns = portfolioData?.totalReturns || 0;
+  const overallROI = portfolioData?.overallROI || 0;
+  const investments = portfolioData?.investments || [];
+  const isWithdrawing = false;
 
   // --- FILTER/GROUP LOGIC FOR INVESTMENT LIST ---
   // Helper: status filter
@@ -156,6 +119,7 @@ export function Portfolio() {
       pitch,
       investmentReturns,
     } of filteredInvestments) {
+      if (!pitch) continue;
       if (!grouped[pitch.id]) {
         grouped[pitch.id] = {
           investment: { ...investment },
@@ -168,7 +132,7 @@ export function Portfolio() {
       }
       grouped[pitch.id].totalAmount += investment.investment_amount;
       grouped[pitch.id].totalShares +=
-        investment.investment_amount * (investment.tier?.multiplier || 1);
+        investment.investment_amount * (typeof investment.tier?.multiplier === "number" ? investment.tier.multiplier : 1);
       grouped[pitch.id].investmentReturns += investmentReturns;
     }
     displayInvestments = Object.values(grouped).map((g) => ({
@@ -199,30 +163,11 @@ export function Portfolio() {
     currentPage * investmentsPerPage
   );
 
-  // Removed the useEffect that was fetching data - now using cached data from context
-  // Removed the useEffect that was fetching data - now using cached data from context
-
   const handleWithdraw = () => {
     window.location.href = "/investor/settings?tab=billing";
   };
 
-  // Use cached profit payouts instead of fetching
-  const [profitPayouts, setProfitPayouts] = useState<
-    {
-      distribution: any;
-      pitch: any;
-      totalAmount: number;
-      userSharePercent: number;
-    }[]
-  >([]);
-
-  useEffect(() => {
-    setProfitPayouts(cachedProfitPayouts);
-  }, [cachedProfitPayouts]);
-
-  // Pagination for profit payouts (must be after profitPayouts is defined)
-  const [profitPayoutsPage, setProfitPayoutsPage] = useState(1);
-  const profitPayoutsPerPage = 3;
+  // Pagination for profit payouts
   const totalProfitPayoutPages = Math.ceil(
     profitPayouts.length / profitPayoutsPerPage
   );
@@ -312,8 +257,8 @@ export function Portfolio() {
         </Card>
       </div>
 
-      {/* Investment List */}
-      <Card>
+  {/* Investment List */}
+  <Card>
         <CardHeader>
           <div className="flex items-center justify-between w-full">
             <div>
@@ -414,7 +359,11 @@ export function Portfolio() {
         </CardHeader>
 
         <CardContent>
-          {investments.length === 0 ? (
+          {isInvestmentsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingScreen />
+            </div>
+          ) : investments.length === 0 ? (
             <div className="text-center py-8">
               <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                 <DollarSign className="h-8 w-8 text-muted-foreground" />
@@ -445,11 +394,9 @@ export function Portfolio() {
                   const shares =
                     typeof totalShares === "number"
                       ? totalShares
-                      : investment.investment_amount &&
-                        investment.tier?.multiplier
-                      ? investment.investment_amount *
-                        investment.tier.multiplier
-                      : undefined;
+                      : typeof investment.investment_amount === "number"
+                        ? investment.investment_amount * (typeof investment.tier?.multiplier === "number" ? investment.tier.multiplier : 1)
+                        : undefined;
 
                   // group display
                   let showMultipleTier = false;
@@ -462,15 +409,15 @@ export function Portfolio() {
                     // all unique
                     const pitchId = pitch.id;
                     const allTiers = filteredInvestments
-                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .filter(({ pitch }) => pitch && pitch.id === pitchId)
                       .map(({ investment }) => investment.tier?.name)
                       .filter(Boolean);
                     const allMultipliers = filteredInvestments
-                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .filter(({ pitch }) => pitch && pitch.id === pitchId)
                       .map(({ investment }) => investment.tier?.multiplier)
                       .filter((m) => m !== undefined);
                     const allDates = filteredInvestments
-                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .filter(({ pitch }) => pitch && pitch.id === pitchId)
                       .map(({ investment }) => investment.invested_at)
                       .filter(Boolean)
                       .map((d) => new Date(d));
@@ -683,7 +630,11 @@ export function Portfolio() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {profitPayouts.length === 0 ? (
+          {isProfitPayoutsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingScreen />
+            </div>
+          ) : profitPayouts.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
               No profit payouts yet
             </div>
@@ -761,32 +712,38 @@ export function Portfolio() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {investmentDetails.slice(0, 3).map(({ investment, pitch }) => (
-              <div
-                key={investment.id}
-                className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
-              >
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <ArrowDownLeft className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">Invested in {pitch?.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    ${investment.investment_amount.toLocaleString()} •{" "}
-                    {formatDate(investment.invested_at)}
+          {isInvestmentsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingScreen />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {investmentDetails.slice(0, 3).map(({ investment, pitch }) => (
+                <div
+                  key={investment.id}
+                  className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
+                >
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <ArrowDownLeft className="h-4 w-4 text-primary" />
                   </div>
+                  <div className="flex-1">
+                    <div className="font-medium">Invested in {pitch?.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      ${investment.investment_amount.toLocaleString()} •{" "}
+                      {formatDate(investment.invested_at)}
+                    </div>
+                  </div>
+                  <TierBadge tier={investment.tier?.name || "No Tier"} />
                 </div>
-                <TierBadge tier={investment.tier.name} />
-              </div>
-            ))}
+              ))}
 
-            {investments.length === 0 && (
-              <div className="text-center py-4 text-muted-foreground">
-                No recent activity
-              </div>
-            )}
-          </div>
+              {investments.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  No recent activity
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
