@@ -46,6 +46,10 @@ export interface Pitch {
   business_id: string | null;
   supporting_media: string[];
   investment_tiers: InvestmentTier[];
+  // Optional scheduling fields populated by DB triggers
+  next_profit_distribution_at?: string | null;
+  fully_funded_at?: string | null;
+  released_at?: string | null;
 }
 
 export interface CreatePitchData {

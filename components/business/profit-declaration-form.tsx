@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,7 +42,7 @@ export function ProfitDeclarationForm({
   pitch,
   onSuccess,
 }: ProfitDeclarationFormProps) {
-  const { profitDistributions } = useBusiness();
+  const { profitDistributions, myPitches } = useBusiness();
   const [profitAmount, setProfitAmount] = useState<string>("");
   const [preview, setPreview] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -55,6 +55,17 @@ export function ProfitDeclarationForm({
   const [lastDistribution, setLastDistribution] = useState<Date | null>(null);
   const [nextDistribution, setNextDistribution] = useState<Date | null>(null);
   const [firstAllowed, setFirstAllowed] = useState<Date | null>(null);
+
+  // Get the latest pitch data from context to reflect DB trigger updates
+  const latestPitch = useMemo(() => {
+    return myPitches.find((p) => p.id === pitch.id) || pitch;
+  }, [myPitches, pitch]);
+
+  const nextFromPitch = useMemo(() => {
+    return latestPitch.next_profit_distribution_at
+      ? new Date(latestPitch.next_profit_distribution_at)
+      : null;
+  }, [latestPitch.next_profit_distribution_at]);
 
   // Use cached profit distributions from BusinessContext
   useEffect(() => {
@@ -76,16 +87,18 @@ export function ProfitDeclarationForm({
       );
       const last = new Date(sortedDists[0].distribution_date);
       setLastDistribution(last);
-      const next = new Date(last);
-      next.setMonth(next.getMonth() + 0); // CHANGE THIS TO DISPLAY PROFIT DECLARATION INTERVAL 3 or 12 months after editing in action.ts
+      const next = nextFromPitch ?? new Date(last);
+      if (!nextFromPitch) {
+        next.setMonth(next.getMonth() + 0);
+      }
       setNextDistribution(next);
       setFirstAllowed(null);
     } else {
-      setFirstAllowed(new Date());
+      setFirstAllowed(nextFromPitch ?? new Date());
       setLastDistribution(null);
-      setNextDistribution(null);
+      setNextDistribution(nextFromPitch);
     }
-  }, [pitch.id, profitDistributions]);
+  }, [pitch.id, profitDistributions, latestPitch.next_profit_distribution_at]);
 
   const handlePreview = async () => {
     const amount = Number.parseFloat(profitAmount);
@@ -213,20 +226,12 @@ export function ProfitDeclarationForm({
                 <span className="font-medium">
                   Next Allowed Profit Distribution:{" "}
                 </span>
-                {lastDistribution && nextDistribution
+                {nextDistribution
                   ? nextDistribution.toLocaleDateString()
                   : firstAllowed
                   ? firstAllowed.toLocaleDateString()
                   : "N/A"}
               </div>
-              {!lastDistribution &&
-                firstAllowed &&
-                new Date() < firstAllowed && (
-                  <div className="text-sm text-red-600">
-                    First profit can only be declared after{" "}
-                    {firstAllowed.toLocaleDateString()}
-                  </div>
-                )}
             </div>
           </CardHeader>
 
@@ -356,40 +361,118 @@ export function ProfitDeclarationForm({
               </CardContent>
             </Card>
 
-            <Card className="bg-primary/5 border-primary/20">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-semibold mb-1">
-                      Ready to declare profits?
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      This will distribute{" "}
-                      {preview?.total_to_investors?.toLocaleString?.()} to{" "}
-                      {preview?.investor_count} investor
-                      {preview?.investor_count !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                  <Button
-                    size="lg"
-                    onClick={handleDeclare}
-                    disabled={isDeclaring}
-                  >
-                    {isDeclaring ? (
-                      <>
-                        <TrendingUp className="mr-2 h-4 w-4 animate-pulse" />
-                        Declaring...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="mr-2 h-4 w-4" />
-                        Declare Profits
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            {(() => {
+              const isNotDue = nextDistribution
+                ? new Date() < nextDistribution
+                : false;
+              const isOverdue = nextDistribution
+                ? new Date().getTime() - nextDistribution.getTime() >
+                  24 * 60 * 60 * 1000
+                : false;
+
+              return (
+                <Card
+                  className={`${
+                    isNotDue
+                      ? "bg-gray-50 border-gray-300"
+                      : isOverdue
+                      ? "bg-red-50 border-red-300"
+                      : "bg-green-50 border-green-300"
+                  }`}
+                >
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        {nextDistribution ? (
+                          new Date() < nextDistribution ? (
+                            <>
+                              <h4 className="font-semibold mb-1 text-gray-700">
+                                Not due yet
+                              </h4>
+                              <p className="text-sm text-gray-600">
+                                You must declare profits on{" "}
+                                {nextDistribution.toLocaleDateString()}. You
+                                can't do it right now.
+                              </p>
+                            </>
+                          ) : (
+                            (() => {
+                              const overdue =
+                                new Date().getTime() -
+                                  nextDistribution.getTime() >
+                                24 * 60 * 60 * 1000;
+                              return (
+                                <>
+                                  <h4
+                                    className={`font-semibold mb-1 ${
+                                      overdue
+                                        ? "text-red-700"
+                                        : "text-green-700"
+                                    }`}
+                                  >
+                                    {overdue
+                                      ? "Profit declaration overdue"
+                                      : "Profit declaration due"}
+                                  </h4>
+                                  <p
+                                    className={`text-sm ${
+                                      overdue
+                                        ? "text-red-600"
+                                        : "text-green-600"
+                                    }`}
+                                  >
+                                    {overdue
+                                      ? `Was due on ${nextDistribution.toLocaleDateString()}. Please declare as soon as possible.`
+                                      : `Due on ${nextDistribution.toLocaleDateString()}. You may declare profits now.`}
+                                  </p>
+                                </>
+                              );
+                            })()
+                          )
+                        ) : (
+                          <>
+                            <h4 className="font-semibold mb-1 text-green-700">
+                              Declare profits
+                            </h4>
+                            <p className="text-sm text-green-600">
+                              This will distribute{" "}
+                              {preview?.total_to_investors?.toLocaleString?.()}{" "}
+                              to {preview?.investor_count} investor
+                              {preview?.investor_count !== 1 ? "s" : ""}
+                            </p>
+                          </>
+                        )}
+                      </div>
+                      <Button
+                        size="lg"
+                        onClick={handleDeclare}
+                        disabled={
+                          isDeclaring ||
+                          (nextDistribution
+                            ? new Date() < nextDistribution
+                            : false)
+                        }
+                        className={
+                          isOverdue ? "bg-red-600 hover:bg-red-700" : ""
+                        }
+                      >
+                        {isDeclaring ? (
+                          <>
+                            <TrendingUp className="mr-2 h-4 w-4 animate-pulse" />
+                            Declaring...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Declare Profits
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </CardContent>
         </Card>
       </div>
