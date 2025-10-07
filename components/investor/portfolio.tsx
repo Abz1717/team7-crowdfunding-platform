@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import LoadingScreen from "@/components/loading-screen";
 import {
   Card,
   CardContent,
@@ -67,9 +68,9 @@ function formatDate(date: string | Date): string {
 export function Portfolio() {
   const { user } = useAuth();
   const userId = user?.id;
-  const { data: portfolioData } = useInvestorPortfolio(userId);
-  const { data: investmentDetails = [] } = useInvestorInvestmentDetails(userId);
-  const { data: profitPayouts = [] } = useInvestorProfitPayouts(userId);
+  const { data: portfolioData, isLoading: isPortfolioLoading } = useInvestorPortfolio(userId) || {};
+  const { data: investmentDetails = [], isLoading: isInvestmentsLoading } = useInvestorInvestmentDetails(userId) || {};
+  const { data: profitPayouts = [], isLoading: isProfitPayoutsLoading } = useInvestorProfitPayouts(userId) || {};
   const [groupBy, setGroupBy] = useState<"combined" | "all">("all");
   const [status, setStatus] = useState<"active" | "funded" | "closed">("active");
   const [currentPage, setCurrentPage] = useState(1);
@@ -131,7 +132,7 @@ export function Portfolio() {
       }
       grouped[pitch.id].totalAmount += investment.investment_amount;
       grouped[pitch.id].totalShares +=
-        investment.investment_amount * (investment.tier?.multiplier || 1);
+        investment.investment_amount * (typeof investment.tier?.multiplier === "number" ? investment.tier.multiplier : 1);
       grouped[pitch.id].investmentReturns += investmentReturns;
     }
     displayInvestments = Object.values(grouped).map((g) => ({
@@ -256,8 +257,8 @@ export function Portfolio() {
         </Card>
       </div>
 
-      {/* Investment List */}
-      <Card>
+  {/* Investment List */}
+  <Card>
         <CardHeader>
           <div className="flex items-center justify-between w-full">
             <div>
@@ -358,7 +359,11 @@ export function Portfolio() {
         </CardHeader>
 
         <CardContent>
-          {investments.length === 0 ? (
+          {isInvestmentsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingScreen />
+            </div>
+          ) : investments.length === 0 ? (
             <div className="text-center py-8">
               <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                 <DollarSign className="h-8 w-8 text-muted-foreground" />
@@ -389,11 +394,9 @@ export function Portfolio() {
                   const shares =
                     typeof totalShares === "number"
                       ? totalShares
-                      : investment.investment_amount &&
-                        investment.tier?.multiplier
-                      ? investment.investment_amount *
-                        investment.tier.multiplier
-                      : undefined;
+                      : typeof investment.investment_amount === "number"
+                        ? investment.investment_amount * (typeof investment.tier?.multiplier === "number" ? investment.tier.multiplier : 1)
+                        : undefined;
 
                   // group display
                   let showMultipleTier = false;
@@ -627,7 +630,11 @@ export function Portfolio() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {profitPayouts.length === 0 ? (
+          {isProfitPayoutsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingScreen />
+            </div>
+          ) : profitPayouts.length === 0 ? (
             <div className="text-center py-4 text-muted-foreground">
               No profit payouts yet
             </div>
@@ -705,32 +712,38 @@ export function Portfolio() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {investmentDetails.slice(0, 3).map(({ investment, pitch }) => (
-              <div
-                key={investment.id}
-                className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
-              >
-                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                  <ArrowDownLeft className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">Invested in {pitch?.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    ${investment.investment_amount.toLocaleString()} •{" "}
-                    {formatDate(investment.invested_at)}
+          {isInvestmentsLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingScreen />
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {investmentDetails.slice(0, 3).map(({ investment, pitch }) => (
+                <div
+                  key={investment.id}
+                  className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg"
+                >
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                    <ArrowDownLeft className="h-4 w-4 text-primary" />
                   </div>
+                  <div className="flex-1">
+                    <div className="font-medium">Invested in {pitch?.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      ${investment.investment_amount.toLocaleString()} •{" "}
+                      {formatDate(investment.invested_at)}
+                    </div>
+                  </div>
+                  <TierBadge tier={investment.tier?.name || "No Tier"} />
                 </div>
-                <TierBadge tier={investment.tier?.name || "No Tier"} />
-              </div>
-            ))}
+              ))}
 
-            {investments.length === 0 && (
-              <div className="text-center py-4 text-muted-foreground">
-                No recent activity
-              </div>
-            )}
-          </div>
+              {investments.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  No recent activity
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
