@@ -66,9 +66,9 @@ export function useOtherPitches() {
   const { data: businessUser } = useBusinessUser();
   return useSWR(
     businessUser ? ['other-pitches', businessUser.id] : null,
-    async ([, businessUserId]) => {
-      const allPitches = await getActivePitches();
-      return allPitches.filter((pitch) => pitch.business_id !== businessUserId);
+    async () => {
+      // Show all active pitches, including user's own
+      return await getActivePitches();
     }
   );
 }

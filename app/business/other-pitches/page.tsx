@@ -2,8 +2,9 @@
 
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOtherPitches } from "@/hooks/useBusinessData";
+import { useBusinessUser } from "@/hooks/useBusinessUser";
 import {
   Card,
   CardContent,
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import type { Pitch } from "@/lib/types/pitch";
 import Link from "next/link";
+import { LinkWithLoader } from "@/components/link-with-loader";
 import {
   Search,
   Filter,
@@ -33,28 +35,31 @@ import {
   Users,
 } from "lucide-react";
 
+
 export default function BusinessOtherPitches() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const { data: otherPitches, isLoading: loadingOtherPitches } = useOtherPitches();
+  const { businessUser } = useBusinessUser(user ?? undefined);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterBy, setFilterBy] = useState("all");
 
-  // Redirect if not a business user
+
+  // Redirect if not a business user 
+  useEffect(() => {
+    if (!isLoading && (!user || user.role !== "business")) {
+      router.push("/signin");
+    }
+  }, [isLoading, user, router]);
   if (!isLoading && (!user || user.role !== "business")) {
-    router.push("/signin");
     return null;
   }
 
 
 
   if (isLoading || loadingOtherPitches || !otherPitches) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
+    return null;
   }
 
 
@@ -197,6 +202,7 @@ export default function BusinessOtherPitches() {
               const fundingProgress =
                 (pitch.current_amount / pitch.target_amount) * 100;
               const daysLeft = getDaysLeft(pitch.end_date);
+              const isMine = businessUser && pitch.business_id === businessUser.id;
 
               return (
                 <Card
@@ -213,9 +219,16 @@ export default function BusinessOtherPitches() {
                           {pitch.elevator_pitch}
                         </CardDescription>
                       </div>
-                      <Badge variant="default">
-                        {pitch.profit_share}% Shares
-                      </Badge>
+                      <div className="flex flex-col items-end ml-4">
+                        <Badge variant="default">
+                          {pitch.profit_share}% Shares
+                        </Badge>
+                        {isMine && (
+                          <span className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full font-semibold text-xs mt-2 align-middle shadow">
+                            My Pitch
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -288,9 +301,9 @@ export default function BusinessOtherPitches() {
                       </div>
                     </div>
 
-                    <Link href={`/business/other-pitches/${pitch.id}`}>
+                    <LinkWithLoader href={`/business/other-pitches/${pitch.id}`}>
                       <Button>View Details</Button>
-                    </Link>
+                    </LinkWithLoader>
                   </CardContent>
                 </Card>
               );
