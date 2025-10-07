@@ -12,6 +12,7 @@ import {
   useBusinessAccountBalance,
   useProfitDistributions
 } from "@/hooks/useBusinessData";
+import LoadingScreen from "@/components/loading-screen";
 import { InvestorList } from "@/components/business/investor-list";
 
 export default function BusinessDashboardPage() {
@@ -117,7 +118,7 @@ export default function BusinessDashboardPage() {
         </CardHeader>
         <CardContent>
           {loadingBalance ? (
-            <span className="text-gray-400">Loading...</span>
+            <LoadingScreen />
           ) : typeof accountBalance === "number" ? (
             <span className="text-2xl font-bold text-green-600">
               ${accountBalance.toLocaleString(undefined, {
@@ -184,7 +185,7 @@ export default function BusinessDashboardPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div>Loading profit distributions...</div>
+            <LoadingScreen />
           ) : transformedProfitDistributions.length === 0 ? (
             <div>No profit distributions found.</div>
           ) : (

@@ -24,7 +24,7 @@ export function Navbar() {
         </LinkWithLoader>
         <div className="flex items-center gap-4">
           {isLoading ? (
-            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground">Loading...</div>
+            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground"></div>
           ) : user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
