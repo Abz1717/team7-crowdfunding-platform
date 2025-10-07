@@ -1,89 +1,120 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getActivePitches } from "@/lib/data"
-import type { Pitch } from "@/lib/types"
-import Link from "next/link"
-import { Search, Filter, TrendingUp, Calendar, DollarSign, Users } from "lucide-react"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { Pitch } from "@/lib/types";
+import Link from "next/link";
+import {
+  Search,
+  Filter,
+  TrendingUp,
+  Calendar,
+  DollarSign,
+  Users,
+} from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { useBusinessUser } from "@/hooks/useBusinessUser";
+import { useInvestor } from "@/context/InvestorContext";
 
 export function PitchBrowser() {
-  const [pitches, setPitches] = useState<(Pitch & { created_at: Date, end_date: Date })[]>([])
-  const [searchTerm, setSearchTerm] = useState("")
-  const [sortBy, setSortBy] = useState("newest")
-  const [filterBy, setFilterBy] = useState("all")
-  
+  const { user } = useAuth();
+  const { businessUser } = useBusinessUser(user ?? undefined);
+  const { pitches: cachedPitches } = useInvestor();
+  const [pitches, setPitches] = useState<
+    (Pitch & { created_at: Date; end_date: Date })[]
+  >([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [filterBy, setFilterBy] = useState("all");
 
   useEffect(() => {
-    async function fetchPitches() {
-      const data = await getActivePitches()
-      const pitchesWithDates = data.map(pitch => ({
-        ...pitch,
-        created_at: new Date(pitch.created_at),
-        end_date: new Date(pitch.end_date),
-      }))
-      setPitches(pitchesWithDates as (Pitch & { created_at: Date, end_date: Date })[])
-    }
-    fetchPitches()
-  }, [])
+    // Use cached pitches from InvestorContext instead of fetching
+    const pitchesWithDates = cachedPitches.map((pitch) => ({
+      ...pitch,
+      created_at: new Date(pitch.created_at),
+      end_date: new Date(pitch.end_date),
+    }));
+    setPitches(
+      pitchesWithDates as (Pitch & { created_at: Date; end_date: Date })[]
+    );
+  }, [cachedPitches]);
 
   const filteredPitches = pitches
     .filter((pitch) => {
       const matchesSearch =
         pitch.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        pitch.elevator_pitch.toLowerCase().includes(searchTerm.toLowerCase())
+        pitch.elevator_pitch.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesFilter =
         filterBy === "all" ||
         (filterBy === "high-return" && pitch.profit_share >= 15) ||
         (filterBy === "low-risk" && pitch.profit_share <= 10) ||
-        (filterBy === "almost-funded" && pitch.current_amount / pitch.target_amount >= 0.75)
+        (filterBy === "almost-funded" &&
+          pitch.current_amount / pitch.target_amount >= 0.75);
 
-      return matchesSearch && matchesFilter
+      return matchesSearch && matchesFilter;
     })
     .sort((a, b) => {
       switch (sortBy) {
         case "newest":
-          return b.created_at.getTime() - a.created_at.getTime()
+          return b.created_at.getTime() - a.created_at.getTime();
         case "funding-progress":
-          return b.current_amount / b.target_amount - a.current_amount / a.target_amount
+          return (
+            b.current_amount / b.target_amount -
+            a.current_amount / a.target_amount
+          );
         case "profit-share":
-          return b.profit_share - a.profit_share
+          return b.profit_share - a.profit_share;
         case "target-amount":
-          return b.target_amount - a.target_amount
+          return b.target_amount - a.target_amount;
         default:
-          return 0
+          return 0;
       }
-    })
+    });
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
-    }).format(date)
-  }
+    }).format(date);
+  };
 
   const getDaysLeft = (endDate: Date) => {
-    const daysLeft = Math.ceil((endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    return Math.max(0, daysLeft)
-  }
+    const daysLeft = Math.ceil(
+      (endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return Math.max(0, daysLeft);
+  };
 
   return (
     <div className="space-y-6">
-      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
             Discover Investment Opportunities
           </CardTitle>
-          <CardDescription>Browse active pitches and find investments that match your goals</CardDescription>
+          <CardDescription>
+            Browse active pitches and find investments that match your goals
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col md:flex-row gap-4">
@@ -101,7 +132,9 @@ export function PitchBrowser() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="funding-progress">Funding Progress</SelectItem>
+                <SelectItem value="funding-progress">
+                  Funding Progress
+                </SelectItem>
                 <SelectItem value="profit-share">Profit Share %</SelectItem>
                 <SelectItem value="target-amount">Target Amount</SelectItem>
               </SelectContent>
@@ -114,7 +147,9 @@ export function PitchBrowser() {
                 <SelectItem value="all">All Pitches</SelectItem>
                 <SelectItem value="high-return">High Return (15%+)</SelectItem>
                 <SelectItem value="low-risk">Conservative (≤10%)</SelectItem>
-                <SelectItem value="almost-funded">Almost Funded (75%+)</SelectItem>
+                <SelectItem value="almost-funded">
+                  Almost Funded (75%+)
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -135,7 +170,6 @@ export function PitchBrowser() {
 
       <div className="grid gap-6">
         {filteredPitches.length === 0 ? (
-
           <Card className="text-center py-12">
             <CardContent>
               <div className="mx-auto w-16 h-16 bg-muted mb-4 rounded-full flex items-center justify-center">
@@ -143,27 +177,47 @@ export function PitchBrowser() {
               </div>
               <h3 className="text-xl font-semibold mb-2">No pitches found</h3>
               <p className="text-muted-foreground">
-                Try adjusting your search terms or filters to find more opportunities
+                Try adjusting your search terms or filters to find more
+                opportunities
               </p>
             </CardContent>
           </Card>
-
         ) : (
           filteredPitches.map((pitch) => {
-            const fundingProgress = (pitch.current_amount / pitch.target_amount) * 100
-            const daysLeft = getDaysLeft(pitch.end_date)
-
+            const fundingProgress =
+              (pitch.current_amount / pitch.target_amount) * 100;
+            const daysLeft = getDaysLeft(pitch.end_date);
+            // Show tag if business user owns pitch (compare to businessUser.id)
+            const isMine =
+              user &&
+              user.role === "business" &&
+              businessUser &&
+              pitch.business_id === businessUser.id;
             return (
-              <Card key={pitch.id} className="hover:shadow-md transition-shadow">
+              <Card
+                key={pitch.id}
+                className="hover:shadow-md transition-shadow"
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-xl mb-2">{pitch.title}</CardTitle>
-                      <CardDescription className="text-base">{pitch.elevator_pitch}</CardDescription>
+                      <CardTitle className="text-xl mb-2">
+                        {pitch.title}
+                      </CardTitle>
+                      <CardDescription className="text-base">
+                        {pitch.elevator_pitch}
+                      </CardDescription>
                     </div>
-                    <Badge variant="default" className="ml-4">
-                      {pitch.profit_share}% Returns
-                    </Badge>
+                    <div className="flex flex-col items-end ml-4">
+                      <Badge variant="default">
+                        {pitch.profit_share}% Shares
+                      </Badge>
+                      {isMine && (
+                        <span className="inline-block bg-blue-600 text-white px-3 py-1 rounded-full font-semibold text-xs mt-2 align-middle shadow">
+                          My Pitch
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -179,7 +233,9 @@ export function PitchBrowser() {
                           <span>${pitch.target_amount.toLocaleString()}</span>
                         </div>
                         <Progress value={fundingProgress} className="h-2" />
-                        <div className="text-sm font-medium">{fundingProgress.toFixed(1)}% funded</div>
+                        <div className="text-sm font-medium">
+                          {fundingProgress.toFixed(1)}% funded
+                        </div>
                       </div>
                     </div>
 
@@ -190,7 +246,9 @@ export function PitchBrowser() {
                       </div>
                       <div className="text-sm">
                         <div className="font-medium">{daysLeft} days left</div>
-                        <div className="text-muted-foreground">Ends {formatDate(pitch.end_date)}</div>
+                        <div className="text-muted-foreground">
+                          Ends {formatDate(pitch.end_date)}
+                        </div>
                       </div>
                     </div>
 
@@ -200,9 +258,12 @@ export function PitchBrowser() {
                         Investment Tiers
                       </div>
                       <div className="text-sm">
-                        <div className="font-medium">{pitch.investment_tiers.length} tiers available</div>
+                        <div className="font-medium">
+                          {pitch.investment_tiers.length} tiers available
+                        </div>
                         <div className="text-muted-foreground">
-                          From ${pitch.investment_tiers[0]?.minAmount.toLocaleString()}
+                          From $
+                          {pitch.investment_tiers[0]?.minAmount.toLocaleString()}
                         </div>
                       </div>
                     </div>
@@ -214,25 +275,35 @@ export function PitchBrowser() {
                       </div>
                       <div className="text-sm">
                         <div className="font-medium">
-                          {fundingProgress >= 100 ? "Fully Funded" : "Open for Investment"}
+                          {fundingProgress >= 100
+                            ? "Fully Funded"
+                            : "Open for Investment"}
                         </div>
-                        <div className="text-muted-foreground">Created {formatDate(pitch.created_at)}</div>
+                        <div className="text-muted-foreground">
+                          Created {formatDate(pitch.created_at)}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    <Link href={`/investor/pitch/${pitch.id}`}>
-                      <Button>View Details & Invest</Button>
-                    </Link>
+                    {user && user.role === "business" ? (
+                      <Link href={`/business/other-pitches/${pitch.id}`}>
+                        <Button>View Details</Button>
+                      </Link>
+                    ) : (
+                      <Link href={`/investor/browse-pitches/${pitch.id}`}>
+                        <Button>View Details & Invest</Button>
+                      </Link>
+                    )}
                     <Button variant="outline">Save for Later</Button>
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })
         )}
       </div>
     </div>
-  )
+  );
 }

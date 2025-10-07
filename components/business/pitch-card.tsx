@@ -99,7 +99,8 @@ export function PitchCard({
             <div className="absolute inset-0">
               <img
                 src={
-                  pitch.supporting_media[currentImageIndex] || "/placeholder.svg"
+                  pitch.supporting_media[currentImageIndex] ||
+                  "/placeholder.svg"
                 }
                 alt=""
                 className="w-full h-full object-cover blur-xs scale-110 opacity-60"
@@ -145,7 +146,7 @@ export function PitchCard({
                   className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {pitch.supporting_media.map((_, index) => (
+                  {pitch.supporting_media.map((_: string, index: number) => (
                     <div
                       key={index}
                       className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
@@ -185,7 +186,11 @@ export function PitchCard({
           {/* Key Info */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className={`${getAmountFontSize(pitch.target_amount)} font-bold text-gray-900`}>
+              <div
+                className={`${getAmountFontSize(
+                  pitch.target_amount
+                )} font-bold text-gray-900`}
+              >
                 {formatAmount(pitch.target_amount)}
               </div>
               <div className="text-xs text-gray-500 uppercase tracking-wide">
@@ -229,19 +234,21 @@ export function PitchCard({
               <Edit className="h-4 w-4 mr-2" />
               Edit
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-              onClick={handleDeleteClick}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-            </Button>
+            {(pitch.status === "draft" || pitch.status === "closed") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                onClick={handleDeleteClick}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

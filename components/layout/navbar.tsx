@@ -10,12 +10,10 @@ export function Navbar() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
-
-  if (isLoading) return null;
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -25,7 +23,9 @@ export function Navbar() {
           invex
         </Link>
         <div className="flex items-center gap-4">
-          {user ? (
+          {isLoading ? (
+            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground">Loading...</div>
+          ) : user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
                 {user.role === "business" ? (
@@ -36,15 +36,12 @@ export function Navbar() {
                     <Link href="/business/my-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       My pitches
                     </Link>
-                    <Link href="/business" className="text-sm text-muted-foreground hover:text-foreground">
+                    <Link href="/business/other-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       Other pitches
                     </Link>
                   </>
                 ) : (
                   <>
-                    <Link href="/investor" className="text-sm text-muted-foreground hover:text-foreground">
-                      Dashboard
-                    </Link>
                     <Link href="/investor/browse-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       Browse Pitches
                     </Link>
@@ -88,9 +85,6 @@ export function Navbar() {
                   ) : (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link href="/investor">Dashboard</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
                         <Link href="/investor/browse-pitches">Browse Pitches</Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
@@ -106,7 +100,7 @@ export function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            <Link href="/signup">
+            <Link href="/signin">
               <Button>Get Started</Button>
             </Link>
           )}

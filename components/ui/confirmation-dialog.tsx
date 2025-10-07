@@ -41,23 +41,17 @@ export function ConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md rounded-2xl border-2 border-black bg-white">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-2">
-            {variant === "destructive" ? (
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-100">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
-            ) : (
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-100">
-                <AlertTriangle className="h-5 w-5 text-blue-600" />
-              </div>
-            )}
-            <DialogTitle className="text-lg font-semibold">
+            <div className="flex items-center justify-center w-10 h-10 rounded-full border-2 border-black bg-white">
+              <AlertTriangle className="h-5 w-5 text-black" />
+            </div>
+            <DialogTitle className="text-lg font-semibold text-black">
               {title}
             </DialogTitle>
           </div>
-          <DialogDescription className="text-gray-600 leading-relaxed">
+          <DialogDescription className="text-gray-700 leading-relaxed">
             {description}
           </DialogDescription>
         </DialogHeader>
@@ -66,27 +60,22 @@ export function ConfirmationDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isLoading}
-            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="rounded-full border-2 border-black bg-white text-black hover:bg-black hover:text-white transition-colors"
           >
             {cancelText}
           </Button>
           <Button
             onClick={handleConfirm}
             disabled={isLoading}
-            className={
-              variant === "destructive"
-                ? "bg-red-600 hover:bg-red-700 text-white"
-                : "bg-blue-600 hover:bg-blue-700 text-white"
-            }
+            className="rounded-full border-2 border-black bg-black text-white hover:bg-white hover:text-black transition-colors"
           >
             {isLoading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                Deleting...
+                Processing...
               </>
             ) : (
               <>
-                {variant === "destructive" && <Trash2 className="h-4 w-4 mr-2" />}
                 {confirmText}
               </>
             )}

@@ -11,7 +11,8 @@ export default function SignUpPage() {
 
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace("/"); 
+      const redirectUrl = user.role === "business" ? "/business" : "/investor/portfolio";
+      router.replace(redirectUrl);
     }
   }, [user, isLoading, router]);
 

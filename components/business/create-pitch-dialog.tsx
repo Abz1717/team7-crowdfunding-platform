@@ -43,14 +43,22 @@ import {
   AlertTriangle,
   ThumbsUp,
   Lightbulb,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { usePitchActions } from "@/hooks/usePitchActions";
+import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
 import type { PitchFormData, AIAnalysis } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
 import { generatePitchAnalysisDirect } from "@/lib/ai/gemini-direct";
 import { AIAnalysisDisplay } from "@/components/business/ai-analysis-display";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export interface CreatePitchDialogProps {
   onCreated?: (pitch: unknown) => void;
@@ -64,7 +72,7 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const { createNewPitch } = usePitchActions();
+  const { createNewPitch } = useBusinessPitchActions();
 
   const [formData, setFormData] = useState<PitchFormData>({
     title: "",
@@ -72,17 +80,91 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
     detailedPitch: "",
     targetAmount: "",
     profitShare: "",
+    profitDistributionFrequency: "monthly",
+    tags: [],
     endDate: undefined as Date | undefined,
-    tiers: [
-      { name: "Bronze", minAmount: "", maxAmount: "", multiplier: "1.0" },
-      { name: "Silver", minAmount: "", maxAmount: "", multiplier: "1.2" },
-      { name: "Gold", minAmount: "", maxAmount: "", multiplier: "1.5" },
-    ],
+    tiers: [],
   });
+
+  // Field-level validation helpers
+  const getTitleError = () => {
+    if (formData.title.trim() === "") return "Product title is required.";
+    return null;
+  };
+  const getElevatorPitchError = () => {
+    if (formData.elevatorPitch.trim() === "")
+      return "Elevator pitch is required.";
+    return null;
+  };
+  const getDetailedPitchError = () => {
+    if (formData.detailedPitch.trim() === "")
+      return "Detailed business case is required.";
+    return null;
+  };
+  const getTargetAmountError = () => {
+    if (formData.targetAmount === "") return null;
+    const val = Number(formData.targetAmount);
+    if (isNaN(val) || val < 1000 || val > 1000000000)
+      return "Target amount must be between £1,000 and £1,000,000,000.";
+    return null;
+  };
+
+  const [tagInput, setTagInput] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+
+  const suggestedTags = [
+    "Technology",
+    "Healthcare",
+    "Fintech",
+    "AI",
+    "SaaS",
+    "Consumer",
+    "B2B",
+    "Marketplace",
+    "Climate",
+    "Education",
+    "Gaming",
+    "Web3",
+    "Other",
+  ];
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [uploadedFileUrls, setUploadedFileUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+
+  const getTierValidationError = (index: number) => {
+    const t = formData.tiers[index];
+    if (t.minAmount === "" || t.maxAmount === "" || t.multiplier === "")
+      return "All fields are required.";
+    const min = Number(t.minAmount);
+    const max = Number(t.maxAmount);
+    const mult = Number(t.multiplier);
+    if (isNaN(min) || isNaN(max)) return "Min and Max must be numbers.";
+    if (min <= 0 || max <= 0) return "Min and Max must be greater than 0.";
+    if (min > max) return "Min must be less than or equal to Max.";
+    if (index > 0) {
+      const prevMax = Number(formData.tiers[index - 1].maxAmount);
+      if (isNaN(prevMax) || min <= prevMax)
+        return "Min must be greater than previous tier's Max (no overlap).";
+      const prevMult = Number(formData.tiers[index - 1].multiplier);
+      if (!isNaN(prevMult) && mult < prevMult)
+        return "Multiplier must be greater than or equal to previous tier's multiplier.";
+    }
+    if (index === formData.tiers.length - 1 && formData.targetAmount !== "") {
+      const target = Number(formData.targetAmount);
+      if (!isNaN(target) && max > target)
+        return "Max for last tier cannot exceed target investment amount.";
+    }
+    return null;
+  };
+
+  const getProfitShareError = () => {
+    if (formData.profitShare === "") return null;
+    const val = Number(formData.profitShare);
+    if (isNaN(val) || val < 1 || val > 100)
+      return "Profit share must be between 1 and 100.";
+    return null;
+  };
 
   const isStepValid = (step: number) => {
     switch (step) {
@@ -92,16 +174,36 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
         );
       case 2:
         return formData.detailedPitch.trim() !== "";
-      case 3:
+      case 3: {
+        const profitShareNum = Number(formData.profitShare);
+        const targetAmountNum = Number(formData.targetAmount);
         return (
           formData.targetAmount !== "" &&
+          !isNaN(targetAmountNum) &&
+          targetAmountNum >= 1000 &&
+          targetAmountNum <= 1000000000 &&
           formData.profitShare !== "" &&
           formData.endDate
         );
-      case 4:
-        return formData.tiers.every(
-          (t) => t.minAmount !== "" && t.maxAmount !== "" && t.multiplier !== ""
-        );
+      }
+      case 4: {
+        const tiers = formData.tiers;
+        for (let i = 0; i < tiers.length; i++) {
+          const t = tiers[i];
+          if (t.minAmount === "" || t.maxAmount === "" || t.multiplier === "")
+            return false;
+          const min = Number(t.minAmount);
+          const max = Number(t.maxAmount);
+          if (isNaN(min) || isNaN(max)) return false;
+          if (min <= 0 || max <= 0) return false;
+          if (min > max) return false;
+          if (i > 0) {
+            const prevMax = Number(tiers[i - 1].maxAmount);
+            if (isNaN(prevMax) || min <= prevMax) return false;
+          }
+        }
+        return true;
+      }
       case 5:
         return true; // Supporting media is optional
       case 6:
@@ -123,6 +225,50 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
   };
 
   const prevStep = () => currentStep > 1 && setCurrentStep(currentStep - 1);
+
+  const addTier = () => {
+    setFormData({
+      ...formData,
+      tiers: [
+        ...formData.tiers,
+        { name: "", minAmount: "", maxAmount: "", multiplier: "1.0" },
+      ],
+    });
+  };
+
+  const removeTier = (index: number) => {
+    setFormData({
+      ...formData,
+      tiers: formData.tiers.filter((_, i) => i !== index),
+    });
+  };
+
+  const updateTier = (
+    index: number,
+    field: keyof (typeof formData.tiers)[0],
+    value: string
+  ) => {
+    const newTiers = [...formData.tiers];
+    newTiers[index] = { ...newTiers[index], [field]: value };
+    setFormData({ ...formData, tiers: newTiers });
+  };
+
+  const addTag = () => {
+    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, tagInput.trim()],
+      });
+      setTagInput("");
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter((tag) => tag !== tagToRemove),
+    });
+  };
 
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -198,10 +344,18 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       return;
     }
 
+    // make sure to normalize tiers to make sure fields are there and correct type
+    const normalizedTiers = (formData.tiers || []).map((tier) => ({
+      name: tier.name || "",
+      minAmount: tier.minAmount ?? "",
+      maxAmount: tier.maxAmount ?? "",
+      multiplier: tier.multiplier ?? "1.0",
+    }));
+
     setIsCreating(true);
     try {
       const result = await createNewPitch(
-        formData,
+        { ...formData, tiers: normalizedTiers },
         aiAnalysis || undefined,
         uploadedFileUrls
       );
@@ -214,13 +368,12 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
           detailedPitch: "",
           targetAmount: "",
           profitShare: "",
+          profitDistributionFrequency: "monthly",
+          tags: [],
           endDate: undefined,
-          tiers: [
-            { name: "Bronze", minAmount: "", maxAmount: "", multiplier: "1.0" },
-            { name: "Silver", minAmount: "", maxAmount: "", multiplier: "1.2" },
-            { name: "Gold", minAmount: "", maxAmount: "", multiplier: "1.5" },
-          ],
+          tiers: [],
         });
+        setTagInput("");
         setCurrentStep(1);
         setAiAnalysis(null);
         setUploadedFiles([]);
@@ -313,12 +466,12 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
       }}
     >
       <DialogTrigger asChild>
-          <Button className="gap-2 bg-black hover:bg-gray-900 text-white font-medium px-4 py-2">
-            <Plus className="h-4 w-4" />
-            Create New Pitch
-          </Button>
+        <Button className="gap-2 bg-black hover:bg-gray-900 text-white font-medium px-4 py-2">
+          <Plus className="h-4 w-4" />
+          Create New Pitch
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Create Investment Pitch
@@ -391,6 +544,11 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       placeholder="e.g., EcoTech Smart Home Solutions"
                       className="border-gray-300 focus:border-black focus:ring-black"
                     />
+                    {getTitleError() && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {getTitleError()}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label
@@ -412,6 +570,11 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       placeholder="Revolutionary IoT devices that reduce energy consumption by 40%..."
                     />
+                    {getElevatorPitchError() && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {getElevatorPitchError()}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -448,6 +611,93 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                       className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                       placeholder="Describe your product/service, market opportunity, target customers..."
                     />
+                    {getDetailedPitchError() && (
+                      <p className="text-xs text-red-600 mt-1">
+                        {getDetailedPitchError()}
+                      </p>
+                    )}
+                  </div>
+                  {/* Pitch Tags moved here */}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Pitch Tags
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={selectedTag}
+                        onValueChange={(value) => setSelectedTag(value)}
+                      >
+                        <SelectTrigger className="w-full border-gray-300 focus:border-black focus:ring-black">
+                          <SelectValue placeholder="Choose a common tag" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {suggestedTags.map((t) => (
+                            <SelectItem key={t} value={t}>
+                              {t}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedTag === "Other" && (
+                        <Input
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          placeholder="Enter custom tag"
+                          className="border-gray-300 focus:border-black focus:ring-black"
+                        />
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          if (selectedTag === "Other") {
+                            const custom = tagInput.trim();
+                            if (custom && !formData.tags.includes(custom)) {
+                              setFormData({
+                                ...formData,
+                                tags: [...formData.tags, custom],
+                              });
+                              setTagInput("");
+                              setSelectedTag("");
+                            }
+                            return;
+                          }
+
+                          if (
+                            selectedTag &&
+                            !formData.tags.includes(selectedTag)
+                          ) {
+                            setFormData({
+                              ...formData,
+                              tags: [...formData.tags, selectedTag],
+                            });
+                            setSelectedTag("");
+                          }
+                        }}
+                        className="border-gray-300"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {formData.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {formData.tags.map((tag) => (
+                          <div
+                            key={tag}
+                            className="inline-flex items-center gap-1 bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm"
+                          >
+                            <span>{tag}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="text-gray-500 hover:text-gray-700"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -482,7 +732,8 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         <Input
                           id="targetAmount"
                           type="number"
-                          min="1"
+                          min="1000"
+                          max="1000000000"
                           value={formData.targetAmount}
                           onChange={(e) =>
                             setFormData({
@@ -494,7 +745,12 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                           className="border-gray-300 focus:border-black focus:ring-black"
                         />
                         <p className="text-xs text-gray-500">
-                          Enter the total amount you want to raise (minimum £1)
+                          
+                          {getTargetAmountError() && (
+                            <p className="text-xs text-red-600 font-medium mt-1">
+                              {getTargetAmountError()}
+                            </p>
+                          )}
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -564,6 +820,38 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         <p className="text-xs text-gray-500">
                           Percentage of profits to share with investors (1-100%)
                         </p>
+                        {getProfitShareError() && (
+                          <p className="text-xs text-red-600 font-medium mt-1">
+                            {getProfitShareError()}
+                          </p>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <Label
+                          htmlFor="profitDistribution"
+                          className="text-sm font-medium text-gray-700"
+                        >
+                          Profit Distribution Frequency *
+                        </Label>
+                        <select
+                          id="profitDistribution"
+                          value={formData.profitDistributionFrequency}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              profitDistributionFrequency: e.target.value,
+                            })
+                          }
+                          className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
+                        >
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                          <option value="semi-annually">Semi-Annually</option>
+                          <option value="annually">Annually</option>
+                        </select>
+                        <p className="text-xs text-gray-500">
+                          How often will profits be distributed to investors?
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -578,91 +866,142 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                     Investment Tiers
                   </h3>
                   <p className="text-gray-600">
-                    Configure different investment levels and their benefits
+                    Create custom investment tiers with different benefit levels
                   </p>
                 </div>
                 <div className="space-y-6 max-w-3xl mx-auto">
-                  {formData.tiers.map((tier, index) => (
-                    <Card
-                      key={index}
-                      className="border border-gray-200 shadow-sm"
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-lg font-semibold text-gray-800">
-                          {tier.name} Tier
-                        </CardTitle>
-                        <CardDescription className="text-gray-600">
-                          Define the range and multiplier for this investment
-                          tier
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
-                            Min Amount (£) *
-                          </Label>
-                          <Input
-                            type="number"
-                            value={tier.minAmount}
-                            onChange={(e) => {
-                              const t = [...formData.tiers];
-                              t[index].minAmount = e.target.value;
-                              setFormData({ ...formData, tiers: t });
-                            }}
-                            placeholder={
-                              index === 0
-                                ? "1000"
-                                : index === 1
-                                ? "5000"
-                                : "15000"
-                            }
-                            className="border-gray-300 focus:border-black focus:ring-black"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
-                            Max Amount (£) *
-                          </Label>
-                          <Input
-                            type="number"
-                            value={tier.maxAmount}
-                            onChange={(e) => {
-                              const t = [...formData.tiers];
-                              t[index].maxAmount = e.target.value;
-                              setFormData({ ...formData, tiers: t });
-                            }}
-                            placeholder={
-                              index === 0
-                                ? "4999"
-                                : index === 1
-                                ? "14999"
-                                : "50000"
-                            }
-                            className="border-gray-300 focus:border-black focus:ring-black"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-gray-700">
-                            Multiplier *
-                          </Label>
-                          <Input
-                            type="number"
-                            step="0.1"
-                            value={tier.multiplier}
-                            onChange={(e) => {
-                              const t = [...formData.tiers];
-                              t[index].multiplier = e.target.value;
-                              setFormData({ ...formData, tiers: t });
-                            }}
-                            placeholder={
-                              index === 0 ? "1.0" : index === 1 ? "1.2" : "1.5"
-                            }
-                            className="border-gray-300 focus:border-black focus:ring-black"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  {formData.tiers.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                      <TrendingUp className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <h4 className="text-lg font-semibold text-gray-800 mb-2">
+                        No Tiers Yet
+                      </h4>
+                      <p className="text-gray-600 mb-6">
+                        Create investment tiers to offer different benefits to
+                        investors
+                      </p>
+                      <Button
+                        type="button"
+                        onClick={addTier}
+                        className="bg-black hover:bg-gray-900 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Tier
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      {formData.tiers.map((tier, index) => (
+                        <Card
+                          key={index}
+                          className="border border-gray-200 shadow-sm relative"
+                        >
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <CardTitle className="text-lg font-semibold text-gray-800 mb-2">
+                                  Tier {index + 1}
+                                </CardTitle>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeTier(index)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium text-gray-700">
+                                Tier Name *
+                              </Label>
+                              <Input
+                                type="text"
+                                value={tier.name}
+                                onChange={(e) =>
+                                  updateTier(index, "name", e.target.value)
+                                }
+                                placeholder="e.g., Starter, Premium, Elite"
+                                className="border-gray-300 focus:border-black focus:ring-black"
+                              />
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Min Amount (£) *
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={tier.minAmount}
+                                  onChange={(e) =>
+                                    updateTier(
+                                      index,
+                                      "minAmount",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="1000"
+                                  className="border-gray-300 focus:border-black focus:ring-black"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Max Amount (£) *
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={tier.maxAmount}
+                                  onChange={(e) =>
+                                    updateTier(
+                                      index,
+                                      "maxAmount",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="5000"
+                                  className="border-gray-300 focus:border-black focus:ring-black"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label className="text-sm font-medium text-gray-700">
+                                  Multiplier *
+                                </Label>
+                                <Input
+                                  type="number"
+                                  step="0.1"
+                                  value={tier.multiplier}
+                                  onChange={(e) =>
+                                    updateTier(
+                                      index,
+                                      "multiplier",
+                                      e.target.value
+                                    )
+                                  }
+                                  placeholder="1.0"
+                                  className="border-gray-300 focus:border-black focus:ring-black"
+                                />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <div className="flex justify-center">
+                        <Button
+                          type="button"
+                          onClick={addTier}
+                          variant="outline"
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Another Tier
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}

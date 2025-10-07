@@ -22,13 +22,41 @@ export function SignUpForm() {
     confirmPassword: "",
   });
   const [error, setError] = useState<string>("");
+  const [emailFormatError, setEmailFormatError] = useState<string>("");
+  const [passwordsMatchError, setPasswordsMatchError] = useState<string>("");
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      if (
+        (field === "password" || field === "confirmPassword") &&
+        updated.confirmPassword &&
+        updated.password !== updated.confirmPassword
+      ) {
+        setPasswordsMatchError("Passwords do not match.");
+      } else {
+        setPasswordsMatchError("");
+      }
+      return updated;
+    });
     setError(""); // clear error on input change
+    if (field === "email") {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (value && !emailRegex.test(value)) {
+        setEmailFormatError("Please enter a valid email address.");
+      } else {
+        setEmailFormatError("");
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      e.preventDefault();
+      setError("Please enter a valid email address.");
+      return;
+    }
     if (formData.password.length < 6) {
       e.preventDefault();
       setError("Password should be at least 6 characters.");
@@ -77,8 +105,11 @@ export function SignUpForm() {
       </CardHeader>
 
       <CardContent>
-        {error && (
-          <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
+        {(error || passwordsMatchError) && (
+          <div className="mb-4 text-red-500 text-sm text-center">
+            {error}
+            {passwordsMatchError && <div>{passwordsMatchError}</div>}
+          </div>
         )}
         <form action={signup} className="space-y-4" onSubmit={handleSubmit}>
           <input type="hidden" name="accountType" value={accountType} />
@@ -120,6 +151,9 @@ export function SignUpForm() {
               onChange={(e) => handleInputChange("email", e.target.value)}
               required
             />
+            {emailFormatError && (
+              <p className="text-xs text-red-600 mt-1">{emailFormatError}</p>
+            )}
           </div>
 
           <div className="space-y-2">

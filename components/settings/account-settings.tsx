@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +29,9 @@ import {
   CreditCard,
   Download,
   Trash2,
+  Wallet,
+  Plus,
+  Minus,
 } from "lucide-react";
 import {
   getCurrentUser,
@@ -37,15 +41,59 @@ import {
   signOut,
 } from "@/lib/action";
 import type { User as UserType, BusinessUser } from "@/lib/types/user";
+import { DepositDialog } from "@/components/settings/deposit-dialog";
+import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
+import { TransactionHistory } from "@/components/settings/transaction-history";
+import { useInvestorSafe } from "@/context/InvestorContext";
+import { useBusinessSafe } from "@/context/BusinessContext";
+import { useAuth } from "@/lib/auth";
 
 export function AccountSettings() {
-  const [user, setUser] = useState<UserType | null>(null);
-  const [businessUser, setBusinessUser] = useState<BusinessUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user: authUser } = useAuth();
+  const searchParams = useSearchParams();
+
+  // Use safe versions that don't throw errors
+  const investorContext = useInvestorSafe();
+  const businessContext = useBusinessSafe();
+
+  // Determine which context to use based on user role
+  let cachedUserProfile: UserType | null = null;
+  let cachedBusinessUserProfile: BusinessUser | null = null;
+  let refreshUserProfileFromContext: (() => Promise<void>) | null = null;
+  let cachedAccountBalance = 0;
+
+  // Use the appropriate context based on user role
+  if (authUser?.role === "investor" && investorContext) {
+    cachedUserProfile = investorContext.userProfile;
+    cachedBusinessUserProfile = investorContext.businessUserProfile;
+    refreshUserProfileFromContext = investorContext.refreshUserProfile;
+    cachedAccountBalance = investorContext.accountBalance;
+  } else if (authUser?.role === "business" && businessContext) {
+    cachedUserProfile = businessContext.userProfile;
+    cachedBusinessUserProfile = businessContext.businessUserProfile;
+    refreshUserProfileFromContext = businessContext.refreshUserProfile;
+    cachedAccountBalance = businessContext.accountBalance;
+  }
+
+  const [user, setUser] = useState<UserType | null>(cachedUserProfile);
+  const [businessUser, setBusinessUser] = useState<BusinessUser | null>(
+    cachedBusinessUserProfile
+  );
+  const [loading, setLoading] = useState(!cachedUserProfile);
   const [editingUser, setEditingUser] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("profile");
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (
+      tab &&
+      ["profile", "security", "notifications", "billing", "data"].includes(tab)
+    ) {
+      setActiveSection(tab);
+    }
+  }, [searchParams]);
 
   const [notifications, setNotifications] = useState({
     email: true,
@@ -55,6 +103,8 @@ export function AccountSettings() {
   });
 
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [depositDialogOpen, setDepositDialogOpen] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
 
   // User form data
   const [userFormData, setUserFormData] = useState({
@@ -73,8 +123,33 @@ export function AccountSettings() {
     location: "",
   });
 
+  // Sync with cached data from InvestorContext
   useEffect(() => {
-    loadUserData();
+    if (cachedUserProfile) {
+      setUser(cachedUserProfile);
+      setUserFormData({
+        first_name: cachedUserProfile.first_name,
+        last_name: cachedUserProfile.last_name,
+        email: cachedUserProfile.email,
+      });
+    }
+    if (cachedBusinessUserProfile) {
+      setBusinessUser(cachedBusinessUserProfile);
+      setBusinessFormData({
+        business_name: cachedBusinessUserProfile.business_name,
+        description: cachedBusinessUserProfile.description,
+        website: cachedBusinessUserProfile.website || "",
+        logo_url: cachedBusinessUserProfile.logo_url || "",
+        phone_number: cachedBusinessUserProfile.phone_number || "",
+        location: cachedBusinessUserProfile.location,
+      });
+    }
+  }, [cachedUserProfile, cachedBusinessUserProfile]);
+
+  useEffect(() => {
+    if (!cachedUserProfile) {
+      loadUserData();
+    }
   }, []);
 
   const loadUserData = async () => {
@@ -125,7 +200,12 @@ export function AccountSettings() {
       const result = await updateUserProfile(userFormData);
       if (result.success) {
         setEditingUser(false);
-        await loadUserData(); // Refresh data
+        // Refresh from context if available, otherwise fetch directly
+        if (refreshUserProfileFromContext) {
+          await refreshUserProfileFromContext();
+        } else {
+          await loadUserData();
+        }
       } else {
         console.error("Error updating user profile:", result.error);
       }
@@ -147,7 +227,12 @@ export function AccountSettings() {
       });
       if (result.success) {
         setEditingBusiness(false);
-        await loadUserData(); // Refresh data
+        // Refresh from context if available, otherwise fetch directly
+        if (refreshUserProfileFromContext) {
+          await refreshUserProfileFromContext();
+        } else {
+          await loadUserData();
+        }
       } else {
         console.error("Error updating business profile:", result.error);
       }
@@ -223,7 +308,9 @@ export function AccountSettings() {
         <div className="w-64 bg-sidebar border-r border-sidebar-border p-6 flex flex-col h-screen">
           <div>
             <div className="mb-8">
-              <h1 className="text-xl font-semibold text-foreground">Settings</h1>
+              <h1 className="text-xl font-semibold text-foreground">
+                Settings
+              </h1>
               <p className="text-sm text-muted-foreground mt-1">
                 Manage your account preferences
               </p>
@@ -405,7 +492,11 @@ export function AccountSettings() {
                               Account Balance
                             </Label>
                             <p className="text-foreground font-medium">
-                              ${user.account_balance.toLocaleString()}
+                              £
+                              {user.account_balance.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
                             </p>
                           </div>
                         </div>
@@ -796,34 +887,56 @@ export function AccountSettings() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-2xl font-bold text-foreground">
-                    Billing
+                    Wallet & Billing
                   </h2>
                   <p className="text-muted-foreground">
-                    Manage your billing information and subscription
+                    Manage your account balance
                   </p>
                 </div>
 
                 <Card className="border-border">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" />
-                      Current Plan
+                      <Wallet className="h-5 w-5" />
+                      Account Balance
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="flex items-center justify-between">
+                    <div className="space-y-4">
                       <div>
-                        <p className="text-foreground font-medium">
-                          Professional Plan
+                        <p className="text-3xl font-bold text-foreground">
+                          £
+                          {user.account_balance.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          $29/month • Next billing date: Jan 15, 2024
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Available balance
                         </p>
                       </div>
-                      <Button variant="outline">Manage Plan</Button>
+                      <div className="flex gap-3">
+                        <Button
+                          onClick={() => setDepositDialogOpen(true)}
+                          className="flex-1"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Deposit
+                        </Button>
+                        <Button
+                          onClick={() => setWithdrawDialogOpen(true)}
+                          variant="outline"
+                          className="flex-1"
+                        >
+                          <Minus className="h-4 w-4 mr-2" />
+                          Withdraw
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
+
+                <TransactionHistory />
               </div>
             )}
 
@@ -857,7 +970,7 @@ export function AccountSettings() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border border-destructive/20">
+                <Card className="border-destructive/20">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive">
                       <Trash2 className="h-5 w-5" />
@@ -880,6 +993,38 @@ export function AccountSettings() {
           </div>
         </div>
       </div>
+
+      <DepositDialog
+        open={depositDialogOpen}
+        onOpenChange={setDepositDialogOpen}
+        onSuccess={async () => {
+          if (investorContext) {
+            await investorContext.refreshUserProfile();
+            await investorContext.refreshTransactions();
+          } else if (businessContext) {
+            await businessContext.refreshUserProfile();
+            await businessContext.refreshTransactions();
+          } else {
+            await loadUserData();
+          }
+        }}
+      />
+      <WithdrawDialog
+        open={withdrawDialogOpen}
+        onOpenChange={setWithdrawDialogOpen}
+        onSuccess={async () => {
+          if (investorContext) {
+            await investorContext.refreshUserProfile();
+            await investorContext.refreshTransactions();
+          } else if (businessContext) {
+            await businessContext.refreshUserProfile();
+            await businessContext.refreshTransactions();
+          } else {
+            await loadUserData();
+          }
+        }}
+        currentBalance={user.account_balance}
+      />
     </div>
   );
 }
