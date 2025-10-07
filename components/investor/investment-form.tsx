@@ -42,7 +42,10 @@ export function InvestmentForm({
   const { toast } = useToast();
   const [investmentAmount, setInvestmentAmount] = useState<number>(0);
 
-  const maxAvailableToInvest = Math.max(0, pitch.target_amount - pitch.current_amount);
+  const maxAvailableToInvest = Math.max(
+    0,
+    pitch.target_amount - pitch.current_amount
+  );
   const [fundingMethod, setFundingMethod] = useState<"balance" | "bank">(
     "balance"
   );
@@ -145,7 +148,9 @@ export function InvestmentForm({
     }
 
     // prevent profit share from exceeding pitch.profit_share
-    const userProfitShare = ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share;
+    const userProfitShare =
+      ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) *
+      pitch.profit_share;
     if (userProfitShare > pitch.profit_share) {
       toast({
         title: "Investment Too Large",
@@ -182,6 +187,7 @@ export function InvestmentForm({
       await updateAccountBalance(user.id, accountBalance - investmentAmount);
       setAccountBalance(accountBalance - investmentAmount);
     }
+
     setIsProcessing(false);
     setSuccessDialogOpen(true);
   };
@@ -225,10 +231,15 @@ export function InvestmentForm({
             max={maxAvailableToInvest}
           />
           {maxAvailableToInvest === 0 && (
-            <div className="text-xs text-red-600 mt-1">No more investment available for this pitch.</div>
+            <div className="text-xs text-red-600 mt-1">
+              No more investment available for this pitch.
+            </div>
           )}
           {investmentAmount > maxAvailableToInvest && (
-            <div className="text-xs text-red-600 mt-1">You cannot invest more than the available amount (${maxAvailableToInvest.toLocaleString()}).</div>
+            <div className="text-xs text-red-600 mt-1">
+              You cannot invest more than the available amount ($
+              {maxAvailableToInvest.toLocaleString()}).
+            </div>
           )}
           <div className="flex gap-2 flex-wrap">
             {normalizedTiers.map((tier) => (
@@ -331,7 +342,9 @@ export function InvestmentForm({
                   <span>Your Shares:</span>
                   <span className="font-medium">
                     {selectedTier && investmentAmount > 0
-                      ? (investmentAmount * selectedTier.multiplier).toLocaleString()
+                      ? (
+                          investmentAmount * selectedTier.multiplier
+                        ).toLocaleString()
                       : "0"}
                   </span>
                 </div>
@@ -354,8 +367,13 @@ export function InvestmentForm({
               investmentAmount === 0 ||
               isProcessing ||
               Boolean(
-                selectedTier && pitch.target_amount && investmentAmount > 0 &&
-                (((investmentAmount * selectedTier.multiplier) / pitch.target_amount) * pitch.profit_share > pitch.profit_share)
+                selectedTier &&
+                  pitch.target_amount &&
+                  investmentAmount > 0 &&
+                  ((investmentAmount * selectedTier.multiplier) /
+                    pitch.target_amount) *
+                    pitch.profit_share >
+                    pitch.profit_share
               )
             }
             className="w-full"
@@ -380,7 +398,9 @@ export function InvestmentForm({
         onOpenChange={setConfirmDialogOpen}
         onConfirm={doInvestment}
         title={`Confirm Investment`}
-        description={`Are you sure you want to invest $${investmentAmount.toLocaleString()} in ${pitch.title}?`}
+        description={`Are you sure you want to invest $${investmentAmount.toLocaleString()} in ${
+          pitch.title
+        }?`}
         confirmText="Yes, Invest"
         cancelText="No"
         isLoading={isProcessing}
@@ -395,7 +415,9 @@ export function InvestmentForm({
           }
         }}
         title="Investment Confirmed!"
-        description={`Your investment of $${investmentAmount.toLocaleString()} in ${pitch.title} was successful.`}
+        description={`Your investment of $${investmentAmount.toLocaleString()} in ${
+          pitch.title
+        } was successful.`}
         confirmText="OK"
       />
       <InsufficientBalanceDialog

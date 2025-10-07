@@ -11,6 +11,8 @@ export interface PitchFormData {
   detailedPitch: string;
   targetAmount: string;
   profitShare: string;
+  profitDistributionFrequency: string;
+  tags: string[];
   endDate: Date | undefined;
   tiers: InvestmentTier[];
 }
@@ -32,6 +34,8 @@ export interface Pitch {
   target_amount: number;
   current_amount: number;
   profit_share: number;
+  profit_distribution_frequency: string;
+  tags: string[];
   end_date: string;
   status: "draft" | "active" | "funded" | "closed";
   ai_rating: string | null;
@@ -50,6 +54,8 @@ export interface CreatePitchData {
   detailed_pitch: string;
   target_amount: number;
   profit_share: number;
+  profit_distribution_frequency: string;
+  tags: string[];
   end_date: string;
   investment_tiers: InvestmentTier[];
   ai_analysis?: AIAnalysis;
@@ -62,6 +68,8 @@ export interface UpdatePitchData {
   detailed_pitch?: string;
   target_amount?: number;
   profit_share?: number;
+  profit_distribution_frequency?: string;
+  tags?: string[];
   end_date?: string;
   investment_tiers?: InvestmentTier[];
   ai_analysis?: AIAnalysis;

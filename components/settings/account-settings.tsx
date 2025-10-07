@@ -44,12 +44,42 @@ import type { User as UserType, BusinessUser } from "@/lib/types/user";
 import { DepositDialog } from "@/components/settings/deposit-dialog";
 import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
 import { TransactionHistory } from "@/components/settings/transaction-history";
+import { useInvestorSafe } from "@/context/InvestorContext";
+import { useBusinessSafe } from "@/context/BusinessContext";
+import { useAuth } from "@/lib/auth";
 
 export function AccountSettings() {
+  const { user: authUser } = useAuth();
   const searchParams = useSearchParams();
-  const [user, setUser] = useState<UserType | null>(null);
-  const [businessUser, setBusinessUser] = useState<BusinessUser | null>(null);
-  const [loading, setLoading] = useState(true);
+
+  // Use safe versions that don't throw errors
+  const investorContext = useInvestorSafe();
+  const businessContext = useBusinessSafe();
+
+  // Determine which context to use based on user role
+  let cachedUserProfile: UserType | null = null;
+  let cachedBusinessUserProfile: BusinessUser | null = null;
+  let refreshUserProfileFromContext: (() => Promise<void>) | null = null;
+  let cachedAccountBalance = 0;
+
+  // Use the appropriate context based on user role
+  if (authUser?.role === "investor" && investorContext) {
+    cachedUserProfile = investorContext.userProfile;
+    cachedBusinessUserProfile = investorContext.businessUserProfile;
+    refreshUserProfileFromContext = investorContext.refreshUserProfile;
+    cachedAccountBalance = investorContext.accountBalance;
+  } else if (authUser?.role === "business" && businessContext) {
+    cachedUserProfile = businessContext.userProfile;
+    cachedBusinessUserProfile = businessContext.businessUserProfile;
+    refreshUserProfileFromContext = businessContext.refreshUserProfile;
+    cachedAccountBalance = businessContext.accountBalance;
+  }
+
+  const [user, setUser] = useState<UserType | null>(cachedUserProfile);
+  const [businessUser, setBusinessUser] = useState<BusinessUser | null>(
+    cachedBusinessUserProfile
+  );
+  const [loading, setLoading] = useState(!cachedUserProfile);
   const [editingUser, setEditingUser] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -57,7 +87,10 @@ export function AccountSettings() {
 
   useEffect(() => {
     const tab = searchParams?.get("tab");
-    if (tab && ["profile","security","notifications","billing","data"].includes(tab)) {
+    if (
+      tab &&
+      ["profile", "security", "notifications", "billing", "data"].includes(tab)
+    ) {
       setActiveSection(tab);
     }
   }, [searchParams]);
@@ -90,8 +123,33 @@ export function AccountSettings() {
     location: "",
   });
 
+  // Sync with cached data from InvestorContext
   useEffect(() => {
-    loadUserData();
+    if (cachedUserProfile) {
+      setUser(cachedUserProfile);
+      setUserFormData({
+        first_name: cachedUserProfile.first_name,
+        last_name: cachedUserProfile.last_name,
+        email: cachedUserProfile.email,
+      });
+    }
+    if (cachedBusinessUserProfile) {
+      setBusinessUser(cachedBusinessUserProfile);
+      setBusinessFormData({
+        business_name: cachedBusinessUserProfile.business_name,
+        description: cachedBusinessUserProfile.description,
+        website: cachedBusinessUserProfile.website || "",
+        logo_url: cachedBusinessUserProfile.logo_url || "",
+        phone_number: cachedBusinessUserProfile.phone_number || "",
+        location: cachedBusinessUserProfile.location,
+      });
+    }
+  }, [cachedUserProfile, cachedBusinessUserProfile]);
+
+  useEffect(() => {
+    if (!cachedUserProfile) {
+      loadUserData();
+    }
   }, []);
 
   const loadUserData = async () => {
@@ -142,7 +200,12 @@ export function AccountSettings() {
       const result = await updateUserProfile(userFormData);
       if (result.success) {
         setEditingUser(false);
-        await loadUserData(); // Refresh data
+        // Refresh from context if available, otherwise fetch directly
+        if (refreshUserProfileFromContext) {
+          await refreshUserProfileFromContext();
+        } else {
+          await loadUserData();
+        }
       } else {
         console.error("Error updating user profile:", result.error);
       }
@@ -164,7 +227,12 @@ export function AccountSettings() {
       });
       if (result.success) {
         setEditingBusiness(false);
-        await loadUserData(); // Refresh data
+        // Refresh from context if available, otherwise fetch directly
+        if (refreshUserProfileFromContext) {
+          await refreshUserProfileFromContext();
+        } else {
+          await loadUserData();
+        }
       } else {
         console.error("Error updating business profile:", result.error);
       }
@@ -902,7 +970,7 @@ export function AccountSettings() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-border border-destructive/20">
+                <Card className="border-destructive/20">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-destructive">
                       <Trash2 className="h-5 w-5" />
@@ -929,12 +997,32 @@ export function AccountSettings() {
       <DepositDialog
         open={depositDialogOpen}
         onOpenChange={setDepositDialogOpen}
-        onSuccess={loadUserData}
+        onSuccess={async () => {
+          if (investorContext) {
+            await investorContext.refreshUserProfile();
+            await investorContext.refreshTransactions();
+          } else if (businessContext) {
+            await businessContext.refreshUserProfile();
+            await businessContext.refreshTransactions();
+          } else {
+            await loadUserData();
+          }
+        }}
       />
       <WithdrawDialog
         open={withdrawDialogOpen}
         onOpenChange={setWithdrawDialogOpen}
-        onSuccess={loadUserData}
+        onSuccess={async () => {
+          if (investorContext) {
+            await investorContext.refreshUserProfile();
+            await investorContext.refreshTransactions();
+          } else if (businessContext) {
+            await businessContext.refreshUserProfile();
+            await businessContext.refreshTransactions();
+          } else {
+            await loadUserData();
+          }
+        }}
         currentBalance={user.account_balance}
       />
     </div>

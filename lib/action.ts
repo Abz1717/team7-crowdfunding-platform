@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 import { createClient } from "@/utils/supabase/server";
 import { CreatePitchData, Pitch, UpdatePitchData } from "@/lib/types/pitch";
@@ -40,6 +41,13 @@ export async function login(formData: FormData) {
   if (userError || !userDetails) {
     redirect("/error");
   }
+
+  // Store user role in cookie for middleware
+  const cookieStore = await cookies();
+  cookieStore.set("user_role", userDetails.account_type, {
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: "/",
+  });
 
   if (userDetails.account_type === "investor") {
     redirect("/investor/portfolio");
@@ -102,6 +110,14 @@ export async function signup(formData: FormData) {
   }
 
   console.log("Signup success:", userData);
+
+  // Store user role in cookie for middleware
+  const cookieStore = await cookies();
+  cookieStore.set("user_role", data.accountType, {
+    maxAge: 60 * 60 * 24 * 7, // 7 days
+    path: "/",
+  });
+
   revalidatePath("/", "layout");
 
   if (!userData.session) {
@@ -212,6 +228,9 @@ export async function createPitch(
           detailed_pitch: pitchData.detailed_pitch,
           target_amount: pitchData.target_amount,
           profit_share: pitchData.profit_share,
+          profit_distribution_frequency:
+            pitchData.profit_distribution_frequency,
+          tags: pitchData.tags,
           end_date: pitchData.end_date,
           investment_tiers: pitchData.investment_tiers,
           ai_analysis: pitchData.ai_analysis || null,
@@ -606,6 +625,10 @@ export async function signOut(): Promise<{ success: boolean; error?: string }> {
       return { success: false, error: error.message };
     }
 
+    // Clear user role cookie
+    const cookieStore = await cookies();
+    cookieStore.delete("user_role");
+
     revalidatePath("/", "layout");
     redirect("/signin");
   } catch (error) {
@@ -687,7 +710,6 @@ export async function declareProfits(
   pitchId: string,
   profitAmount: number
 ): Promise<{ success: boolean; error?: string }> {
-
   try {
     const supabase = await createClient();
 
@@ -719,8 +741,14 @@ export async function declareProfits(
       return { success: false, error: "Business user account not found" };
     }
 
-    if (typeof user.account_balance !== 'number' || user.account_balance < profitAmount) {
-      return { success: false, error: "Insufficient account balance to declare this profit amount." };
+    if (
+      typeof user.account_balance !== "number" ||
+      user.account_balance < profitAmount
+    ) {
+      return {
+        success: false,
+        error: "Insufficient account balance to declare this profit amount.",
+      };
     }
 
     const newBusinessBalance = user.account_balance - profitAmount;
@@ -729,11 +757,15 @@ export async function declareProfits(
       .update({ account_balance: newBusinessBalance })
       .eq("id", businessUser.user_id);
     if (updateBusinessError) {
-      return { success: false, error: "Failed to update business account balance." };
+      return {
+        success: false,
+        error: "Failed to update business account balance.",
+      };
     }
 
     const businessProfitShare = pitch.profit_share ?? 0;
-    const businessProfitShareAmount = profitAmount * (businessProfitShare / 100);
+    const businessProfitShareAmount =
+      profitAmount * (businessProfitShare / 100);
     const businessProfit = profitAmount - businessProfitShareAmount;
 
     const { data: profitDist, error: profitDistError } = await supabase
@@ -741,7 +773,7 @@ export async function declareProfits(
       .insert({
         pitch_id: pitchId,
         total_profit: profitAmount,
-  business_profit: businessProfit,
+        business_profit: businessProfit,
         distribution_date: new Date().toISOString(),
       })
       .select()
@@ -974,34 +1006,62 @@ export async function previewProfitDistribution(
     const profitShareAmount = profitAmount * (profitShare / 100);
 
     // Group investments by investor_id
-    const investorMap: Record<string, { investment_amount: number; weighted: number; tiers: { name: string; multiplier: number }[] }> = {};
+    const investorMap: Record<
+      string,
+      {
+        investment_amount: number;
+        weighted: number;
+        tiers: { name: string; multiplier: number }[];
+      }
+    > = {};
     for (const inv of investments) {
       let tierMultiplier = 1;
       let tierName = "";
       if (Array.isArray(pitch.investment_tiers)) {
-        const tier = pitch.investment_tiers.find((t: any) => t.name === inv.tier?.name);
+        const tier = pitch.investment_tiers.find(
+          (t: any) => t.name === inv.tier?.name
+        );
         if (tier) {
           tierMultiplier = Number(tier.multiplier) || 1;
           tierName = tier.name;
         }
       }
       if (!investorMap[inv.investor_id]) {
-        investorMap[inv.investor_id] = { investment_amount: 0, weighted: 0, tiers: [] };
+        investorMap[inv.investor_id] = {
+          investment_amount: 0,
+          weighted: 0,
+          tiers: [],
+        };
       }
       investorMap[inv.investor_id].investment_amount += inv.investment_amount;
-      investorMap[inv.investor_id].weighted += inv.investment_amount * tierMultiplier;
-      investorMap[inv.investor_id].tiers.push({ name: tierName, multiplier: tierMultiplier });
+      investorMap[inv.investor_id].weighted +=
+        inv.investment_amount * tierMultiplier;
+      investorMap[inv.investor_id].tiers.push({
+        name: tierName,
+        multiplier: tierMultiplier,
+      });
     }
-    const totalWeighted = Object.values(investorMap).reduce((sum, v) => sum + v.weighted, 0);
-    const investorPayouts = Object.entries(investorMap).map(([investor_id, v]) => {
-      const payoutAmount = totalWeighted > 0 ? (v.weighted / totalWeighted) * profitShareAmount : 0;
-      return {
-        investor_id,
-        investment_amount: v.investment_amount,
-        amount: payoutAmount,
-        percentage: profitShareAmount > 0 ? (payoutAmount / profitShareAmount) * 100 : 0,
-      };
-    });
+    const totalWeighted = Object.values(investorMap).reduce(
+      (sum, v) => sum + v.weighted,
+      0
+    );
+    const investorPayouts = Object.entries(investorMap).map(
+      ([investor_id, v]) => {
+        const payoutAmount =
+          totalWeighted > 0
+            ? (v.weighted / totalWeighted) * profitShareAmount
+            : 0;
+        return {
+          investor_id,
+          investment_amount: v.investment_amount,
+          amount: payoutAmount,
+          percentage:
+            profitShareAmount > 0
+              ? (payoutAmount / profitShareAmount) * 100
+              : 0,
+        };
+      }
+    );
     const totalInvested = investments.reduce(
       (sum, inv) => sum + (inv.investment_amount || 0),
       0

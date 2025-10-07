@@ -1,5 +1,3 @@
-
-
 import { getPitchById } from "@/lib/data";
 
 import { PitchDetailsCard } from "@/components/shared/pitch-details-card";
@@ -7,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-export default async function BusinessPitchPage({ params }: { params: Promise<{ pitchId: string }> }) {
+export default async function BusinessPitchPage({
+  params,
+}: {
+  params: Promise<{ pitchId: string }>;
+}) {
   const { pitchId } = await params;
   const pitch = await getPitchById(pitchId);
 
