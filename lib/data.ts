@@ -91,14 +91,21 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
     .single();
   if (!pitch || pitchError) return null;
 
+  // If no tier, treat multiplier as 1
   const effectiveValue = investment.investment_amount * (investment.tier?.multiplier ?? 1);
   const newPool = (pitch.investment_pool ?? 0) + investment.amount;
   const newCurrentAmount = (pitch.current_amount ?? 0) + investment.investment_amount;
   const isFullyFunded = newCurrentAmount >= (pitch.target_amount ?? 0);
-  
+
+  // Remove tier if null to avoid DB issues
+  const investmentToInsert = { ...investment };
+  if (typeof investmentToInsert.tier === "undefined" || investmentToInsert.tier === null) {
+    delete (investmentToInsert as any).tier;
+  }
+
   const { data, error } = await supabase
     .from("investment")
-    .insert([investment])
+    .insert([investmentToInsert])
     .select()
     .single();
   if (!data || error) return null;

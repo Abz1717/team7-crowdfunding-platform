@@ -721,7 +721,7 @@ export function Portfolio() {
                     {formatDate(investment.invested_at)}
                   </div>
                 </div>
-                <TierBadge tier={investment.tier.name} />
+                <TierBadge tier={investment.tier?.name || "No Tier"} />
               </div>
             ))}
 

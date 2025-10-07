@@ -34,7 +34,7 @@ export interface Investment {
   investor_id: string;
   pitch_id: string;
   amount: number;
-  tier: InvestmentTier;
+  tier?: InvestmentTier; // Make optional for no-tiers case
   invested_at: Date;
   returns: ProfitDistribution[];
   effective_share?: number;
