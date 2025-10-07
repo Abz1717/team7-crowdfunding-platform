@@ -277,17 +277,8 @@ export function AccountSettings() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-sm text-muted-foreground">
-          Loading account settings...
-        </div>
-      </div>
-    );
-  }
 
-  if (!user) {
+  if (!user && !loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-sm text-destructive">Failed to load user data</div>
@@ -357,8 +348,8 @@ export function AccountSettings() {
                     <Avatar className="h-20 w-20">
                       <AvatarImage src="/professional-profile.png" />
                       <AvatarFallback className="text-lg">
-                        {user.first_name[0]}
-                        {user.last_name[0]}
+                        {user?.first_name?.[0]}
+                        {user?.last_name?.[0]}
                       </AvatarFallback>
                     </Avatar>
                     <Button
@@ -371,9 +362,9 @@ export function AccountSettings() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">
-                      {user.first_name} {user.last_name}
+                      {user?.first_name} {user?.last_name}
                     </h2>
-                    <p className="text-muted-foreground">{user.email}</p>
+                    <p className="text-muted-foreground">{user?.email}</p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                       <span className="text-sm text-muted-foreground">
@@ -466,7 +457,7 @@ export function AccountSettings() {
                               Full Name
                             </Label>
                             <p className="text-foreground font-medium">
-                              {user.first_name} {user.last_name}
+                              {user?.first_name} {user?.last_name}
                             </p>
                           </div>
                           <div>
@@ -475,7 +466,7 @@ export function AccountSettings() {
                             </Label>
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4 text-muted-foreground" />
-                              <p className="text-foreground">{user.email}</p>
+                              <p className="text-foreground">{user?.email}</p>
                             </div>
                           </div>
                         </div>
@@ -485,7 +476,7 @@ export function AccountSettings() {
                               Account Type
                             </Label>
                             <p className="text-foreground font-medium capitalize">
-                              {user.account_type}
+                              {user?.account_type}
                             </p>
                           </div>
                           <div>
@@ -494,7 +485,7 @@ export function AccountSettings() {
                             </Label>
                             <p className="text-foreground font-medium">
                               £
-                              {user.account_balance.toLocaleString(undefined, {
+                              {user?.account_balance?.toLocaleString(undefined, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}
@@ -507,7 +498,7 @@ export function AccountSettings() {
                 </Card>
 
                 {/* Business Information Card */}
-                {user.account_type === "business" && businessUser && (
+                {user?.account_type === "business" && businessUser && (
                   <Card className="border-border">
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -907,7 +898,7 @@ export function AccountSettings() {
                       <div>
                         <p className="text-3xl font-bold text-foreground">
                           £
-                          {user.account_balance.toLocaleString(undefined, {
+                          {user?.account_balance?.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
@@ -1022,7 +1013,7 @@ export function AccountSettings() {
             await loadUserData();
           }
         }}
-        currentBalance={user.account_balance}
+  currentBalance={user?.account_balance ?? 0}
       />
     </div>
   );
