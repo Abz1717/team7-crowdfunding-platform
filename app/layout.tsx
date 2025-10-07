@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { Navbar } from "@/components/layout/navbar";
-import { PitchProvider } from "@/context/PitchContext";
 
 import { RouteChangeLoader } from "@/components/route-change-loader";
 import { LoaderProvider } from "@/components/loader-context";
@@ -38,10 +37,8 @@ export default function RootLayout({
       >
         <LoaderProvider>
           <AuthProvider>
-            <PitchProvider>
-              <Navbar />
-              <RouteChangeLoader>{children}</RouteChangeLoader>
-            </PitchProvider>
+            <Navbar />
+            <RouteChangeLoader>{children}</RouteChangeLoader>
           </AuthProvider>
         </LoaderProvider>
       </body>
