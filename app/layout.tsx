@@ -5,6 +5,9 @@ import { AuthProvider } from "@/lib/auth";
 import { Navbar } from "@/components/layout/navbar";
 import { PitchProvider } from "@/context/PitchContext";
 
+import { RouteChangeLoader } from "@/components/route-change-loader";
+import { LoaderProvider } from "@/components/loader-context";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -33,12 +36,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <PitchProvider>
-            <Navbar />
-            {children}
-          </PitchProvider>
-        </AuthProvider>
+        <LoaderProvider>
+          <AuthProvider>
+            <PitchProvider>
+              <Navbar />
+              <RouteChangeLoader>{children}</RouteChangeLoader>
+            </PitchProvider>
+          </AuthProvider>
+        </LoaderProvider>
       </body>
     </html>
   );
