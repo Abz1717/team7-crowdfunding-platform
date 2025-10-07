@@ -2,8 +2,8 @@
 
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useBusiness } from "@/context/BusinessContext";
+import { useState } from "react";
+import { useOtherPitches } from "@/hooks/useBusinessData";
 import {
   Card,
   CardContent,
@@ -36,25 +36,20 @@ import {
 export default function BusinessOtherPitches() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const { otherPitches: cachedPitches } = useBusiness();
-
-  const [pitches, setPitches] = useState<Pitch[]>([]);
+  const { data: otherPitches, isLoading: loadingOtherPitches } = useOtherPitches();
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [filterBy, setFilterBy] = useState("all");
 
-  useEffect(() => {
-    if (!isLoading && (!user || user.role !== "business")) {
-      router.push("/signin");
-    }
-  }, [user, isLoading, router]);
+  // Redirect if not a business user
+  if (!isLoading && (!user || user.role !== "business")) {
+    router.push("/signin");
+    return null;
+  }
 
-  useEffect(() => {
-    // Use cached pitches from BusinessContext
-    setPitches(cachedPitches);
-  }, [cachedPitches]);
 
-  if (isLoading) {
+
+  if (isLoading || loadingOtherPitches || !otherPitches) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         Loading...
@@ -62,11 +57,9 @@ export default function BusinessOtherPitches() {
     );
   }
 
-  if (!user || user.role !== "business") {
-    return null;
-  }
 
-  const filteredPitches = pitches
+
+  const filteredPitches = otherPitches
     .filter((pitch) => {
       const matchesSearch =
         pitch.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,7 +175,7 @@ export default function BusinessOtherPitches() {
 
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
-            Showing {filteredPitches.length} of {pitches.length} active pitches
+            Showing {filteredPitches.length} of {otherPitches.length} active pitches
           </p>
         </div>
 

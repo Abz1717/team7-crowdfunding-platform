@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { useBusiness } from "@/context/BusinessContext";
+import { mutate } from "swr";
 import { createPitch, updatePitch, deletePitch } from "@/lib/action";
 import {
   CreatePitchData,
@@ -12,7 +12,7 @@ import {
 import { toast } from "sonner";
 
 export function useBusinessPitchActions() {
-  const { refreshMyPitches } = useBusiness();
+
 
   const createNewPitch = useCallback(
     async (
@@ -56,8 +56,8 @@ export function useBusinessPitchActions() {
         const result = await createPitch(pitchData);
         if (result.success && result.data) {
           toast.success("Pitch created successfully!");
-          // Refresh cached pitches
-          await refreshMyPitches();
+          // Revalidate cached pitches
+          await mutate("my-pitches");
           return { success: true, data: result.data };
         } else {
           toast.error(result.error || "Failed to create pitch");
@@ -68,7 +68,7 @@ export function useBusinessPitchActions() {
         return { success: false };
       }
     },
-    [refreshMyPitches]
+  []
   );
 
   const updateExistingPitch = useCallback(
@@ -77,8 +77,8 @@ export function useBusinessPitchActions() {
         const result = await updatePitch(pitchId, updateData);
         if (result.success && result.data) {
           toast.success("Pitch updated successfully!");
-          // Refresh cached pitches
-          await refreshMyPitches();
+          // Revalidate cached pitches
+          await mutate("my-pitches");
           return { success: true, data: result.data };
         } else {
           toast.error(result.error || "Failed to update pitch");
@@ -89,7 +89,7 @@ export function useBusinessPitchActions() {
         return { success: false };
       }
     },
-    [refreshMyPitches]
+  []
   );
 
   const deleteExistingPitch = useCallback(
@@ -98,8 +98,8 @@ export function useBusinessPitchActions() {
         const result = await deletePitch(pitchId);
         if (result.success) {
           toast.success("Pitch deleted successfully!");
-          // Refresh cached pitches
-          await refreshMyPitches();
+          // Revalidate  pitches
+          await mutate("my-pitches");
           return { success: true };
         } else {
           toast.error(result.error || "Failed to delete pitch");
@@ -110,7 +110,7 @@ export function useBusinessPitchActions() {
         return { success: false };
       }
     },
-    [refreshMyPitches]
+  []
   );
 
   return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,42 +13,42 @@ import {
 import { getTransactionHistory } from "@/lib/action";
 import type { Transaction } from "@/lib/types/transaction";
 import { useInvestorSafe } from "@/context/InvestorContext";
-import { useBusinessSafe } from "@/context/BusinessContext";
+import { useBusinessTransactions } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
 
 export function TransactionHistory() {
   const { user: authUser } = useAuth();
   const investorContext = useInvestorSafe();
-  const businessContext = useBusinessSafe();
+  const { data: businessTransactions } = useBusinessTransactions();
 
   // Determine which context to use
-  let cachedTransactions: Transaction[] = [];
-  if (authUser?.role === "investor" && investorContext) {
-    cachedTransactions = investorContext.transactions;
-  } else if (authUser?.role === "business" && businessContext) {
-    cachedTransactions = businessContext.transactions;
-  }
-
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(cachedTransactions);
-  const [loading, setLoading] = useState(!cachedTransactions.length);
+  const memoizedTransactions = useMemo(() => {
+    if (authUser?.role === "investor" && investorContext) {
+      return investorContext.transactions;
+    } else if (authUser?.role === "business" && businessTransactions) {
+      return businessTransactions.data ?? [];
+    }
+    return [];
+  }, [authUser?.role, investorContext, businessTransactions]);
+  const [transactions, setTransactions] = useState<Transaction[]>(memoizedTransactions);
+  const [loading, setLoading] = useState(!memoizedTransactions.length);
 
   // Update when cached data changes
   useEffect(() => {
     console.log(
       "[TransactionHistory] Using CACHED data:",
-      cachedTransactions.length,
+      memoizedTransactions.length,
       "transactions"
     );
-    setTransactions(cachedTransactions);
-    if (cachedTransactions.length > 0) {
+    setTransactions(memoizedTransactions);
+    if (memoizedTransactions.length > 0) {
       setLoading(false);
     }
-  }, [cachedTransactions]);
+  }, [memoizedTransactions]);
 
   // Fallback: Load directly if no cached data
   useEffect(() => {
-    if (!cachedTransactions.length && authUser) {
+    if (!memoizedTransactions.length && authUser) {
       loadTransactions();
     }
   }, []);

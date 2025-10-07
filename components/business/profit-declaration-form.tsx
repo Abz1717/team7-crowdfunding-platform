@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { previewProfitDistribution, declareProfits } from "@/lib/action";
 import type { Pitch } from "@/lib/types/pitch";
-import { useBusiness } from "@/context/BusinessContext";
+import { useProfitDistributions, useMyPitches } from "@/hooks/useBusinessData";
 import {
   DollarSign,
   TrendingUp,
@@ -42,7 +42,9 @@ export function ProfitDeclarationForm({
   pitch,
   onSuccess,
 }: ProfitDeclarationFormProps) {
-  const { profitDistributions, myPitches } = useBusiness();
+  const { data: profitDistributions } = useProfitDistributions();
+  const { data: myPitchesData } = useMyPitches();
+  const myPitches = myPitchesData?.pitches || [];
   const [profitAmount, setProfitAmount] = useState<string>("");
   const [preview, setPreview] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
@@ -70,7 +72,7 @@ export function ProfitDeclarationForm({
   // Use cached profit distributions from BusinessContext
   useEffect(() => {
     // Get distributions for this specific pitch from cached data
-    const pitchDists = profitDistributions.find(
+  const pitchDists = profitDistributions?.find(
       (pd) => pd.pitchId === pitch.id
     );
     const dists = pitchDists?.distributions || [];

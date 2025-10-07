@@ -45,7 +45,7 @@ import { DepositDialog } from "@/components/settings/deposit-dialog";
 import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
 import { TransactionHistory } from "@/components/settings/transaction-history";
 import { useInvestorSafe } from "@/context/InvestorContext";
-import { useBusinessSafe } from "@/context/BusinessContext";
+import { useBusinessUser, useBusinessAccountBalance } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
 
 export function AccountSettings() {
@@ -54,7 +54,8 @@ export function AccountSettings() {
 
   // Use safe versions that don't throw errors
   const investorContext = useInvestorSafe();
-  const businessContext = useBusinessSafe();
+  const { data: businessUserData } = useBusinessUser();
+  const { data: businessAccountBalance } = useBusinessAccountBalance();
 
   // Determine which context to use based on user role
   let cachedUserProfile: UserType | null = null;
@@ -68,11 +69,11 @@ export function AccountSettings() {
     cachedBusinessUserProfile = investorContext.businessUserProfile;
     refreshUserProfileFromContext = investorContext.refreshUserProfile;
     cachedAccountBalance = investorContext.accountBalance;
-  } else if (authUser?.role === "business" && businessContext) {
-    cachedUserProfile = businessContext.userProfile;
-    cachedBusinessUserProfile = businessContext.businessUserProfile;
-    refreshUserProfileFromContext = businessContext.refreshUserProfile;
-    cachedAccountBalance = businessContext.accountBalance;
+  } else if (authUser?.role === "business" && businessUserData) {
+    cachedUserProfile = null; // No userProfile on businessUserData
+    cachedBusinessUserProfile = businessUserData ?? null;
+    refreshUserProfileFromContext = null; // No longer available, handled by SWR
+    cachedAccountBalance = typeof businessAccountBalance === 'number' ? businessAccountBalance : 0;
   }
 
   const [user, setUser] = useState<UserType | null>(cachedUserProfile);
@@ -1001,9 +1002,8 @@ export function AccountSettings() {
           if (investorContext) {
             await investorContext.refreshUserProfile();
             await investorContext.refreshTransactions();
-          } else if (businessContext) {
-            await businessContext.refreshUserProfile();
-            await businessContext.refreshTransactions();
+          } else if (businessUser) {
+            // SWR will revalidate automatically or use mutate if needed
           } else {
             await loadUserData();
           }
@@ -1016,9 +1016,8 @@ export function AccountSettings() {
           if (investorContext) {
             await investorContext.refreshUserProfile();
             await investorContext.refreshTransactions();
-          } else if (businessContext) {
-            await businessContext.refreshUserProfile();
-            await businessContext.refreshTransactions();
+          } else if (businessUser) {
+            // swr will revalidate automatically or use mutate if needed
           } else {
             await loadUserData();
           }

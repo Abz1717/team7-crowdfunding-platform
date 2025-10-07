@@ -8,7 +8,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { CreatePitchDialog } from "@/components/business/create-pitch-dialog";
 import { PitchCard } from "@/components/business/pitch-card";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
-import { useBusiness } from "@/context/BusinessContext";
+import { useMyPitches } from "@/hooks/useBusinessData";
 import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
 import type { Pitch } from "@/lib/types/pitch";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ const PITCH_TABS = [
 
 export function MyPitches() {
   const [selectedTab, setSelectedTab] = useState<string>("active");
-  const { myPitches, loading, error } = useBusiness();
+  const { data: myPitchesData, isLoading: loading, error } = useMyPitches();
   const { deleteExistingPitch, updateExistingPitch } =
     useBusinessPitchActions();
   const [deletingPitchId, setDeletingPitchId] = useState<string | null>(null);
@@ -38,8 +38,12 @@ export function MyPitches() {
     setProfitsDialogOpen(true);
   };
 
-  // Use cached pitches from BusinessContext
-  const pitches = myPitches;
+  // Use SWR data (ensure correct type)
+  const pitches: Pitch[] = Array.isArray(myPitchesData?.pitches)
+    ? myPitchesData.pitches
+    : Array.isArray(myPitchesData)
+      ? myPitchesData as Pitch[]
+      : [];
 
   const handleEditPitch = (pitchId: string) => {
     const pitch = pitches.find((p) => p.id === pitchId);

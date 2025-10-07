@@ -744,14 +744,13 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                           placeholder="250000"
                           className="border-gray-300 focus:border-black focus:ring-black"
                         />
-                        <p className="text-xs text-gray-500">
-                          
-                          {getTargetAmountError() && (
+                        <div className="text-xs text-gray-500">
+                          {getTargetAmountError() ? (
                             <p className="text-xs text-red-600 font-medium mt-1">
                               {getTargetAmountError()}
                             </p>
-                          )}
-                        </p>
+                          ) : null}
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-700">
