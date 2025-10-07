@@ -10,63 +10,24 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { getTransactionHistory } from "@/lib/action";
-import type { Transaction } from "@/lib/types/transaction";
-import { useInvestorSafe } from "@/context/InvestorContext";
+import { useInvestorTransactions } from "@/hooks/useInvestorData";
 import { useBusinessTransactions } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
 
 export function TransactionHistory() {
   const { user: authUser } = useAuth();
-  const investorContext = useInvestorSafe();
-  const { data: businessTransactions } = useBusinessTransactions();
+  const { data: investorTransactions, isLoading: loadingInvestor } = useInvestorTransactions();
+  const { data: businessTransactions, isLoading: loadingBusiness } = useBusinessTransactions();
 
-  // Determine which context to use
-  const memoizedTransactions = useMemo(() => {
-    if (authUser?.role === "investor" && investorContext) {
-      return investorContext.transactions;
-    } else if (authUser?.role === "business" && businessTransactions) {
-      return businessTransactions.data ?? [];
-    }
-    return [];
-  }, [authUser?.role, investorContext, businessTransactions]);
-  const [transactions, setTransactions] = useState<Transaction[]>(memoizedTransactions);
-  const [loading, setLoading] = useState(!memoizedTransactions.length);
-
-  // Update when cached data changes
-  useEffect(() => {
-    console.log(
-      "[TransactionHistory] Using CACHED data:",
-      memoizedTransactions.length,
-      "transactions"
-    );
-    setTransactions(memoizedTransactions);
-    if (memoizedTransactions.length > 0) {
-      setLoading(false);
-    }
-  }, [memoizedTransactions]);
-
-  // Fallback: Load directly if no cached data
-  useEffect(() => {
-    if (!memoizedTransactions.length && authUser) {
-      loadTransactions();
-    }
-  }, []);
-
-  const loadTransactions = async () => {
-    setLoading(true);
-    try {
-      console.log("[TransactionHistory] Fetching from database (fallback)");
-      const result = await getTransactionHistory();
-      if (result.success && result.data) {
-        setTransactions(result.data);
-      }
-    } catch (error) {
-      console.error("Error loading transactions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  let transactions: any[] = [];
+  let loading = false;
+  if (authUser?.role === "investor") {
+    transactions = investorTransactions?.data ?? [];
+    loading = loadingInvestor;
+  } else if (authUser?.role === "business") {
+    transactions = businessTransactions?.data ?? [];
+    loading = loadingBusiness;
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {

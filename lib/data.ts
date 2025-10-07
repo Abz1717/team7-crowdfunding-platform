@@ -186,11 +186,13 @@ export async function getTotalInvested(userId: string): Promise<number> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("investment")
-    .select("investment_amount")
+    .select("investment_amount, refunded")
     .eq("investor_id", userId);
 
   if (error || !data) return 0;
-  return data.reduce((sum: number, inv: { investment_amount: number }) => sum + inv.investment_amount, 0);
+  // Only sum investments that are not refunded
+  return data.reduce((sum: number, inv: { investment_amount: number, refunded?: boolean }) =>
+    !inv.refunded ? sum + inv.investment_amount : sum, 0);
 }
 
 export async function getTotalReturns(userId: string): Promise<number> {
@@ -217,7 +219,8 @@ export async function getOverallROI(userId: string): Promise<number> {
 
   const invested = await getTotalInvested(userId);
   const returns = await getTotalReturns(userId);
-  return invested > 0 ? (returns / invested) * 100 : 0;
+  // ROI = ((returns - invested) / invested) * 100
+  return invested > 0 ? ((returns - invested) / invested) * 100 : 0;
 }
 
 

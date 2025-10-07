@@ -16,11 +16,7 @@ export default function InvestorDashboard() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
+    return null;
   }
 
   if (!user || user.role !== "investor") {

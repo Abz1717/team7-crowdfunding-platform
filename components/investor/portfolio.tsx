@@ -48,7 +48,11 @@ import {
   PieChart,
   Target,
 } from "lucide-react";
-import { useInvestor } from "@/context/InvestorContext";
+import {
+  useInvestorPortfolio,
+  useInvestorInvestmentDetails,
+  useInvestorProfitPayouts
+} from "@/hooks/useInvestorData";
 
 function formatDate(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -59,67 +63,25 @@ function formatDate(date: string | Date): string {
   });
 }
 
+
 export function Portfolio() {
-  // Use cached data from InvestorContext instead of fetching
   const { user } = useAuth();
-  const {
-    accountBalance: cachedAccountBalance,
-    totalInvested: cachedTotalInvested,
-    totalReturns: cachedTotalReturns,
-    overallROI: cachedOverallROI,
-    investments: cachedInvestments,
-    investmentDetails: cachedInvestmentDetails,
-    profitPayouts: cachedProfitPayouts,
-    refreshPortfolio,
-  } = useInvestor();
-
-  const [accountBalance, setAccountBalance] = useState(0);
-  const [totalInvested, setTotalInvested] = useState(0);
-  const [totalReturns, setTotalReturns] = useState(0);
-  const [overallROI, setOverallROI] = useState(0);
-  const [investments, setInvestments] = useState<Investment[]>([]);
-  const [isWithdrawing, setIsWithdrawing] = useState(false);
-
-  useEffect(() => {
-    // Use cached data from InvestorContext
-    setAccountBalance(cachedAccountBalance);
-    setTotalInvested(cachedTotalInvested);
-    setTotalReturns(cachedTotalReturns);
-    setOverallROI(cachedOverallROI);
-    setInvestments(cachedInvestments);
-  }, [
-    cachedAccountBalance,
-    cachedTotalInvested,
-    cachedTotalReturns,
-    cachedOverallROI,
-    cachedInvestments,
-  ]);
-
-  // Use cached investment details instead of fetching
-  const [investmentDetails, setInvestmentDetails] = useState<
-    {
-      investment: Investment;
-      pitch: any;
-      investmentReturns: number;
-      roi: number;
-    }[]
-  >([]);
-  // Filter state for Group By and Status
+  const userId = user?.id;
+  const { data: portfolioData } = useInvestorPortfolio(userId);
+  const { data: investmentDetails = [] } = useInvestorInvestmentDetails(userId);
+  const { data: profitPayouts = [] } = useInvestorProfitPayouts(userId);
   const [groupBy, setGroupBy] = useState<"combined" | "all">("all");
-  const [status, setStatus] = useState<"active" | "funded" | "closed">(
-    "active"
-  );
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [groupBy, status]);
-
-  useEffect(() => {
-    setInvestmentDetails(cachedInvestmentDetails);
-  }, [cachedInvestmentDetails]);
-
+  const [status, setStatus] = useState<"active" | "funded" | "closed">("active");
   const [currentPage, setCurrentPage] = useState(1);
+  const [profitPayoutsPage, setProfitPayoutsPage] = useState(1);
   const investmentsPerPage = 3;
+  const profitPayoutsPerPage = 3;
+  const accountBalance = portfolioData?.accountBalance || 0;
+  const totalInvested = portfolioData?.totalInvested || 0;
+  const totalReturns = portfolioData?.totalReturns || 0;
+  const overallROI = portfolioData?.overallROI || 0;
+  const investments = portfolioData?.investments || [];
+  const isWithdrawing = false;
 
   // --- FILTER/GROUP LOGIC FOR INVESTMENT LIST ---
   // Helper: status filter
@@ -156,6 +118,7 @@ export function Portfolio() {
       pitch,
       investmentReturns,
     } of filteredInvestments) {
+      if (!pitch) continue;
       if (!grouped[pitch.id]) {
         grouped[pitch.id] = {
           investment: { ...investment },
@@ -199,30 +162,11 @@ export function Portfolio() {
     currentPage * investmentsPerPage
   );
 
-  // Removed the useEffect that was fetching data - now using cached data from context
-  // Removed the useEffect that was fetching data - now using cached data from context
-
   const handleWithdraw = () => {
     window.location.href = "/investor/settings?tab=billing";
   };
 
-  // Use cached profit payouts instead of fetching
-  const [profitPayouts, setProfitPayouts] = useState<
-    {
-      distribution: any;
-      pitch: any;
-      totalAmount: number;
-      userSharePercent: number;
-    }[]
-  >([]);
-
-  useEffect(() => {
-    setProfitPayouts(cachedProfitPayouts);
-  }, [cachedProfitPayouts]);
-
-  // Pagination for profit payouts (must be after profitPayouts is defined)
-  const [profitPayoutsPage, setProfitPayoutsPage] = useState(1);
-  const profitPayoutsPerPage = 3;
+  // Pagination for profit payouts
   const totalProfitPayoutPages = Math.ceil(
     profitPayouts.length / profitPayoutsPerPage
   );
@@ -462,15 +406,15 @@ export function Portfolio() {
                     // all unique
                     const pitchId = pitch.id;
                     const allTiers = filteredInvestments
-                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .filter(({ pitch }) => pitch && pitch.id === pitchId)
                       .map(({ investment }) => investment.tier?.name)
                       .filter(Boolean);
                     const allMultipliers = filteredInvestments
-                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .filter(({ pitch }) => pitch && pitch.id === pitchId)
                       .map(({ investment }) => investment.tier?.multiplier)
                       .filter((m) => m !== undefined);
                     const allDates = filteredInvestments
-                      .filter(({ pitch }) => pitch.id === pitchId)
+                      .filter(({ pitch }) => pitch && pitch.id === pitchId)
                       .map(({ investment }) => investment.invested_at)
                       .filter(Boolean)
                       .map((d) => new Date(d));

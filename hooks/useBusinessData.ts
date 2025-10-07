@@ -67,7 +67,6 @@ export function useOtherPitches() {
   return useSWR(
     businessUser ? ['other-pitches', businessUser.id] : null,
     async () => {
-      // Show all active pitches, including user's own
       return await getActivePitches();
     }
   );
