@@ -79,6 +79,7 @@ export interface User {
   last_name: string;
   account_type: string;
   account_balance: number;
+  funding_balance: number;
   total_invested: number;
   total_returns: number;
   overall_roi: number;

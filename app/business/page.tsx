@@ -112,25 +112,56 @@ export default function BusinessDashboardPage() {
       <h1 className="text-2xl font-bold mb-4">Business Dashboard</h1>
       <p className="mb-8">Welcome to your Business dashboard.</p>
 
-      <Card className="mb-8 max-w-xs">
-        <CardHeader>
-          <CardTitle>Account Balance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingBalance ? (
-            <LoadingScreen />
-          ) : typeof accountBalance === "number" ? (
-            <span className="text-2xl font-bold text-green-600">
-              ${accountBalance.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
-          ) : (
-            <span className="text-red-500">--</span>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex flex-row gap-6 mb-8 w-full">
+        <div className="flex flex-1 gap-6 min-w-0">
+          <Card className="flex-1 min-w-[200px] max-w-xs">
+            <CardHeader>
+              <CardTitle>Funding Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <span className="text-2xl font-bold text-blue-600">$0.00</span>
+              <p className="text-xs text-muted-foreground mt-1">Funds raised from investors for your business.</p>
+            </CardContent>
+          </Card>
+          <Card className="flex-1 min-w-[200px] max-w-xs">
+            <CardHeader>
+              <CardTitle>Account Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingBalance ? (
+                <LoadingScreen />
+              ) : typeof accountBalance === "number" ? (
+                <span className="text-2xl font-bold text-green-600">
+                  ${accountBalance.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              ) : (
+                <span className="text-red-500">--</span>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Used for ads, fees, and profit distributions.</p>
+            </CardContent>
+          </Card>
+        </div>
+        <Card className="flex-1 min-w-[260px] max-w-xs self-stretch">
+          <CardHeader>
+            <CardTitle>Advertise Your Pitch</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col h-full justify-between">
+            <div>
+              <p className="mb-4 text-muted-foreground text-sm">
+                Boost your pitch's visibility and attract more investors by promoting it on our platform.
+              </p>
+            </div>
+            <Link href="/business/my-pitches" className="mt-auto">
+              <Button className="w-full" variant="secondary">
+                Advertise Now
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="mb-8">
         <CardHeader>

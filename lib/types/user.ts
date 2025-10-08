@@ -5,6 +5,7 @@ export interface User {
   email: string;
   account_type: "investor" | "business";
   account_balance: number;
+  funding_balance: number;
   created_at?: string;
   updated_at?: string;
 }

@@ -61,8 +61,11 @@ export function AccountSettings() {
   const { data: businessAccountBalance } = useBusinessAccountBalance();
 
   // user and businessUser from SWR data
-  const user = authUser?.role === "investor" ? investorProfileData?.user : null;
-  const businessUser = authUser?.role === "business" ? businessUserData : investorProfileData?.businessUser;
+  const user =
+    authUser?.role === "investor"
+      ? investorProfileData?.user
+      : null;
+  const businessUser = authUser?.role === "business" ? businessUserData : null;
   const loading = authUser?.role === "investor" ? loadingInvestorProfile : false;
   const [editingUser, setEditingUser] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState(false);
@@ -168,6 +171,13 @@ export function AccountSettings() {
         email: user.email,
       });
     }
+    if (businessUser) {
+      setUserFormData({
+        first_name: "",
+        last_name: "",
+        email: authUser?.email || "",
+      });
+    }
   };
 
   const cancelBusinessEdit = () => {
@@ -185,7 +195,7 @@ export function AccountSettings() {
   };
 
 
-  if (!user && !loading) {
+  if (!user && !businessUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-sm text-destructive">Failed to load user data</div>
@@ -206,7 +216,10 @@ export function AccountSettings() {
   const totalInvested = portfolio?.totalInvested ?? 0;
   const overallROI = portfolio?.overallROI ?? 0;
   const totalReturns = portfolio?.totalReturns ?? 0;
-  const accountBalance = portfolio?.accountBalance ?? user?.account_balance ?? 0;
+  const accountBalance =
+    authUser?.role === "business"
+      ? (typeof businessAccountBalance === "number" ? businessAccountBalance : 0)
+      : portfolio?.accountBalance ?? (user ? user.account_balance : 0) ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -262,8 +275,9 @@ export function AccountSettings() {
                     <Avatar className="h-20 w-20">
                       <AvatarImage src="/professional-profile.png" />
                       <AvatarFallback className="text-lg">
-                        {user?.first_name?.[0]}
-                        {user?.last_name?.[0]}
+                        {user
+                          ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`
+                          : businessUser?.business_name?.[0] ?? "?"}
                       </AvatarFallback>
                     </Avatar>
                     <Button
@@ -276,9 +290,13 @@ export function AccountSettings() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">
-                      {user?.first_name} {user?.last_name}
+                      {user
+                        ? `${user.first_name} ${user.last_name}`
+                        : businessUser?.business_name}
                     </h2>
-                    <p className="text-muted-foreground">{user?.email}</p>
+                    <p className="text-muted-foreground">
+                      {user ? user.email : authUser?.email}
+                    </p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                       <span className="text-sm text-muted-foreground">
@@ -311,48 +329,65 @@ export function AccountSettings() {
                   <CardContent className="space-y-4">
                     {editingUser ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        {user ? (
+                          <>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="first_name">First Name</Label>
+                                <Input
+                                  id="first_name"
+                                  value={userFormData.first_name}
+                                  onChange={(e) =>
+                                    handleUserInputChange(
+                                      "first_name",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-input border-border"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="last_name">Last Name</Label>
+                                <Input
+                                  id="last_name"
+                                  value={userFormData.last_name}
+                                  onChange={(e) =>
+                                    handleUserInputChange(
+                                      "last_name",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-input border-border"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label htmlFor="email">Email</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={userFormData.email}
+                                onChange={(e) =>
+                                  handleUserInputChange("email", e.target.value)
+                                }
+                                className="bg-input border-border"
+                              />
+                            </div>
+                          </>
+                        ) : businessUser ? (
                           <div>
-                            <Label htmlFor="first_name">First Name</Label>
+                            <Label htmlFor="email">Email</Label>
                             <Input
-                              id="first_name"
-                              value={userFormData.first_name}
+                              id="email"
+                              type="email"
+                              value={userFormData.email}
                               onChange={(e) =>
-                                handleUserInputChange(
-                                  "first_name",
-                                  e.target.value
-                                )
+                                handleUserInputChange("email", e.target.value)
                               }
                               className="bg-input border-border"
                             />
                           </div>
-                          <div>
-                            <Label htmlFor="last_name">Last Name</Label>
-                            <Input
-                              id="last_name"
-                              value={userFormData.last_name}
-                              onChange={(e) =>
-                                handleUserInputChange(
-                                  "last_name",
-                                  e.target.value
-                                )
-                              }
-                              className="bg-input border-border"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={userFormData.email}
-                            onChange={(e) =>
-                              handleUserInputChange("email", e.target.value)
-                            }
-                            className="bg-input border-border"
-                          />
-                        </div>
+                        ) : null}
                         <div className="flex gap-2">
                           <Button onClick={handleSaveUser} disabled={saving}>
                             <Save className="h-4 w-4 mr-1" />
@@ -371,7 +406,9 @@ export function AccountSettings() {
                               Full Name
                             </Label>
                             <p className="text-foreground font-medium">
-                              {user?.first_name} {user?.last_name}
+                              {user
+                                ? `${user.first_name} ${user.last_name}`
+                                : businessUser?.business_name}
                             </p>
                           </div>
                           <div>
@@ -380,7 +417,9 @@ export function AccountSettings() {
                             </Label>
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4 text-muted-foreground" />
-                              <p className="text-foreground">{user?.email}</p>
+                              <p className="text-foreground">
+                                {user ? user.email : authUser?.email}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -390,7 +429,9 @@ export function AccountSettings() {
                               Account Type
                             </Label>
                             <p className="text-foreground font-medium capitalize">
-                              {user?.account_type}
+                              {user
+                                ? user.account_type
+                                : "business"}
                             </p>
                           </div>
                           <div>
@@ -440,7 +481,7 @@ export function AccountSettings() {
                 </Card>
 
                 {/* Business Information Card */}
-                {user?.account_type === "business" && businessUser && (
+                {(user?.account_type === "business" || businessUser) && businessUser && (
                   <Card className="border-border">
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -840,7 +881,7 @@ export function AccountSettings() {
                       <div>
                         <p className="text-3xl font-bold text-foreground">
                           £
-                          {user?.account_balance?.toLocaleString(undefined, {
+                          {accountBalance?.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
                           })}
@@ -853,6 +894,7 @@ export function AccountSettings() {
                         <Button
                           onClick={() => setDepositDialogOpen(true)}
                           className="flex-1"
+                          disabled={saving}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Deposit
@@ -861,6 +903,7 @@ export function AccountSettings() {
                           onClick={() => setWithdrawDialogOpen(true)}
                           variant="outline"
                           className="flex-1"
+                          disabled={saving}
                         >
                           <Minus className="h-4 w-4 mr-2" />
                           Withdraw
@@ -983,12 +1026,12 @@ export function AccountSettings() {
       <DepositDialog
         open={depositDialogOpen}
         onOpenChange={setDepositDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => setDepositDialogOpen(false)}
       />
       <WithdrawDialog
         open={withdrawDialogOpen}
         onOpenChange={setWithdrawDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => setWithdrawDialogOpen(false)}
         currentBalance={accountBalance}
       />
     </div>
