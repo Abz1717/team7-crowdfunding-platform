@@ -84,3 +84,19 @@ export interface User {
   total_returns: number;
   overall_roi: number;
 }
+
+
+
+export interface AdCampaign {
+  id: string;
+  business_id: string;
+  pitch_id: string;
+  ad_title: string;
+  ad_description: string;
+  target_audience?: string | null;
+  budget: number;
+  ad_image_url?: string | null;
+  status: string;
+  created_at: string; 
+  updated_at: string;
+}

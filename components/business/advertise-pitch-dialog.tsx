@@ -37,7 +37,9 @@ import { Progress } from "@/components/ui/progress"
 import Image from "next/image"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
-import { useMyPitches } from "@/hooks/useBusinessData"
+import { useMyPitches, useBusinessUser } from "@/hooks/useBusinessData"
+import { createAdCampaign } from "@/lib/data"
+import { createClient } from "@/utils/supabase/client"
 
 interface Pitch {
   id: string
@@ -58,13 +60,14 @@ interface AdFormData {
   adDescription: string
   targetAudience: string
   budget: string
-  dailyBudget: string
+  // dailyBudget: string
   platform: string
   adImage?: File
   adImageUrl?: string
 }
 
 export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigger: React.ReactNode, onAdCreated?: (ad: any) => void, pitches?: Pitch[] }) {
+  const { data: businessUser } = useBusinessUser();
   const [open, setOpen] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 3
@@ -87,7 +90,7 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
     adDescription: "",
     targetAudience: "",
     budget: "",
-    dailyBudget: "",
+  // dailyBudget: "",
     platform: "social-media",
   adImage: undefined,
   adImageUrl: undefined,
@@ -102,15 +105,15 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
       case 2:
         return (
           formData.adTitle.trim() !== "" &&
-          formData.adDescription.trim() !== "" &&
-          formData.targetAudience.trim() !== ""
+          formData.adDescription.trim() !== ""
         )
       case 3:
-        return formData.budget !== "" && formData.dailyBudget !== ""
+        return formData.budget !== ""
       default:
         return false
     }
   }
+
 
   const nextStep = () => {
     if (currentStep < totalSteps && isStepValid(currentStep)) {
@@ -120,19 +123,58 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
 
   const prevStep = () => currentStep > 1 && setCurrentStep(currentStep - 1)
 
-    const handleCreate = () => {
-      toast.success("Advertisement campaign created successfully!")
-      setOpen(false)
-      setFormData({
-        selectedPitchId: null,
-        adTitle: "",
-        adDescription: "",
-        targetAudience: "",
-        budget: "",
-         dailyBudget: "",
-        platform: "social-media",
-      })
-      setCurrentStep(1)
+    const uploadAdImageToSupabase = async (file: File): Promise<string | null> => {
+      const supabase = createClient();
+      
+      try {
+        const fileExt = file.name.split(".").pop();
+        const fileName = `ad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const filePath = `ad-media/${fileName}`;
+        const { data, error } = await supabase.storage.from("Pitch_image").upload(filePath, file);
+        if (error) {
+          toast.error("Failed to upload ad image");
+          return null;
+        }
+        const { data: urlData } = supabase.storage.from("Pitch_image").getPublicUrl(filePath);
+        return urlData.publicUrl || null;
+      } catch (e) {
+        toast.error("Unexpected error uploading ad image");
+        return null;
+      }
+    };
+
+    const handleCreate = async () => {
+      if (!formData.selectedPitchId) return;
+      let adImageUrl = formData.adImageUrl;
+      if (formData.adImage) {
+        const uploadedUrl = await uploadAdImageToSupabase(formData.adImage);
+        adImageUrl = uploadedUrl === null ? undefined : uploadedUrl;
+      }
+      try {
+        if (!businessUser?.id) {
+          toast.error("Business user not loaded. Please try again.");
+          return;
+        }
+        const adData = {
+          business_id: businessUser.id,
+          pitch_id: formData.selectedPitchId,
+          ad_title: formData.adTitle,
+          ad_description: formData.adDescription,
+          target_audience: formData.targetAudience,
+          budget: Number(formData.budget),
+          platform: formData.platform,
+          ad_image_url: adImageUrl || null,
+        };
+        const result = await createAdCampaign(adData);
+        toast.success("Advertisement campaign created successfully!");
+        if (onAdCreated) onAdCreated(result);
+        setOpen(false);
+        setFormData({selectedPitchId: null, adTitle: "", adDescription: "", targetAudience: "", budget: "", platform: "All-Invex-Platforms", adImage: undefined, adImageUrl: undefined,
+        });
+        setCurrentStep(1);
+      } catch (err) {
+        toast.error("Failed to create ad campaign. Please try again.");
+      }
     }
 
   const stepTitles = ["Select Pitch", "Ad Details", "Budget"]
@@ -286,7 +328,12 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                             "cursor-pointer transition-all duration-200 hover:shadow-lg",
                             isSelected ? "border-2 border-black shadow-md" : "border border-gray-200",
                           )}
-                          onClick={() => setFormData({ ...formData, selectedPitchId: pitch.id })}
+                          onClick={() => setFormData({ 
+                            ...formData, 
+                            selectedPitchId: pitch.id,
+                            adTitle: pitch.title,
+                            adDescription: pitch.elevator_pitch
+                          })}
                         >
                           <CardHeader>
                             <div className="flex items-start justify-between">
@@ -471,7 +518,7 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
 
                     <div className="space-y-2">
                       <Label htmlFor="targetAudience" className="text-sm font-medium text-gray-700">
-                        Target Audience *
+                        Target Audience <span className="text-xs text-gray-500">(Optional)</span>
                       </Label>
                       <Input
                         id="targetAudience"
@@ -482,25 +529,13 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                       />
                     </div>
 
-                  <div className="space-y-2 max-w-xs">
-                    <Label htmlFor="platform" className="text-sm font-medium text-gray-700">
-                      Advertising Platform *
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Advertising Platforms
                     </Label>
-                    <Select
-                      value={formData.platform}
-                      onValueChange={(value) => setFormData({ ...formData, platform: value })}
-                    >
-                      <SelectTrigger className="border-gray-300 focus:border-black focus:ring-black">
-                        <SelectValue placeholder="Select platform" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="landing-page">Landing Page</SelectItem>
-                        <SelectItem value="investor-home">Investor Home Page</SelectItem>
-                        <SelectItem value="search-engine">Search Engine</SelectItem>
-                        <SelectItem value="search-engine-investor-home">Search Engine + Investor Home Page</SelectItem>
-                        <SelectItem value="all">All Platforms</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <p className="text-xs text-gray-600">
+                      Pitches are promoted on Invex home page, investor home page and pitch search engines.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -542,21 +577,7 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                         </p>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="dailyBudget" className="text-sm font-medium text-gray-700">
-                          Daily Budget Limit (£) *
-                        </Label>
-                        <Input
-                          id="dailyBudget"
-                          type="number"
-                          min="10"
-                          value={formData.dailyBudget}
-                          onChange={(e) => setFormData({ ...formData, dailyBudget: e.target.value })}
-                          placeholder="200"
-                          className="border-gray-300 focus:border-black focus:ring-black"
-                        />
-                        <p className="text-xs text-gray-500">Maximum to spend per day</p>
-                      </div>
+                      {/* Daily budget removed */}
                     </CardContent>
                   </Card>
 
@@ -569,17 +590,6 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                     </CardHeader>
                     <CardContent className="space-y-6">
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <Eye className="h-5 w-5 text-black" />
-                            <div>
-                              <div className="text-sm text-black">Estimated Impressions</div>
-                              <div className="text-2xl font-bold text-black">
-                                {formData.budget ? (Number(formData.budget) * 50).toLocaleString() : "0"}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
 
                         <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-gray-200">
                           <div className="flex items-center gap-3">
@@ -620,14 +630,14 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                     <CardTitle className="text-lg">Campaign Summary</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
                         <div className="text-xs text-gray-600 mb-1">Pitch</div>
                         <div className="font-semibold text-sm">{selectedPitch?.title}</div>
                       </div>
                       <div>
-                        <div className="text-xs text-gray-600 mb-1">Platform</div>
-                        <div className="font-semibold text-sm capitalize">{formData.platform.replace("-", " ")}</div>
+                        <div className="text-xs text-gray-600 mb-1">Platforms</div>
+                        <div className="font-semibold text-sm">All Invex Platforms</div>
                       </div>
                       <div>
                         <div className="text-xs text-gray-600 mb-1">Total Budget</div>

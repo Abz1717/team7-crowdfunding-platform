@@ -1,4 +1,3 @@
-
 import { createClient } from "@/utils/supabase/client";
 
 import type { Pitch, Investment, InvestmentTier, ProfitDistribution, InvestorPayout } from "./types"
@@ -274,4 +273,14 @@ export async function refundInvestorsIfPitchClosed(pitchId: string): Promise<voi
       .update({ refunded: true, refunded_amount: inv.investment_amount })
       .eq("id", inv.id);
   }
+}
+
+export async function createAdCampaign(adCampaign: Omit<import("./types").AdCampaign, "id" | "created_at" | "updated_at" | "status"> & { status?: string }): Promise<import("./types").AdCampaign | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("ad_campaign")
+    .insert([{ ...adCampaign }])
+    .select()
+    .single();
+  return data ?? null;
 }
