@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,63 +10,24 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { getTransactionHistory } from "@/lib/action";
-import type { Transaction } from "@/lib/types/transaction";
-import { useInvestorSafe } from "@/context/InvestorContext";
-import { useBusinessSafe } from "@/context/BusinessContext";
+import { useInvestorTransactions } from "@/hooks/useInvestorData";
+import { useBusinessTransactions } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
 
 export function TransactionHistory() {
   const { user: authUser } = useAuth();
-  const investorContext = useInvestorSafe();
-  const businessContext = useBusinessSafe();
+  const { data: investorTransactions, isLoading: loadingInvestor } = useInvestorTransactions();
+  const { data: businessTransactions, isLoading: loadingBusiness } = useBusinessTransactions();
 
-  // Determine which context to use
-  let cachedTransactions: Transaction[] = [];
-  if (authUser?.role === "investor" && investorContext) {
-    cachedTransactions = investorContext.transactions;
-  } else if (authUser?.role === "business" && businessContext) {
-    cachedTransactions = businessContext.transactions;
+  let transactions: any[] = [];
+  let loading = false;
+  if (authUser?.role === "investor") {
+    transactions = investorTransactions?.data ?? [];
+    loading = loadingInvestor;
+  } else if (authUser?.role === "business") {
+    transactions = businessTransactions?.data ?? [];
+    loading = loadingBusiness;
   }
-
-  const [transactions, setTransactions] =
-    useState<Transaction[]>(cachedTransactions);
-  const [loading, setLoading] = useState(!cachedTransactions.length);
-
-  // Update when cached data changes
-  useEffect(() => {
-    console.log(
-      "[TransactionHistory] Using CACHED data:",
-      cachedTransactions.length,
-      "transactions"
-    );
-    setTransactions(cachedTransactions);
-    if (cachedTransactions.length > 0) {
-      setLoading(false);
-    }
-  }, [cachedTransactions]);
-
-  // Fallback: Load directly if no cached data
-  useEffect(() => {
-    if (!cachedTransactions.length && authUser) {
-      loadTransactions();
-    }
-  }, []);
-
-  const loadTransactions = async () => {
-    setLoading(true);
-    try {
-      console.log("[TransactionHistory] Fetching from database (fallback)");
-      const result = await getTransactionHistory();
-      if (result.success && result.data) {
-        setTransactions(result.data);
-      }
-    } catch (error) {
-      console.error("Error loading transactions:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {

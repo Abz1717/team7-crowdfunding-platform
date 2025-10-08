@@ -1,19 +1,36 @@
-import { getPitchById } from "@/lib/data";
+"use client";
 
+
+import { getPitchById } from "@/lib/data";
 import { PitchDetailsCard } from "@/components/shared/pitch-details-card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import LoadingScreen from "@/components/loading-screen";
+import React, { useEffect, useState } from "react";
 
-export default async function BusinessPitchPage({
-  params,
-}: {
-  params: Promise<{ pitchId: string }>;
-}) {
-  const { pitchId } = await params;
-  const pitch = await getPitchById(pitchId);
 
-  if (!pitch) return <div className="p-8 text-red-500">Pitch not found.</div>;
+export default function BusinessPitchPage({ params }: { params: { pitchId: string } }) {
+  const { pitchId } = params;
+  const [pitch, setPitch] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    getPitchById(pitchId)
+      .then((data) => {
+        setPitch(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Pitch not found.");
+        setLoading(false);
+      });
+  }, [pitchId]);
+
+  if (loading) return <LoadingScreen />;
+  if (error || !pitch) return <div className="p-8 text-red-500">Pitch not found.</div>;
 
   return (
     <PitchDetailsCard
@@ -29,5 +46,7 @@ export default async function BusinessPitchPage({
     />
   );
 }
+
+
 
 export const dynamic = "force-dynamic";

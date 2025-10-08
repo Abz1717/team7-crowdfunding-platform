@@ -20,6 +20,7 @@ export interface User {
   role: UserRole;
   createdAt: Date;
   account_balance: number;
+  funding_balance: number;
 }
 
 interface AuthContextType {
@@ -74,6 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           account_balance:
             typeof userData.account_balance === "number"
               ? userData.account_balance
+              : 0,
+          funding_balance:
+            typeof userData.funding_balance === "number"
+              ? userData.funding_balance
               : 0,
         };
         console.log("[AuthProvider] User profile loaded:", user);

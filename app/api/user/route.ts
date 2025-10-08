@@ -12,14 +12,24 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+      const debugCookies = request.headers.get('cookie');
+      console.error('[API /api/user] Not authenticated', {
+        authError,
+        user,
+        cookies: debugCookies,
+      });
+      return NextResponse.json({
+        error: "Not authenticated",
+        authError: authError?.message || null,
+        cookies: debugCookies || null,
+      }, { status: 401 });
     }
 
     // Get user details from database
     const { data: userDetails, error: userError } = await supabase
       .from("user")
       .select(
-        "account_type, first_name, last_name, created_at, account_balance"
+        "account_type, first_name, last_name, created_at, account_balance, funding_balance"
       )
       .eq("email", user.email)
       .single();
@@ -35,11 +45,12 @@ export async function GET(request: NextRequest) {
       last_name: userDetails.last_name,
       created_at: userDetails.created_at,
       account_balance: userDetails.account_balance,
+      funding_balance: userDetails.funding_balance,
     });
   } catch (error) {
     console.error("Error in user API route:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: String(error) },
       { status: 500 }
     );
   }

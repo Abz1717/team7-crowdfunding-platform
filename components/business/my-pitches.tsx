@@ -8,7 +8,7 @@ import { AlertCircle, Loader2 } from "lucide-react";
 import { CreatePitchDialog } from "@/components/business/create-pitch-dialog";
 import { PitchCard } from "@/components/business/pitch-card";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
-import { useBusiness } from "@/context/BusinessContext";
+import { useMyPitches } from "@/hooks/useBusinessData";
 import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
 import type { Pitch } from "@/lib/types/pitch";
 import { toast } from "sonner";
@@ -23,7 +23,7 @@ const PITCH_TABS = [
 
 export function MyPitches() {
   const [selectedTab, setSelectedTab] = useState<string>("active");
-  const { myPitches, loading, error } = useBusiness();
+  const { data: myPitchesData, isLoading: loading, error } = useMyPitches();
   const { deleteExistingPitch, updateExistingPitch } =
     useBusinessPitchActions();
   const [deletingPitchId, setDeletingPitchId] = useState<string | null>(null);
@@ -38,8 +38,12 @@ export function MyPitches() {
     setProfitsDialogOpen(true);
   };
 
-  // Use cached pitches from BusinessContext
-  const pitches = myPitches;
+  // Use SWR data (ensure correct type)
+  const pitches: Pitch[] = Array.isArray(myPitchesData?.pitches)
+    ? myPitchesData.pitches
+    : Array.isArray(myPitchesData)
+      ? myPitchesData as Pitch[]
+      : [];
 
   const handleEditPitch = (pitchId: string) => {
     const pitch = pitches.find((p) => p.id === pitchId);
@@ -71,24 +75,22 @@ export function MyPitches() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-3 text-balance">
-                Investment Pitches
-              </h1>
-              <p className="text-lg text-gray-600 text-pretty">
-                Manage your investment opportunities and track funding progress
-              </p>
-            </div>
-            <CreatePitchDialog />
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex items-center justify-between mb-12">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-3 text-balance">
+              My Investment Pitches
+            </h1>
+            <p className="text-lg text-gray-600 text-pretty">
+              Manage your investment opportunities and track funding progress
+            </p>
           </div>
-          <div className="flex items-center justify-center py-24">
-            <div className="flex items-center gap-3">
-              <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-              <span className="text-gray-600">Loading pitches...</span>
-            </div>
+          <CreatePitchDialog />
+        </div>
+        <div className="flex items-center justify-center py-24">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <span className="text-gray-600">Loading pitches...</span>
           </div>
         </div>
       </div>
@@ -97,28 +99,26 @@ export function MyPitches() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="flex items-center justify-between mb-12">
-            <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-3 text-balance">
-                Investment Pitches
-              </h1>
-              <p className="text-lg text-gray-600 text-pretty">
-                Manage your investment opportunities and track funding progress
-              </p>
-            </div>
-            <CreatePitchDialog />
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex items-center justify-between mb-12">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-3 text-balance">
+              Investment Pitches
+            </h1>
+            <p className="text-lg text-gray-600 text-pretty">
+              Manage your investment opportunities and track funding progress
+            </p>
           </div>
-          <div className="text-center py-24">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-full mb-6">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-3">
-              Error Loading Pitches
-            </h3>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">{error}</p>
+          <CreatePitchDialog />
+        </div>
+        <div className="text-center py-24">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-50 rounded-full mb-6">
+            <AlertCircle className="h-8 w-8 text-red-600" />
           </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">
+            Error Loading Pitches
+          </h3>
+          <p className="text-gray-600 mb-8 max-w-md mx-auto">{error}</p>
         </div>
       </div>
     );
@@ -140,12 +140,11 @@ export function MyPitches() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-6 py-12">
+    <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-3 text-balance">
-              Investment Pitches
+              My Investment Pitches
             </h1>
             <p className="text-lg text-gray-600 text-pretty">
               Manage your investment opportunities and track funding progress
@@ -288,7 +287,6 @@ export function MyPitches() {
           onOpenChange={setProfitsDialogOpen}
         />
       </div>
-    </div>
   );
   function SectionHeading({ title }: { title: string }) {
     return (

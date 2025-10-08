@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { ProfitDeclarationForm } from "@/components/business/profit-declaration-form";
 import type { Pitch } from "@/lib/types/pitch";
-import { useBusiness } from "@/context/BusinessContext";
+import { mutate } from 'swr';
 
 interface DeclareProfitsDialogProps {
   pitch: Pitch | null;
@@ -21,7 +21,7 @@ export function DeclareProfitsDialog({
   open,
   onOpenChange,
 }: DeclareProfitsDialogProps) {
-  const { refreshAllData } = useBusiness();
+
 
   if (!pitch) return null;
 
@@ -38,8 +38,13 @@ export function DeclareProfitsDialog({
         <ProfitDeclarationForm
           pitch={pitch}
           onSuccess={async () => {
-            // Refresh all business data after declaring profits
-            await refreshAllData();
+            // revalidate all relevant business data after declaring profits
+            await Promise.all([
+              mutate('my-pitches'),
+              mutate('profit-distributions'),
+              mutate('business-account-balance'),
+              mutate('business-transactions'),
+            ]);
             onOpenChange(false);
           }}
         />

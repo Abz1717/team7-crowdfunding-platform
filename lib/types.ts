@@ -1,82 +1,86 @@
 export interface InvestmentTier {
-  name: string
-  min_amount: number
-  max_amount: number
-  multiplier: number
+  name: string;
+  min_amount: number;
+  max_amount: number;
+  multiplier: number;
 }
 
 export interface Pitch {
-  id: string
-  title: string
-  elevator_pitch: string
-  detailed_pitch: string
-  target_amount: number
-  current_amount: number
-  profit_share: number
-  end_date: string 
-  status: string
-  ai_rating?: string
-  ai_feedback?: any 
-  ai_analysis?: any 
-  created_at: string 
-  updated_at: string 
-  business_id: string
-  supporting_media: any 
-  investment_tiers: any 
+  id: string;
+  title: string;
+  elevator_pitch: string;
+  detailed_pitch: string;
+  target_amount: number;
+  current_amount: number;
+  profit_share: number;
+  end_date: string;
+  status: string;
+  ai_rating?: string;
+  ai_feedback?: any;
+  ai_analysis?: any;
+  created_at: string;
+  updated_at: string;
+  business_id: string;
+  supporting_media: any;
+  investment_tiers: any;
+  next_profit_distribution_at?: string | null;
+  fully_funded_at?: string | null;
+  released_at?: string | null;
 }
 
 export interface Investment {
-  investment_amount: number
-  id: string
-  investor_id: string
-  pitch_id: string
-  amount: number
-  tier: InvestmentTier
-  invested_at: Date
-  returns: ProfitDistribution[]
-  effective_share?: number
+  investment_amount: number;
+  id: string;
+  investor_id: string;
+  pitch_id: string;
+  amount: number;
+  tier?: InvestmentTier; // Make optional for no-tiers case
+  invested_at: Date;
+  returns: ProfitDistribution[];
+  effective_share?: number;
   refunded?: boolean;
   refunded_amount?: number;
 }
 
 export interface ProfitDistribution {
-  id: string
-  pitch_id: string
-  total_profit: number
-  business_profit: number
-  distribution_date: Date
+  id: string;
+  pitch_id: string;
+  total_profit: number;
+  business_profit: number;
+  distribution_date: Date;
 }
 export interface InvestorPayout {
-  id: string
-  distribution_id: string
-  investor_id: string
-  amount: number
-  percentage: number
+  id: string;
+  distribution_id: string;
+  investor_id: string;
+  amount: number;
+  percentage: number;
 }
 
 export interface BusinessUser {
-  id: string
-  user_id: string
-  business_name: string
-  description: string
-  website: string
-  logo_url: string
-  contact_email: string
-  phone_number: string
-  location: string
-  created_at: string // or Date if you parse it
-  updated_at: string // or Date if you parse it
+  id: string;
+  user_id: string;
+  business_name: string;
+  description: string;
+  website: string;
+  logo_url: string;
+  contact_email: string;
+  phone_number: string;
+  location: string;
+  created_at: string; // or Date if you parse it
+  updated_at: string; // or Date if you parse it
 }
 
 export interface User {
-  id: string
-  email: string
-  created_at: string // or Date if you parse it
-  first_name: string
-  last_name: string
-  account_type: string
-  account_balance: number
-  total_invested: number
-  total_returns: number
-  overall_roi: number
+  id: string;
+  email: string;
+  created_at: string; // or Date if you parse it
+  first_name: string;
+  last_name: string;
+  account_type: string;
+  account_balance: number;
+  funding_balance: number;
+  total_invested: number;
+  total_returns: number;
+  overall_roi: number;
 }

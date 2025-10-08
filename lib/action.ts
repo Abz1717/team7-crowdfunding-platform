@@ -629,8 +629,8 @@ export async function signOut(): Promise<{ success: boolean; error?: string }> {
     const cookieStore = await cookies();
     cookieStore.delete("user_role");
 
-    revalidatePath("/", "layout");
-    redirect("/signin");
+    // Do not redirect or revalidate here; let the client handle it
+    return { success: true };
   } catch (error) {
     console.error("Unexpected error signing out:", error);
     return { success: false, error: "An unexpected error occurred" };

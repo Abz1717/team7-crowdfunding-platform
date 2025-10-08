@@ -42,6 +42,7 @@ export function InvestmentForm({
   const { toast } = useToast();
   const [investmentAmount, setInvestmentAmount] = useState<number>(0);
 
+  // Calculate the maximum money that can be invested (not shares)
   const maxAvailableToInvest = Math.max(
     0,
     pitch.target_amount - pitch.current_amount
@@ -97,13 +98,16 @@ export function InvestmentForm({
   };
 
   const getMinimumInvestmentAmount = (): number => {
-    if (normalizedTiers.length === 0) return 0;
+    if (normalizedTiers.length === 0) return 1;
     return Math.min(...normalizedTiers.map((tier) => tier.min_amount));
   };
 
   const getMaximumInvestmentAmount = (): number => {
-    if (normalizedTiers.length === 0) return 0;
-    return Math.max(...normalizedTiers.map((tier) => tier.max_amount));
+    if (normalizedTiers.length === 0) return maxAvailableToInvest;
+    return Math.min(
+      Math.max(...normalizedTiers.map((tier) => tier.max_amount)),
+      maxAvailableToInvest
+    );
   };
 
   const getHighestTier = (): InvestmentTier | null => {
@@ -113,65 +117,56 @@ export function InvestmentForm({
     );
   };
 
-  const selectedTier = getInvestmentTier(investmentAmount);
+  const selectedTier = normalizedTiers.length > 0 ? getInvestmentTier(investmentAmount) : null;
   const projectedReturns = selectedTier
     ? investmentAmount * (pitch.profit_share / 100) * selectedTier.multiplier
-    : 0;
+    : investmentAmount * (pitch.profit_share / 100);
 
   // Replace handleInvestment with two-step confirmation
   const handleInvestment = () => {
-    // Check if investment amount is below minimum
     const minAmount = getMinimumInvestmentAmount();
+    const maxAmount = getMaximumInvestmentAmount();
     if (investmentAmount < minAmount) {
       setValidationDialogType("below_minimum");
       setValidationDialogOpen(true);
       return;
     }
-
-    // Check if investment amount is above maximum
-    const maxAmount = getMaximumInvestmentAmount();
     if (investmentAmount > maxAmount) {
       setValidationDialogType("above_maximum");
       setValidationDialogOpen(true);
       return;
     }
-
-    // Check if no valid tier found
-    if (!selectedTier) {
-      toast({
-        title: "Invalid Investment Amount",
-        description:
-          "Please enter a valid investment amount within the available tiers",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // prevent profit share from exceeding pitch.profit_share
-    const userProfitShare =
-      ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) *
-      pitch.profit_share;
-    if (userProfitShare > pitch.profit_share) {
+    if (investmentAmount > maxAvailableToInvest) {
       toast({
         title: "Investment Too Large",
-        description: `Your investment would exceed the maximum allowed profit share (${pitch.profit_share}%). Reduce the amount or choose a lower tier.`,
+        description: `You cannot invest more than the remaining amount for this pitch ($${maxAvailableToInvest.toLocaleString()}).`,
         variant: "destructive",
       });
       return;
     }
-
+    if (normalizedTiers.length > 0) {
+      if (!selectedTier) {
+        toast({
+          title: "Invalid Investment Amount",
+          description:
+            "Please enter a valid investment amount within the available tiers",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     // Check for insufficient balance
     if (fundingMethod === "balance" && investmentAmount > accountBalance) {
       setInsufficientBalanceDialogOpen(true);
       return;
     }
-
     setConfirmDialogOpen(true);
   };
 
   // Actual investment logic, called after confirmation
   const doInvestment = async () => {
-    if (!user || !selectedTier) return;
+    if (!user) return;
+    if (normalizedTiers.length > 0 && !selectedTier) return;
     setIsProcessing(true);
     await new Promise((res) => setTimeout(res, 500)); // short delay for UX
     // Insert investment
@@ -180,7 +175,7 @@ export function InvestmentForm({
       investment_amount: investmentAmount,
       investor_id: user.id,
       pitch_id: pitch.id,
-      tier: selectedTier,
+      ...(normalizedTiers.length > 0 && selectedTier ? { tier: selectedTier } : {}),
       invested_at: new Date(),
     });
     if (fundingMethod === "balance") {
@@ -260,7 +255,7 @@ export function InvestmentForm({
           </div>
         </div>
 
-        {selectedTier && (
+        {normalizedTiers.length > 0 && selectedTier && (
           <Card className="bg-muted/50">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-2">
@@ -366,15 +361,10 @@ export function InvestmentForm({
             disabled={
               investmentAmount === 0 ||
               isProcessing ||
-              Boolean(
-                selectedTier &&
-                  pitch.target_amount &&
-                  investmentAmount > 0 &&
-                  ((investmentAmount * selectedTier.multiplier) /
-                    pitch.target_amount) *
-                    pitch.profit_share >
-                    pitch.profit_share
-              )
+              investmentAmount < getMinimumInvestmentAmount() ||
+              investmentAmount > getMaximumInvestmentAmount() ||
+              (normalizedTiers.length > 0 && !selectedTier) ||
+              (fundingMethod === "balance" && investmentAmount > accountBalance)
             }
             className="w-full"
             size="lg"

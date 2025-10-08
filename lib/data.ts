@@ -91,14 +91,25 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
     .single();
   if (!pitch || pitchError) return null;
 
+  const newCurrentAmount = (pitch.current_amount ?? 0) + investment.investment_amount;
+  if (newCurrentAmount > (pitch.target_amount ?? 0)) {
+    return null;
+  }
+
+  // If no tier, treat multiplier as 1
   const effectiveValue = investment.investment_amount * (investment.tier?.multiplier ?? 1);
   const newPool = (pitch.investment_pool ?? 0) + investment.amount;
-  const newCurrentAmount = (pitch.current_amount ?? 0) + investment.investment_amount;
   const isFullyFunded = newCurrentAmount >= (pitch.target_amount ?? 0);
-  
+
+  // Remove tier if null to avoid DB issues
+  const investmentToInsert = { ...investment };
+  if (typeof investmentToInsert.tier === "undefined" || investmentToInsert.tier === null) {
+    delete (investmentToInsert as any).tier;
+  }
+
   const { data, error } = await supabase
     .from("investment")
-    .insert([investment])
+    .insert([investmentToInsert])
     .select()
     .single();
   if (!data || error) return null;
@@ -112,18 +123,19 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
       .single();
     if (!businessUser || businessUserError) return null;
 
+    // fetchin funding_balance instead of account_balance
     const { data: userRow, error: userError } = await supabase
       .from("user")
-      .select("account_balance")
+      .select("funding_balance")
       .eq("id", businessUser.user_id)
       .single();
     if (!userRow || userError) return null;
 
-    const updatedBalance = (userRow.account_balance ?? 0) + newPool;
+    const updatedFundingBalance = (userRow.funding_balance ?? 0) + newPool;
 
     const { error: updateUserError } = await supabase
       .from("user")
-      .update({ account_balance: updatedBalance })
+      .update({ funding_balance: updatedFundingBalance })
       .eq("id", businessUser.user_id);
     if (updateUserError) return null;
 
@@ -186,11 +198,13 @@ export async function getTotalInvested(userId: string): Promise<number> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("investment")
-    .select("investment_amount")
+    .select("investment_amount, refunded")
     .eq("investor_id", userId);
 
   if (error || !data) return 0;
-  return data.reduce((sum: number, inv: { investment_amount: number }) => sum + inv.investment_amount, 0);
+  // Only sum investments that are not refunded
+  return data.reduce((sum: number, inv: { investment_amount: number, refunded?: boolean }) =>
+    !inv.refunded ? sum + inv.investment_amount : sum, 0);
 }
 
 export async function getTotalReturns(userId: string): Promise<number> {
@@ -217,7 +231,8 @@ export async function getOverallROI(userId: string): Promise<number> {
 
   const invested = await getTotalInvested(userId);
   const returns = await getTotalReturns(userId);
-  return invested > 0 ? (returns / invested) * 100 : 0;
+  // ROI = ((returns - invested) / invested) * 100
+  return invested > 0 ? ((returns - invested) / invested) * 100 : 0;
 }
 
 

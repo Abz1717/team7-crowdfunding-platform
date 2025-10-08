@@ -36,34 +36,55 @@ export function DepositDialog({
     cardCvv: "",
     cardName: "",
   });
+  const [errors, setErrors] = useState({
+    amount: "",
+    cardNumber: "",
+    cardExpiry: "",
+    cardCvv: "",
+    cardName: "",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
+    // Validate inputs
+    const newErrors: typeof errors = {
+      amount: "",
+      cardNumber: "",
+      cardExpiry: "",
+      cardCvv: "",
+      cardName: "",
+    };
+    let hasError = false;
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      newErrors.amount = "Enter a valid amount > £0";
+      hasError = true;
+    }
+    if (!formData.cardName.trim()) {
+      newErrors.cardName = "Cardholder name required";
+      hasError = true;
+    }
+    if (formData.cardNumber.length < 13) {
+      newErrors.cardNumber = "Card number must be at least 13 digits";
+      hasError = true;
+    }
+    if (!/^\d{2}\/\d{2}$/.test(formData.cardExpiry)) {
+      newErrors.cardExpiry = "Expiry must be MM/YY";
+      hasError = true;
+    }
+    if (formData.cardCvv.length < 3) {
+      newErrors.cardCvv = "CVV must be 3+ digits";
+      hasError = true;
+    }
+    setErrors(newErrors);
+    if (hasError) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      const amount = parseFloat(formData.amount);
-
-      if (isNaN(amount) || amount <= 0) {
-        toast({
-          title: "Invalid Amount",
-          description: "Please enter a valid amount greater than £0",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (formData.cardNumber.length < 13) {
-        toast({
-          title: "Invalid Card",
-          description: "Please enter a valid card number",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
       const result = await depositFunds(amount, {
         cardNumber: formData.cardNumber,
         cardExpiry: formData.cardExpiry,
@@ -77,6 +98,13 @@ export function DepositDialog({
           description: `£${amount.toFixed(2)} added to your account`,
         });
         setFormData({
+          amount: "",
+          cardNumber: "",
+          cardExpiry: "",
+          cardCvv: "",
+          cardName: "",
+        });
+        setErrors({
           amount: "",
           cardNumber: "",
           cardExpiry: "",
@@ -136,7 +164,7 @@ export function DepositDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px] rounded-2xl">
         <DialogHeader>
           <DialogTitle>Deposit Funds</DialogTitle>
           <DialogDescription>Add funds to your account</DialogDescription>
@@ -155,8 +183,12 @@ export function DepositDialog({
                   setFormData({ ...formData, amount: e.target.value })
                 }
                 required
-                className="mt-1.5"
+                className={`mt-1.5 ${errors.amount ? 'border-red-500 focus:ring-red-500' : ''}`}
+                aria-invalid={!!errors.amount}
               />
+              {errors.amount && (
+                <p className="text-xs text-red-500 mt-1">{errors.amount}</p>
+              )}
             </div>
 
             <div className="space-y-3 pt-2 border-t">
@@ -175,8 +207,12 @@ export function DepositDialog({
                     setFormData({ ...formData, cardName: e.target.value })
                   }
                   required
-                  className="mt-1.5"
+                  className={`mt-1.5 ${errors.cardName ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  aria-invalid={!!errors.cardName}
                 />
+                {errors.cardName && (
+                  <p className="text-xs text-red-500 mt-1">{errors.cardName}</p>
+                )}
               </div>
 
               <div>
@@ -187,8 +223,12 @@ export function DepositDialog({
                   value={formatCardNumber(formData.cardNumber)}
                   onChange={handleCardNumberChange}
                   required
-                  className="mt-1.5"
+                  className={`mt-1.5 ${errors.cardNumber ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  aria-invalid={!!errors.cardNumber}
                 />
+                {errors.cardNumber && (
+                  <p className="text-xs text-red-500 mt-1">{errors.cardNumber}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -200,8 +240,12 @@ export function DepositDialog({
                     value={formData.cardExpiry}
                     onChange={handleExpiryChange}
                     required
-                    className="mt-1.5"
+                    className={`mt-1.5 ${errors.cardExpiry ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    aria-invalid={!!errors.cardExpiry}
                   />
+                  {errors.cardExpiry && (
+                    <p className="text-xs text-red-500 mt-1">{errors.cardExpiry}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="cardCvv">CVV</Label>
@@ -212,8 +256,12 @@ export function DepositDialog({
                     onChange={handleCvvChange}
                     required
                     type="password"
-                    className="mt-1.5"
+                    className={`mt-1.5 ${errors.cardCvv ? 'border-red-500 focus:ring-red-500' : ''}`}
+                    aria-invalid={!!errors.cardCvv}
                   />
+                  {errors.cardCvv && (
+                    <p className="text-xs text-red-500 mt-1">{errors.cardCvv}</p>
+                  )}
                 </div>
               </div>
             </div>

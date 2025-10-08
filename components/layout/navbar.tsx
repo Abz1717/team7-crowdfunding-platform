@@ -3,7 +3,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdownmenu";
-import Link from "next/link";
+import { LinkWithLoader } from "@/components/link-with-loader";
 import { useRouter } from "next/navigation";
 
 export function Navbar() {
@@ -18,36 +18,36 @@ export function Navbar() {
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
+        <LinkWithLoader href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
           <img src="/logo_invex.ico" alt="Invex Logo" className="w-7 h-7" />
           invex
-        </Link>
+        </LinkWithLoader>
         <div className="flex items-center gap-4">
           {isLoading ? (
-            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground">Loading...</div>
+            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground"></div>
           ) : user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
                 {user.role === "business" ? (
                   <>
-                    <Link href="/business" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/business" className="text-sm text-muted-foreground hover:text-foreground">
                       Dashboard
-                    </Link>
-                    <Link href="/business/my-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    </LinkWithLoader>
+                    <LinkWithLoader href="/business/my-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       My pitches
-                    </Link>
-                    <Link href="/business/other-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    </LinkWithLoader>
+                    <LinkWithLoader href="/business/other-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       Other pitches
-                    </Link>
+                    </LinkWithLoader>
                   </>
                 ) : (
                   <>
-                    <Link href="/investor/browse-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/investor/browse-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       Browse Pitches
-                    </Link>
-                    <Link href="/investor/portfolio" className="text-sm text-muted-foreground hover:text-foreground">
+                    </LinkWithLoader>
+                    <LinkWithLoader href="/investor/portfolio" className="text-sm text-muted-foreground hover:text-foreground">
                       Portfolio
-                    </Link>
+                    </LinkWithLoader>
                   </>
                 )}
               </div>
@@ -69,29 +69,29 @@ export function Navbar() {
                   {user.role === "business" ? (
                                         <>
                       <DropdownMenuItem asChild>
-                      <Link href="/business">Dashboard</Link>
+                        <LinkWithLoader href="/business">Dashboard</LinkWithLoader>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/business/my-pitches">My Pitches</Link>
+                        <LinkWithLoader href="/business/my-pitches">My Pitches</LinkWithLoader>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/business/other-pitches">Other Pitches</Link>
+                        <LinkWithLoader href="/business/other-pitches">Other Pitches</LinkWithLoader>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/business/settings">Settings</Link>
+                        <LinkWithLoader href="/business/settings">Settings</LinkWithLoader>
                       </DropdownMenuItem>
                     </>
 
                   ) : (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link href="/investor/browse-pitches">Browse Pitches</Link>
+                        <LinkWithLoader href="/investor/browse-pitches">Browse Pitches</LinkWithLoader>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/investor/portfolio">Portfolio</Link>
+                        <LinkWithLoader href="/investor/portfolio">Portfolio</LinkWithLoader>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link href="/investor/settings">Settings</Link>
+                        <LinkWithLoader href="/investor/settings">Settings</LinkWithLoader>
                       </DropdownMenuItem>
                     </>
                   )}
@@ -100,9 +100,9 @@ export function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            <Link href="/signin">
+            <LinkWithLoader href="/signin">
               <Button>Get Started</Button>
-            </Link>
+            </LinkWithLoader>
           )}
         </div>
       </div>

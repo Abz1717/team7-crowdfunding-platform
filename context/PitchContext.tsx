@@ -68,29 +68,4 @@ interface PitchContextType extends PitchState {
   dispatch: React.Dispatch<PitchAction>;
 }
 
-// Create context
-const PitchContext = createContext<PitchContextType | undefined>(undefined);
-
-// Provider component
-interface PitchProviderProps {
-  children: ReactNode;
-}
-
-export function PitchProvider({ children }: PitchProviderProps) {
-  const [state, dispatch] = useReducer(pitchReducer, initialState);
-
-  return (
-    <PitchContext.Provider value={{ ...state, dispatch }}>
-      {children}
-    </PitchContext.Provider>
-  );
-}
-
-// Custom hook to use the pitch context
-export function usePitch() {
-  const context = useContext(PitchContext);
-  if (context === undefined) {
-    throw new Error("usePitch must be used within a PitchProvider");
-  }
-  return context;
-}
+  // pitchcontext remove now all pitch state is in swr hooks

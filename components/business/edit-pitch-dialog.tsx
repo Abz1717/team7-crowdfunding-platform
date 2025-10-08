@@ -32,7 +32,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { usePitchActions } from "@/hooks/usePitchActions";
+import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
+import { useBusinessUser } from "@/hooks/useBusinessData";
+import { mutate } from "swr";
 import type { Pitch, UpdatePitchData, InvestmentTier } from "@/lib/types/pitch";
 import { createClient } from "@/utils/supabase/client";
 import {
@@ -60,7 +62,8 @@ export function EditPitchDialog({
   onOpenChange,
   onDelete,
 }: EditPitchDialogProps) {
-  const { updateExistingPitch } = usePitchActions();
+  const { updateExistingPitch } = useBusinessPitchActions();
+  const { data: businessUser } = useBusinessUser();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
   const [supportingMedia, setSupportingMedia] = useState<string[]>([]);
@@ -180,6 +183,24 @@ export function EditPitchDialog({
       }
 
       if (result.success) {
+        if (businessUser?.id) {
+          await mutate([
+            "my-pitches",
+            businessUser.id,
+          ],
+          (current: any) => {
+            if (!current || !current.pitches) return current;
+            return {
+              ...current,
+              pitches: current.pitches.map((p: any) =>
+                p.id === pitch.id ? { ...p, ...updateData } : p
+              ),
+            };
+          },
+          false);
+        } else {
+          await mutate((key) => Array.isArray(key) && key[0] === "my-pitches");
+        }
         onOpenChange(false);
         toast.success("Pitch updated successfully!");
       }

@@ -44,42 +44,32 @@ import type { User as UserType, BusinessUser } from "@/lib/types/user";
 import { DepositDialog } from "@/components/settings/deposit-dialog";
 import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
 import { TransactionHistory } from "@/components/settings/transaction-history";
-import { useInvestorSafe } from "@/context/InvestorContext";
-import { useBusinessSafe } from "@/context/BusinessContext";
+import { useInvestorProfile, useInvestorPortfolio, useInvestorProfitPayouts, useInvestorTransactions } from "@/hooks/useInvestorData";
+import { useBusinessUser, useBusinessAccountBalance, useBusinessFundingBalance } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
 
 export function AccountSettings() {
   const { user: authUser } = useAuth();
   const searchParams = useSearchParams();
 
-  // Use safe versions that don't throw errors
-  const investorContext = useInvestorSafe();
-  const businessContext = useBusinessSafe();
+  // swr hooks for investor data
+  const { data: investorProfileData, isLoading: loadingInvestorProfile } = useInvestorProfile();
+  const { data: investorPortfolioData, isLoading: loadingPortfolio } = useInvestorPortfolio(authUser?.id);
+  const { data: investorProfitPayouts, isLoading: loadingPayouts } = useInvestorProfitPayouts(authUser?.id);
+  const { data: investorTransactions, isLoading: loadingTransactions } = useInvestorTransactions();
+  const { data: businessUserData } = useBusinessUser();
+  const { data: businessAccountBalance } = useBusinessAccountBalance();
+  const { data: businessFundingBalance } = useBusinessFundingBalance();
 
-  // Determine which context to use based on user role
-  let cachedUserProfile: UserType | null = null;
-  let cachedBusinessUserProfile: BusinessUser | null = null;
-  let refreshUserProfileFromContext: (() => Promise<void>) | null = null;
-  let cachedAccountBalance = 0;
-
-  // Use the appropriate context based on user role
-  if (authUser?.role === "investor" && investorContext) {
-    cachedUserProfile = investorContext.userProfile;
-    cachedBusinessUserProfile = investorContext.businessUserProfile;
-    refreshUserProfileFromContext = investorContext.refreshUserProfile;
-    cachedAccountBalance = investorContext.accountBalance;
-  } else if (authUser?.role === "business" && businessContext) {
-    cachedUserProfile = businessContext.userProfile;
-    cachedBusinessUserProfile = businessContext.businessUserProfile;
-    refreshUserProfileFromContext = businessContext.refreshUserProfile;
-    cachedAccountBalance = businessContext.accountBalance;
+  // user and businessUser from SWR data
+  let user: UserType | null = null;
+  let businessUser: BusinessUser | null = null;
+  if (authUser?.role === "investor") {
+    user = investorProfileData?.user ?? null;
+  } else if (authUser?.role === "business") {
+    businessUser = businessUserData ?? null;
   }
-
-  const [user, setUser] = useState<UserType | null>(cachedUserProfile);
-  const [businessUser, setBusinessUser] = useState<BusinessUser | null>(
-    cachedBusinessUserProfile
-  );
-  const [loading, setLoading] = useState(!cachedUserProfile);
+  const loading = authUser?.role === "investor" ? loadingInvestorProfile : false;
   const [editingUser, setEditingUser] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -105,15 +95,15 @@ export function AccountSettings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [depositDialogOpen, setDepositDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [fundingWithdrawDialogOpen, setFundingWithdrawDialogOpen] = useState(false);
+  const [billingTab, setBillingTab] = useState<'account' | 'funding'>('account');
 
-  // User form data
   const [userFormData, setUserFormData] = useState({
     first_name: "",
     last_name: "",
     email: "",
   });
 
-  // Business form data
   const [businessFormData, setBusinessFormData] = useState({
     business_name: "",
     description: "",
@@ -123,68 +113,6 @@ export function AccountSettings() {
     location: "",
   });
 
-  // Sync with cached data from InvestorContext
-  useEffect(() => {
-    if (cachedUserProfile) {
-      setUser(cachedUserProfile);
-      setUserFormData({
-        first_name: cachedUserProfile.first_name,
-        last_name: cachedUserProfile.last_name,
-        email: cachedUserProfile.email,
-      });
-    }
-    if (cachedBusinessUserProfile) {
-      setBusinessUser(cachedBusinessUserProfile);
-      setBusinessFormData({
-        business_name: cachedBusinessUserProfile.business_name,
-        description: cachedBusinessUserProfile.description,
-        website: cachedBusinessUserProfile.website || "",
-        logo_url: cachedBusinessUserProfile.logo_url || "",
-        phone_number: cachedBusinessUserProfile.phone_number || "",
-        location: cachedBusinessUserProfile.location,
-      });
-    }
-  }, [cachedUserProfile, cachedBusinessUserProfile]);
-
-  useEffect(() => {
-    if (!cachedUserProfile) {
-      loadUserData();
-    }
-  }, []);
-
-  const loadUserData = async () => {
-    setLoading(true);
-    try {
-      const userResult = await getCurrentUser();
-      if (userResult.success && userResult.data) {
-        setUser(userResult.data);
-        setUserFormData({
-          first_name: userResult.data.first_name,
-          last_name: userResult.data.last_name,
-          email: userResult.data.email,
-        });
-
-        if (userResult.data.account_type === "business") {
-          const businessResult = await getCurrentBusinessUser();
-          if (businessResult.success && businessResult.data) {
-            setBusinessUser(businessResult.data);
-            setBusinessFormData({
-              business_name: businessResult.data.business_name,
-              description: businessResult.data.description,
-              website: businessResult.data.website || "",
-              logo_url: businessResult.data.logo_url || "",
-              phone_number: businessResult.data.phone_number || "",
-              location: businessResult.data.location,
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error loading user data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleUserInputChange = (field: string, value: string) => {
     setUserFormData((prev) => ({ ...prev, [field]: value }));
@@ -200,12 +128,6 @@ export function AccountSettings() {
       const result = await updateUserProfile(userFormData);
       if (result.success) {
         setEditingUser(false);
-        // Refresh from context if available, otherwise fetch directly
-        if (refreshUserProfileFromContext) {
-          await refreshUserProfileFromContext();
-        } else {
-          await loadUserData();
-        }
       } else {
         console.error("Error updating user profile:", result.error);
       }
@@ -227,12 +149,6 @@ export function AccountSettings() {
       });
       if (result.success) {
         setEditingBusiness(false);
-        // Refresh from context if available, otherwise fetch directly
-        if (refreshUserProfileFromContext) {
-          await refreshUserProfileFromContext();
-        } else {
-          await loadUserData();
-        }
       } else {
         console.error("Error updating business profile:", result.error);
       }
@@ -260,6 +176,13 @@ export function AccountSettings() {
         email: user.email,
       });
     }
+    if (businessUser) {
+      setUserFormData({
+        first_name: "",
+        last_name: "",
+        email: authUser?.email || "",
+      });
+    }
   };
 
   const cancelBusinessEdit = () => {
@@ -276,17 +199,8 @@ export function AccountSettings() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-sm text-muted-foreground">
-          Loading account settings...
-        </div>
-      </div>
-    );
-  }
 
-  if (!user) {
+  if (!user && !businessUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-sm text-destructive">Failed to load user data</div>
@@ -301,6 +215,20 @@ export function AccountSettings() {
     { id: "billing", label: "Billing", icon: CreditCard },
     { id: "data", label: "Data & Privacy", icon: Download },
   ];
+
+  // Calculate portfolio stats for investors
+  const portfolio = investorPortfolioData;
+  const totalInvested = portfolio?.totalInvested ?? 0;
+  const overallROI = portfolio?.overallROI ?? 0;
+  const totalReturns = portfolio?.totalReturns ?? 0;
+  const accountBalance =
+    authUser?.role === "business"
+      ? (typeof businessAccountBalance === "number" ? businessAccountBalance : 0)
+      : portfolio?.accountBalance ?? (user ? user.account_balance : 0) ?? 0;
+
+  const fundingBalance = authUser?.role === "business"
+    ? (typeof businessFundingBalance === "number" ? businessFundingBalance : 0)
+    : (user?.funding_balance ?? 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -356,8 +284,9 @@ export function AccountSettings() {
                     <Avatar className="h-20 w-20">
                       <AvatarImage src="/professional-profile.png" />
                       <AvatarFallback className="text-lg">
-                        {user.first_name[0]}
-                        {user.last_name[0]}
+                        {user
+                          ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`
+                          : businessUser?.business_name?.[0] ?? "?"}
                       </AvatarFallback>
                     </Avatar>
                     <Button
@@ -370,9 +299,13 @@ export function AccountSettings() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">
-                      {user.first_name} {user.last_name}
+                      {user
+                        ? `${user.first_name} ${user.last_name}`
+                        : businessUser?.business_name}
                     </h2>
-                    <p className="text-muted-foreground">{user.email}</p>
+                    <p className="text-muted-foreground">
+                      {user ? user.email : authUser?.email}
+                    </p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                       <span className="text-sm text-muted-foreground">
@@ -405,48 +338,65 @@ export function AccountSettings() {
                   <CardContent className="space-y-4">
                     {editingUser ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        {user ? (
+                          <>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="first_name">First Name</Label>
+                                <Input
+                                  id="first_name"
+                                  value={userFormData.first_name}
+                                  onChange={(e) =>
+                                    handleUserInputChange(
+                                      "first_name",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-input border-border"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="last_name">Last Name</Label>
+                                <Input
+                                  id="last_name"
+                                  value={userFormData.last_name}
+                                  onChange={(e) =>
+                                    handleUserInputChange(
+                                      "last_name",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-input border-border"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label htmlFor="email">Email</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={userFormData.email}
+                                onChange={(e) =>
+                                  handleUserInputChange("email", e.target.value)
+                                }
+                                className="bg-input border-border"
+                              />
+                            </div>
+                          </>
+                        ) : businessUser ? (
                           <div>
-                            <Label htmlFor="first_name">First Name</Label>
+                            <Label htmlFor="email">Email</Label>
                             <Input
-                              id="first_name"
-                              value={userFormData.first_name}
+                              id="email"
+                              type="email"
+                              value={userFormData.email}
                               onChange={(e) =>
-                                handleUserInputChange(
-                                  "first_name",
-                                  e.target.value
-                                )
+                                handleUserInputChange("email", e.target.value)
                               }
                               className="bg-input border-border"
                             />
                           </div>
-                          <div>
-                            <Label htmlFor="last_name">Last Name</Label>
-                            <Input
-                              id="last_name"
-                              value={userFormData.last_name}
-                              onChange={(e) =>
-                                handleUserInputChange(
-                                  "last_name",
-                                  e.target.value
-                                )
-                              }
-                              className="bg-input border-border"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={userFormData.email}
-                            onChange={(e) =>
-                              handleUserInputChange("email", e.target.value)
-                            }
-                            className="bg-input border-border"
-                          />
-                        </div>
+                        ) : null}
                         <div className="flex gap-2">
                           <Button onClick={handleSaveUser} disabled={saving}>
                             <Save className="h-4 w-4 mr-1" />
@@ -465,7 +415,9 @@ export function AccountSettings() {
                               Full Name
                             </Label>
                             <p className="text-foreground font-medium">
-                              {user.first_name} {user.last_name}
+                              {user
+                                ? `${user.first_name} ${user.last_name}`
+                                : businessUser?.business_name}
                             </p>
                           </div>
                           <div>
@@ -474,7 +426,9 @@ export function AccountSettings() {
                             </Label>
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4 text-muted-foreground" />
-                              <p className="text-foreground">{user.email}</p>
+                              <p className="text-foreground">
+                                {user ? user.email : authUser?.email}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -484,7 +438,9 @@ export function AccountSettings() {
                               Account Type
                             </Label>
                             <p className="text-foreground font-medium capitalize">
-                              {user.account_type}
+                              {user
+                                ? user.account_type
+                                : "business"}
                             </p>
                           </div>
                           <div>
@@ -493,12 +449,40 @@ export function AccountSettings() {
                             </Label>
                             <p className="text-foreground font-medium">
                               £
-                              {user.account_balance.toLocaleString(undefined, {
+                              {accountBalance?.toLocaleString(undefined, {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}
                             </p>
                           </div>
+                          {authUser?.role === "investor" && (
+                            <>
+                              <div>
+                                <Label className="text-muted-foreground">
+                                  Total Invested
+                                </Label>
+                                <p className="text-foreground font-medium">
+                                  £{totalInvested?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-muted-foreground">
+                                  Total Returns
+                                </Label>
+                                <p className="text-foreground font-medium">
+                                  £{totalReturns?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                              </div>
+                              <div>
+                                <Label className="text-muted-foreground">
+                                  Overall ROI
+                                </Label>
+                                <p className="text-foreground font-medium">
+                                  {overallROI?.toFixed(2)}%
+                                </p>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
@@ -506,7 +490,7 @@ export function AccountSettings() {
                 </Card>
 
                 {/* Business Information Card */}
-                {user.account_type === "business" && businessUser && (
+                {(user?.account_type === "business" || businessUser) && businessUser && (
                   <Card className="border-border">
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -894,49 +878,158 @@ export function AccountSettings() {
                   </p>
                 </div>
 
-                <Card className="border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Wallet className="h-5 w-5" />
+                {authUser?.role === "business" && (
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant={billingTab === 'account' ? 'default' : 'outline'}
+                      onClick={() => setBillingTab('account')}
+                    >
                       Account Balance
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-3xl font-bold text-foreground">
-                          £
-                          {user.account_balance.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Available balance
-                        </p>
+                    </Button>
+                    <Button
+                      variant={billingTab === 'funding' ? 'default' : 'outline'}
+                      onClick={() => setBillingTab('funding')}
+                    >
+                      Funding Balance
+                    </Button>
+                  </div>
+                )}
+
+                {(authUser?.role !== "business" || billingTab === 'account') && (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5" />
+                        Account Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-3xl font-bold text-foreground">
+                            £
+                            {accountBalance?.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Available balance
+                          </p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => setDepositDialogOpen(true)}
+                            className="flex-1"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Deposit
+                          </Button>
+                          <Button
+                            onClick={() => setWithdrawDialogOpen(true)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Withdraw
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-3">
-                        <Button
-                          onClick={() => setDepositDialogOpen(true)}
-                          className="flex-1"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Deposit
-                        </Button>
-                        <Button
-                          onClick={() => setWithdrawDialogOpen(true)}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          <Minus className="h-4 w-4 mr-2" />
-                          Withdraw
-                        </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {authUser?.role === "business" && billingTab === 'funding' && (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5" />
+                        Funding Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-3xl font-bold text-foreground">
+                            £
+                            {fundingBalance?.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Funds available for withdrawal only
+                          </p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => setFundingWithdrawDialogOpen(true)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Withdraw
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {authUser?.role === "investor" && (
+                  <>
+                    <div className="mt-8">
+                      <h3 className="text-lg font-semibold mb-2">Profit Payouts</h3>
+                      <div className="space-y-2">
+                        {loadingPayouts ? (
+                          <div>Loading profit payouts...</div>
+                        ) : investorProfitPayouts && investorProfitPayouts.length > 0 ? (
+                          investorProfitPayouts.map((payout: any, idx: number) => (
+                            <div key={idx} className="border p-3 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <div className="font-medium">{payout.pitch?.title || 'Pitch'}</div>
+                                <div className="text-sm text-muted-foreground">Distribution Date: {new Date(payout.distribution.distribution_date).toLocaleDateString()}</div>
+                              </div>
+                              <div className="text-right mt-2 md:mt-0">
+                                <span className="font-semibold">£{payout.totalAmount?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                                <span className="ml-2 text-xs text-muted-foreground">({payout.userSharePercent?.toFixed(2)}% share)</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div>No profit payouts yet.</div>
+                        )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <TransactionHistory />
+                    <div className="mt-8">
+                      <h3 className="text-lg font-semibold mb-2">Recent Activity</h3>
+                      <div className="space-y-2">
+                        {loadingTransactions ? (
+                          <div>Loading transactions...</div>
+                        ) : investorTransactions?.data && investorTransactions.data.length > 0 ? (
+                          investorTransactions.data.map((transaction: any) => (
+                            <div key={transaction.id} className="border p-3 rounded-lg flex flex-col md:flex-row md:items-center md:justify-between">
+                              <div>
+                                <span className="font-medium capitalize">{transaction.type}</span>
+                                <span className="ml-2 text-xs text-muted-foreground">{new Date(transaction.created_at).toLocaleDateString()}</span>
+                              </div>
+                              <div className="text-right mt-2 md:mt-0">
+                                <span className={transaction.type === "deposit" ? "text-green-600 font-semibold" : "text-blue-600 font-semibold"}>
+                                  {transaction.type === "deposit" ? "+" : "-"}£{Number(transaction.amount).toFixed(2)}
+                                </span>
+                                <span className="ml-2 text-xs">{transaction.status}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div>No recent activity.</div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {/* Transaction history for business users (account tab only) */}
+                {authUser?.role === "business" && billingTab === 'account' && <TransactionHistory />}
               </div>
             )}
 
@@ -997,33 +1090,20 @@ export function AccountSettings() {
       <DepositDialog
         open={depositDialogOpen}
         onOpenChange={setDepositDialogOpen}
-        onSuccess={async () => {
-          if (investorContext) {
-            await investorContext.refreshUserProfile();
-            await investorContext.refreshTransactions();
-          } else if (businessContext) {
-            await businessContext.refreshUserProfile();
-            await businessContext.refreshTransactions();
-          } else {
-            await loadUserData();
-          }
-        }}
+        onSuccess={() => {}}
       />
       <WithdrawDialog
         open={withdrawDialogOpen}
         onOpenChange={setWithdrawDialogOpen}
-        onSuccess={async () => {
-          if (investorContext) {
-            await investorContext.refreshUserProfile();
-            await investorContext.refreshTransactions();
-          } else if (businessContext) {
-            await businessContext.refreshUserProfile();
-            await businessContext.refreshTransactions();
-          } else {
-            await loadUserData();
-          }
-        }}
-        currentBalance={user.account_balance}
+        onSuccess={() => {}}
+        currentBalance={accountBalance}
+      />
+      <WithdrawDialog
+        open={fundingWithdrawDialogOpen}
+        onOpenChange={setFundingWithdrawDialogOpen}
+        onSuccess={() => {}}
+        currentBalance={fundingBalance}
+        fundingOnly
       />
     </div>
   );
