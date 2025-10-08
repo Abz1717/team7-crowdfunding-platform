@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { AdvertisePitchDialog } from "@/components/business/advertise-pitch-dialog";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, ArrowDownLeft, Calendar } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -157,11 +158,15 @@ export default function BusinessDashboardPage() {
                 Boost your pitch's visibility and attract more investors by promoting it on our platform.
               </p>
             </div>
-            <Link href="/business/my-pitches" className="mt-auto">
-              <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md transition-colors duration-200" type="button">
-                Advertise Now
-              </Button>
-            </Link>
+            <div className="mt-auto">
+              <AdvertisePitchDialog
+                trigger={
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md transition-colors duration-200" type="button">
+                    Advertise Now
+                  </Button>
+                }
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
