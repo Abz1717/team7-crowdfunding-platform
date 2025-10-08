@@ -24,6 +24,8 @@ interface PitchCardProps {
   onStatusToggle: (pitchId: string, currentStatus: string) => void;
   isDeleting?: boolean;
   hasAdCampaign?: boolean;
+  onManageAdCampaign?: (pitchId: string) => void;
+  onDeclareProfits?: (pitch: Pitch) => void;
 }
 
 export function PitchCard({
@@ -32,6 +34,9 @@ export function PitchCard({
   onDelete,
   onStatusToggle,
   isDeleting = false,
+  hasAdCampaign = false,
+  onManageAdCampaign,
+  onDeclareProfits,
 }: PitchCardProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -224,30 +229,57 @@ export function PitchCard({
             </div>
           </div>
 
-          {/* Actions */}
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1"
-              onClick={handleCardClick}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </Button>
-            {(pitch.status === "draft" || pitch.status === "closed") && (
+          <div className="flex flex-col gap-2 pt-2">
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                onClick={handleDeleteClick}
-                disabled={isDeleting}
+                className="flex-1"
+                onClick={handleCardClick}
               >
-                {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
-                )}
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              {(pitch.status === "draft" || pitch.status === "closed") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  onClick={handleDeleteClick}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
+            {hasAdCampaign && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full mt-1 bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200"
+                onClick={e => {
+                  e.stopPropagation();
+                  if (onManageAdCampaign) onManageAdCampaign(pitch.id);
+                }}
+              >
+                Manage Ad Campaign
+              </Button>
+            )}
+            {pitch.status === "funded" && (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="w-full mt-1 bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200"
+                onClick={e => {
+                  e.stopPropagation();
+                  if (onDeclareProfits) onDeclareProfits(pitch);
+                }}
+              >
+                Declare Profits
               </Button>
             )}
           </div>

@@ -198,10 +198,13 @@ export function MyPitches() {
                       onStatusToggle={() => {}}
                       isDeleting={deletingPitchId === pitch.id}
                       hasAdCampaign={pitchHasAdCampaign(pitch.id)}
+                      onManageAdCampaign={pitchHasAdCampaign(pitch.id)
+                        ? (id) => toast.info('Manage Ad Campaign for pitch ' + id)
+                        : undefined}
                     />
                     {pitchHasAdCampaign(pitch.id) && (
                       <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
-                        <div className="bg-green-400 text-white text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg]">Ad Campaign</div>
+                        <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg] border border-yellow-300">Ad Campaign</div>
                       </div>
                     )}
                     <Button
@@ -228,17 +231,19 @@ export function MyPitches() {
                 {pitchesByStatus.active.map((pitch) => (
                   <div key={pitch.id} className="relative">
                     <PitchCard
-                    
                       pitch={pitch}
                       onEdit={handleEditPitch}
                       onDelete={handleDeletePitch}
                       onStatusToggle={handleStatusToggle}
                       isDeleting={deletingPitchId === pitch.id}
                       hasAdCampaign={pitchHasAdCampaign(pitch.id)}
+                      onManageAdCampaign={pitchHasAdCampaign(pitch.id)
+                        ? (id) => toast.info('Manage Ad Campaign for pitch ' + id)
+                        : undefined}
                     />
                     {pitchHasAdCampaign(pitch.id) && (
                       <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
-                        <div className="bg-green-400 text-white text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg]">Ad Campaign</div>
+                        <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg] border border-yellow-300">Ad Campaign</div>
                       </div>
                     )}
                   </div>
@@ -256,22 +261,15 @@ export function MyPitches() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
                 {pitchesByStatus.funded.map((pitch) => (
-                  <div key={pitch.id}>
-                    <PitchCard
-                      pitch={pitch}
-                      onEdit={handleEditPitch}
-                      onDelete={handleDeletePitch}
-                      onStatusToggle={() => {}}
-                      isDeleting={deletingPitchId === pitch.id}
-                    />
-                    <Button
-                      className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => handleDeclareProfits(pitch)}
-                      variant="default"
-                    >
-                      Declare Profits
-                    </Button>
-                  </div>
+                  <PitchCard
+                    key={pitch.id}
+                    pitch={pitch}
+                    onEdit={handleEditPitch}
+                    onDelete={handleDeletePitch}
+                    onStatusToggle={() => {}}
+                    isDeleting={deletingPitchId === pitch.id}
+                    onDeclareProfits={handleDeclareProfits}
+                  />
                 ))}
               </div>
             )}
