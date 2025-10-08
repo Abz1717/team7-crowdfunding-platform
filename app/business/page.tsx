@@ -86,18 +86,10 @@ export default function BusinessDashboardPage() {
         new Date(a.distributionDate).getTime()
     );
 
-  // Investor paging state and logic
-  const uniquePitches = Array.from(
-    new Set(transformedProfitDistributions.map((d) => d.pitchId))
-  ).map((pitchId) => ({
-    id: pitchId,
-    title:
-      transformedProfitDistributions.find((d) => d.pitchId === pitchId)
-        ?.pitchTitle || "",
-  }));
+  const allPitches = myPitches;
   const [investorPage, setInvestorPage] = useState(0);
-  const totalInvestorPages = uniquePitches.length;
-  const currentPitch = uniquePitches[investorPage];
+  const totalInvestorPages = allPitches.length;
+  const currentPitch = allPitches[investorPage];
 
   const [profitPage, setProfitPage] = useState(1);
   const profitsPerPage = 3;
@@ -292,48 +284,46 @@ export default function BusinessDashboardPage() {
         </CardContent>
       </Card>
 
-      {!loading &&
-        transformedProfitDistributions.length > 0 &&
-        totalInvestorPages > 0 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Your Investors </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InvestorList
-                pitchId={currentPitch?.id}
-                pitchTitle={currentPitch?.title}
-              />
-              {totalInvestorPages > 1 && (
-                <div className="flex justify-center gap-4 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setInvestorPage((p) => Math.max(0, p - 1))}
-                    disabled={investorPage === 0}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground self-center">
-                    Page {investorPage + 1} of {totalInvestorPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setInvestorPage((p) =>
-                        Math.min(totalInvestorPages - 1, p + 1)
-                      )
-                    }
-                    disabled={investorPage === totalInvestorPages - 1}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+      {!loading && totalInvestorPages > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Your Investors </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InvestorList
+              pitchId={currentPitch?.id}
+              pitchTitle={currentPitch?.title}
+            />
+            {totalInvestorPages > 1 && (
+              <div className="flex justify-center gap-4 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInvestorPage((p) => Math.max(0, p - 1))}
+                  disabled={investorPage === 0}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground self-center">
+                  Page {investorPage + 1} of {totalInvestorPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setInvestorPage((p) =>
+                      Math.min(totalInvestorPages - 1, p + 1)
+                    )
+                  }
+                  disabled={investorPage === totalInvestorPages - 1}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
