@@ -21,6 +21,7 @@ interface WithdrawDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
   currentBalance: number;
+  fundingOnly?: boolean;
 }
 
 export function WithdrawDialog({
@@ -28,6 +29,7 @@ export function WithdrawDialog({
   onOpenChange,
   onSuccess,
   currentBalance,
+  fundingOnly,
 }: WithdrawDialogProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -147,7 +149,7 @@ export function WithdrawDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]">
+  <DialogContent className="sm:max-w-[480px] rounded-xl">
         <DialogHeader>
           <DialogTitle>Withdraw Funds</DialogTitle>
           <DialogDescription>

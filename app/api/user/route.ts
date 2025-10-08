@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const { data: userDetails, error: userError } = await supabase
       .from("user")
       .select(
-        "account_type, first_name, last_name, created_at, account_balance"
+        "account_type, first_name, last_name, created_at, account_balance, funding_balance"
       )
       .eq("email", user.email)
       .single();
@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       last_name: userDetails.last_name,
       created_at: userDetails.created_at,
       account_balance: userDetails.account_balance,
+      funding_balance: userDetails.funding_balance,
     });
   } catch (error) {
     console.error("Error in user API route:", error);

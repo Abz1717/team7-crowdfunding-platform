@@ -42,6 +42,7 @@ export function InvestmentForm({
   const { toast } = useToast();
   const [investmentAmount, setInvestmentAmount] = useState<number>(0);
 
+  // Calculate the maximum money that can be invested (not shares)
   const maxAvailableToInvest = Math.max(
     0,
     pitch.target_amount - pitch.current_amount
@@ -103,7 +104,10 @@ export function InvestmentForm({
 
   const getMaximumInvestmentAmount = (): number => {
     if (normalizedTiers.length === 0) return maxAvailableToInvest;
-    return Math.max(...normalizedTiers.map((tier) => tier.max_amount));
+    return Math.min(
+      Math.max(...normalizedTiers.map((tier) => tier.max_amount)),
+      maxAvailableToInvest
+    );
   };
 
   const getHighestTier = (): InvestmentTier | null => {
@@ -132,24 +136,20 @@ export function InvestmentForm({
       setValidationDialogOpen(true);
       return;
     }
+    if (investmentAmount > maxAvailableToInvest) {
+      toast({
+        title: "Investment Too Large",
+        description: `You cannot invest more than the remaining amount for this pitch ($${maxAvailableToInvest.toLocaleString()}).`,
+        variant: "destructive",
+      });
+      return;
+    }
     if (normalizedTiers.length > 0) {
       if (!selectedTier) {
         toast({
           title: "Invalid Investment Amount",
           description:
             "Please enter a valid investment amount within the available tiers",
-          variant: "destructive",
-        });
-        return;
-      }
-      // prevent profit share from exceeding pitch.profit_share
-      const userProfitShare =
-        ((investmentAmount * selectedTier.multiplier) / pitch.target_amount) *
-        pitch.profit_share;
-      if (userProfitShare > pitch.profit_share) {
-        toast({
-          title: "Investment Too Large",
-          description: `Your investment would exceed the maximum allowed profit share (${pitch.profit_share}%). Reduce the amount or choose a lower tier.`,
           variant: "destructive",
         });
         return;
@@ -361,15 +361,10 @@ export function InvestmentForm({
             disabled={
               investmentAmount === 0 ||
               isProcessing ||
-              Boolean(
-                selectedTier &&
-                  pitch.target_amount &&
-                  investmentAmount > 0 &&
-                  ((investmentAmount * selectedTier.multiplier) /
-                    pitch.target_amount) *
-                    pitch.profit_share >
-                    pitch.profit_share
-              )
+              investmentAmount < getMinimumInvestmentAmount() ||
+              investmentAmount > getMaximumInvestmentAmount() ||
+              (normalizedTiers.length > 0 && !selectedTier) ||
+              (fundingMethod === "balance" && investmentAmount > accountBalance)
             }
             className="w-full"
             size="lg"

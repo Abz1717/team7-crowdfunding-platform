@@ -45,7 +45,7 @@ import { DepositDialog } from "@/components/settings/deposit-dialog";
 import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
 import { TransactionHistory } from "@/components/settings/transaction-history";
 import { useInvestorProfile, useInvestorPortfolio, useInvestorProfitPayouts, useInvestorTransactions } from "@/hooks/useInvestorData";
-import { useBusinessUser, useBusinessAccountBalance } from "@/hooks/useBusinessData";
+import { useBusinessUser, useBusinessAccountBalance, useBusinessFundingBalance } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
 
 export function AccountSettings() {
@@ -59,10 +59,16 @@ export function AccountSettings() {
   const { data: investorTransactions, isLoading: loadingTransactions } = useInvestorTransactions();
   const { data: businessUserData } = useBusinessUser();
   const { data: businessAccountBalance } = useBusinessAccountBalance();
+  const { data: businessFundingBalance } = useBusinessFundingBalance();
 
   // user and businessUser from SWR data
-  const user = authUser?.role === "investor" ? investorProfileData?.user : null;
-  const businessUser = authUser?.role === "business" ? businessUserData : investorProfileData?.businessUser;
+  let user: UserType | null = null;
+  let businessUser: BusinessUser | null = null;
+  if (authUser?.role === "investor") {
+    user = investorProfileData?.user ?? null;
+  } else if (authUser?.role === "business") {
+    businessUser = businessUserData ?? null;
+  }
   const loading = authUser?.role === "investor" ? loadingInvestorProfile : false;
   const [editingUser, setEditingUser] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState(false);
@@ -89,6 +95,8 @@ export function AccountSettings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [depositDialogOpen, setDepositDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [fundingWithdrawDialogOpen, setFundingWithdrawDialogOpen] = useState(false);
+  const [billingTab, setBillingTab] = useState<'account' | 'funding'>('account');
 
   const [userFormData, setUserFormData] = useState({
     first_name: "",
@@ -168,6 +176,13 @@ export function AccountSettings() {
         email: user.email,
       });
     }
+    if (businessUser) {
+      setUserFormData({
+        first_name: "",
+        last_name: "",
+        email: authUser?.email || "",
+      });
+    }
   };
 
   const cancelBusinessEdit = () => {
@@ -185,7 +200,7 @@ export function AccountSettings() {
   };
 
 
-  if (!user && !loading) {
+  if (!user && !businessUser) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-sm text-destructive">Failed to load user data</div>
@@ -206,7 +221,14 @@ export function AccountSettings() {
   const totalInvested = portfolio?.totalInvested ?? 0;
   const overallROI = portfolio?.overallROI ?? 0;
   const totalReturns = portfolio?.totalReturns ?? 0;
-  const accountBalance = portfolio?.accountBalance ?? user?.account_balance ?? 0;
+  const accountBalance =
+    authUser?.role === "business"
+      ? (typeof businessAccountBalance === "number" ? businessAccountBalance : 0)
+      : portfolio?.accountBalance ?? (user ? user.account_balance : 0) ?? 0;
+
+  const fundingBalance = authUser?.role === "business"
+    ? (typeof businessFundingBalance === "number" ? businessFundingBalance : 0)
+    : (user?.funding_balance ?? 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -262,8 +284,9 @@ export function AccountSettings() {
                     <Avatar className="h-20 w-20">
                       <AvatarImage src="/professional-profile.png" />
                       <AvatarFallback className="text-lg">
-                        {user?.first_name?.[0]}
-                        {user?.last_name?.[0]}
+                        {user
+                          ? `${user.first_name?.[0] ?? ""}${user.last_name?.[0] ?? ""}`
+                          : businessUser?.business_name?.[0] ?? "?"}
                       </AvatarFallback>
                     </Avatar>
                     <Button
@@ -276,9 +299,13 @@ export function AccountSettings() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-foreground">
-                      {user?.first_name} {user?.last_name}
+                      {user
+                        ? `${user.first_name} ${user.last_name}`
+                        : businessUser?.business_name}
                     </h2>
-                    <p className="text-muted-foreground">{user?.email}</p>
+                    <p className="text-muted-foreground">
+                      {user ? user.email : authUser?.email}
+                    </p>
                     <div className="flex items-center gap-2 mt-2">
                       <div className="h-2 w-2 bg-green-500 rounded-full"></div>
                       <span className="text-sm text-muted-foreground">
@@ -311,48 +338,65 @@ export function AccountSettings() {
                   <CardContent className="space-y-4">
                     {editingUser ? (
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
+                        {user ? (
+                          <>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="first_name">First Name</Label>
+                                <Input
+                                  id="first_name"
+                                  value={userFormData.first_name}
+                                  onChange={(e) =>
+                                    handleUserInputChange(
+                                      "first_name",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-input border-border"
+                                />
+                              </div>
+                              <div>
+                                <Label htmlFor="last_name">Last Name</Label>
+                                <Input
+                                  id="last_name"
+                                  value={userFormData.last_name}
+                                  onChange={(e) =>
+                                    handleUserInputChange(
+                                      "last_name",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="bg-input border-border"
+                                />
+                              </div>
+                            </div>
+                            <div>
+                              <Label htmlFor="email">Email</Label>
+                              <Input
+                                id="email"
+                                type="email"
+                                value={userFormData.email}
+                                onChange={(e) =>
+                                  handleUserInputChange("email", e.target.value)
+                                }
+                                className="bg-input border-border"
+                              />
+                            </div>
+                          </>
+                        ) : businessUser ? (
                           <div>
-                            <Label htmlFor="first_name">First Name</Label>
+                            <Label htmlFor="email">Email</Label>
                             <Input
-                              id="first_name"
-                              value={userFormData.first_name}
+                              id="email"
+                              type="email"
+                              value={userFormData.email}
                               onChange={(e) =>
-                                handleUserInputChange(
-                                  "first_name",
-                                  e.target.value
-                                )
+                                handleUserInputChange("email", e.target.value)
                               }
                               className="bg-input border-border"
                             />
                           </div>
-                          <div>
-                            <Label htmlFor="last_name">Last Name</Label>
-                            <Input
-                              id="last_name"
-                              value={userFormData.last_name}
-                              onChange={(e) =>
-                                handleUserInputChange(
-                                  "last_name",
-                                  e.target.value
-                                )
-                              }
-                              className="bg-input border-border"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="email">Email</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={userFormData.email}
-                            onChange={(e) =>
-                              handleUserInputChange("email", e.target.value)
-                            }
-                            className="bg-input border-border"
-                          />
-                        </div>
+                        ) : null}
                         <div className="flex gap-2">
                           <Button onClick={handleSaveUser} disabled={saving}>
                             <Save className="h-4 w-4 mr-1" />
@@ -371,7 +415,9 @@ export function AccountSettings() {
                               Full Name
                             </Label>
                             <p className="text-foreground font-medium">
-                              {user?.first_name} {user?.last_name}
+                              {user
+                                ? `${user.first_name} ${user.last_name}`
+                                : businessUser?.business_name}
                             </p>
                           </div>
                           <div>
@@ -380,7 +426,9 @@ export function AccountSettings() {
                             </Label>
                             <div className="flex items-center gap-2">
                               <Mail className="h-4 w-4 text-muted-foreground" />
-                              <p className="text-foreground">{user?.email}</p>
+                              <p className="text-foreground">
+                                {user ? user.email : authUser?.email}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -390,7 +438,9 @@ export function AccountSettings() {
                               Account Type
                             </Label>
                             <p className="text-foreground font-medium capitalize">
-                              {user?.account_type}
+                              {user
+                                ? user.account_type
+                                : "business"}
                             </p>
                           </div>
                           <div>
@@ -440,7 +490,7 @@ export function AccountSettings() {
                 </Card>
 
                 {/* Business Information Card */}
-                {user?.account_type === "business" && businessUser && (
+                {(user?.account_type === "business" || businessUser) && businessUser && (
                   <Card className="border-border">
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -828,47 +878,103 @@ export function AccountSettings() {
                   </p>
                 </div>
 
-                <Card className="border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Wallet className="h-5 w-5" />
+                {authUser?.role === "business" && (
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant={billingTab === 'account' ? 'default' : 'outline'}
+                      onClick={() => setBillingTab('account')}
+                    >
                       Account Balance
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-3xl font-bold text-foreground">
-                          £
-                          {user?.account_balance?.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Available balance
-                        </p>
+                    </Button>
+                    <Button
+                      variant={billingTab === 'funding' ? 'default' : 'outline'}
+                      onClick={() => setBillingTab('funding')}
+                    >
+                      Funding Balance
+                    </Button>
+                  </div>
+                )}
+
+                {(authUser?.role !== "business" || billingTab === 'account') && (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5" />
+                        Account Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-3xl font-bold text-foreground">
+                            £
+                            {accountBalance?.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Available balance
+                          </p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => setDepositDialogOpen(true)}
+                            className="flex-1"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Deposit
+                          </Button>
+                          <Button
+                            onClick={() => setWithdrawDialogOpen(true)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Withdraw
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-3">
-                        <Button
-                          onClick={() => setDepositDialogOpen(true)}
-                          className="flex-1"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Deposit
-                        </Button>
-                        <Button
-                          onClick={() => setWithdrawDialogOpen(true)}
-                          variant="outline"
-                          className="flex-1"
-                        >
-                          <Minus className="h-4 w-4 mr-2" />
-                          Withdraw
-                        </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {authUser?.role === "business" && billingTab === 'funding' && (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5" />
+                        Funding Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-3xl font-bold text-foreground">
+                            £
+                            {fundingBalance?.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Funds available for withdrawal only
+                          </p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => setFundingWithdrawDialogOpen(true)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Withdraw
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {authUser?.role === "investor" && (
                   <>
@@ -922,7 +1028,8 @@ export function AccountSettings() {
                     </div>
                   </>
                 )}
-                {authUser?.role === "business" && <TransactionHistory />}
+                {/* Transaction history for business users (account tab only) */}
+                {authUser?.role === "business" && billingTab === 'account' && <TransactionHistory />}
               </div>
             )}
 
@@ -990,6 +1097,13 @@ export function AccountSettings() {
         onOpenChange={setWithdrawDialogOpen}
         onSuccess={() => {}}
         currentBalance={accountBalance}
+      />
+      <WithdrawDialog
+        open={fundingWithdrawDialogOpen}
+        onOpenChange={setFundingWithdrawDialogOpen}
+        onSuccess={() => {}}
+        currentBalance={fundingBalance}
+        fundingOnly
       />
     </div>
   );

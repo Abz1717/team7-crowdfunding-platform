@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { AdvertisePitchDialog } from "@/components/business/advertise-pitch-dialog";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, ArrowDownLeft, Calendar } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -10,7 +11,8 @@ import { useAuth } from "@/lib/auth";
 import {
   useMyPitches,
   useBusinessAccountBalance,
-  useProfitDistributions
+  useProfitDistributions,
+  useBusinessFundingBalance
 } from "@/hooks/useBusinessData";
 import LoadingScreen from "@/components/loading-screen";
 import { InvestorList } from "@/components/business/investor-list";
@@ -21,6 +23,7 @@ export default function BusinessDashboardPage() {
   const { data: myPitchesData, isLoading: loadingPitches } = useMyPitches();
   const { data: accountBalance, isLoading: loadingBalance } = useBusinessAccountBalance();
   const { data: profitDistributions, isLoading: loadingDistributions } = useProfitDistributions();
+  const { data: fundingBalance, isLoading: loadingFundingBalance } = useBusinessFundingBalance();
 
   // Debug logging for account balance
   if (typeof window !== "undefined") {
@@ -84,18 +87,10 @@ export default function BusinessDashboardPage() {
         new Date(a.distributionDate).getTime()
     );
 
-  // Investor paging state and logic
-  const uniquePitches = Array.from(
-    new Set(transformedProfitDistributions.map((d) => d.pitchId))
-  ).map((pitchId) => ({
-    id: pitchId,
-    title:
-      transformedProfitDistributions.find((d) => d.pitchId === pitchId)
-        ?.pitchTitle || "",
-  }));
+  const allPitches = myPitches;
   const [investorPage, setInvestorPage] = useState(0);
-  const totalInvestorPages = uniquePitches.length;
-  const currentPitch = uniquePitches[investorPage];
+  const totalInvestorPages = allPitches.length;
+  const currentPitch = allPitches[investorPage];
 
   const [profitPage, setProfitPage] = useState(1);
   const profitsPerPage = 3;
@@ -112,25 +107,69 @@ export default function BusinessDashboardPage() {
       <h1 className="text-2xl font-bold mb-4">Business Dashboard</h1>
       <p className="mb-8">Welcome to your Business dashboard.</p>
 
-      <Card className="mb-8 max-w-xs">
-        <CardHeader>
-          <CardTitle>Account Balance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingBalance ? (
-            <LoadingScreen />
-          ) : typeof accountBalance === "number" ? (
-            <span className="text-2xl font-bold text-green-600">
-              ${accountBalance.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </span>
-          ) : (
-            <span className="text-red-500">--</span>
-          )}
-        </CardContent>
-      </Card>
+      <div className="flex flex-row gap-6 mb-8 w-full">
+        <div className="flex flex-1 gap-6 min-w-0">
+          <Card className="flex-1 min-w-[200px] max-w-xs">
+            <CardHeader>
+              <CardTitle>Funding Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingFundingBalance ? (
+                <LoadingScreen />
+              ) : (
+                <span className="text-2xl font-bold text-blue-400">
+                  ${fundingBalance?.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Funds raised from investors for your business.</p>
+            </CardContent>
+          </Card>
+          <Card className="flex-1 min-w-[200px] max-w-xs">
+            <CardHeader>
+              <CardTitle>Account Balance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingBalance ? (
+                <LoadingScreen />
+              ) : typeof accountBalance === "number" ? (
+                <span className="text-2xl font-bold text-green-600">
+                  ${accountBalance.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              ) : (
+                <span className="text-red-500">--</span>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Used for ads, fees, and profit distributions.</p>
+            </CardContent>
+          </Card>
+        </div>
+        <Card className="flex-1 min-w-[260px] max-w-xs self-stretch">
+          <CardHeader>
+            <CardTitle>Advertise Your Pitch</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col h-full justify-between">
+            <div>
+              <p className="mb-4 text-muted-foreground text-sm">
+                Boost your pitch's visibility and attract more investors by promoting it on our platform.
+              </p>
+            </div>
+            <div className="mt-auto">
+              <AdvertisePitchDialog
+                trigger={
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md transition-colors duration-200" type="button">
+                    Advertise Now
+                  </Button>
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="mb-8">
         <CardHeader>
@@ -254,48 +293,46 @@ export default function BusinessDashboardPage() {
         </CardContent>
       </Card>
 
-      {!loading &&
-        transformedProfitDistributions.length > 0 &&
-        totalInvestorPages > 0 && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Your Investors </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <InvestorList
-                pitchId={currentPitch?.id}
-                pitchTitle={currentPitch?.title}
-              />
-              {totalInvestorPages > 1 && (
-                <div className="flex justify-center gap-4 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setInvestorPage((p) => Math.max(0, p - 1))}
-                    disabled={investorPage === 0}
-                  >
-                    Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground self-center">
-                    Page {investorPage + 1} of {totalInvestorPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setInvestorPage((p) =>
-                        Math.min(totalInvestorPages - 1, p + 1)
-                      )
-                    }
-                    disabled={investorPage === totalInvestorPages - 1}
-                  >
-                    Next
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+      {!loading && totalInvestorPages > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Your Investors </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InvestorList
+              pitchId={currentPitch?.id}
+              pitchTitle={currentPitch?.title}
+            />
+            {totalInvestorPages > 1 && (
+              <div className="flex justify-center gap-4 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setInvestorPage((p) => Math.max(0, p - 1))}
+                  disabled={investorPage === 0}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground self-center">
+                  Page {investorPage + 1} of {totalInvestorPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setInvestorPage((p) =>
+                      Math.min(totalInvestorPages - 1, p + 1)
+                    )
+                  }
+                  disabled={investorPage === totalInvestorPages - 1}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

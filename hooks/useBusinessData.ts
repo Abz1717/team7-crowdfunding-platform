@@ -1,3 +1,4 @@
+
 import useSWR from 'swr';
 import { getCurrentBusinessUser, getCurrentUser, getTransactionHistory } from '@/lib/action';
 import { getPitchesByBusinessId, getActivePitches, getInvestmentsByPitchId, getProfitDistributionsByPitchId, getAccountBalance } from '@/lib/data';
@@ -101,5 +102,18 @@ export function useBusinessAccountBalance() {
   return useSWR(
     businessUser && businessUser.user_id ? ['business-account-balance', businessUser.user_id] : null,
     async ([, userId]) => getAccountBalance(userId)
+  );
+}
+
+export function useBusinessFundingBalance() {
+  const { data: businessUser } = useBusinessUser();
+  return useSWR(
+    businessUser && businessUser.user_id ? ['business-funding-balance', businessUser.user_id] : null,
+    async ([, userId]) => {
+      const res = await fetch('/api/user');
+      if (!res.ok) throw new Error('Failed to fetch user');
+      const user = await res.json();
+      return user.funding_balance;
+    }
   );
 }
