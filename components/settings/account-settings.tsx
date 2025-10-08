@@ -92,6 +92,8 @@ export function AccountSettings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [depositDialogOpen, setDepositDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [fundingWithdrawDialogOpen, setFundingWithdrawDialogOpen] = useState(false);
+  const [billingTab, setBillingTab] = useState<'account' | 'funding'>('account');
 
   const [userFormData, setUserFormData] = useState({
     first_name: "",
@@ -220,6 +222,8 @@ export function AccountSettings() {
     authUser?.role === "business"
       ? (typeof businessAccountBalance === "number" ? businessAccountBalance : 0)
       : portfolio?.accountBalance ?? (user ? user.account_balance : 0) ?? 0;
+
+  const fundingBalance = user?.funding_balance ?? 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -869,49 +873,103 @@ export function AccountSettings() {
                   </p>
                 </div>
 
-                <Card className="border-border">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Wallet className="h-5 w-5" />
+                {authUser?.role === "business" && (
+                  <div className="flex gap-2 mb-4">
+                    <Button
+                      variant={billingTab === 'account' ? 'default' : 'outline'}
+                      onClick={() => setBillingTab('account')}
+                    >
                       Account Balance
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-3xl font-bold text-foreground">
-                          £
-                          {accountBalance?.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Available balance
-                        </p>
+                    </Button>
+                    <Button
+                      variant={billingTab === 'funding' ? 'default' : 'outline'}
+                      onClick={() => setBillingTab('funding')}
+                    >
+                      Funding Balance
+                    </Button>
+                  </div>
+                )}
+
+                {(authUser?.role !== "business" || billingTab === 'account') && (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5" />
+                        Account Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-3xl font-bold text-foreground">
+                            £
+                            {accountBalance?.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Available balance
+                          </p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => setDepositDialogOpen(true)}
+                            className="flex-1"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Deposit
+                          </Button>
+                          <Button
+                            onClick={() => setWithdrawDialogOpen(true)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Withdraw
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-3">
-                        <Button
-                          onClick={() => setDepositDialogOpen(true)}
-                          className="flex-1"
-                          disabled={saving}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Deposit
-                        </Button>
-                        <Button
-                          onClick={() => setWithdrawDialogOpen(true)}
-                          variant="outline"
-                          className="flex-1"
-                          disabled={saving}
-                        >
-                          <Minus className="h-4 w-4 mr-2" />
-                          Withdraw
-                        </Button>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {authUser?.role === "business" && billingTab === 'funding' && (
+                  <Card className="border-border">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Wallet className="h-5 w-5" />
+                        Funding Balance
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-3xl font-bold text-foreground">
+                            £
+                            {fundingBalance?.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Funds available for withdrawal only
+                          </p>
+                        </div>
+                        <div className="flex gap-3">
+                          <Button
+                            onClick={() => setFundingWithdrawDialogOpen(true)}
+                            variant="outline"
+                            className="flex-1"
+                          >
+                            <Minus className="h-4 w-4 mr-2" />
+                            Withdraw
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {authUser?.role === "investor" && (
                   <>
@@ -965,7 +1023,8 @@ export function AccountSettings() {
                     </div>
                   </>
                 )}
-                {authUser?.role === "business" && <TransactionHistory />}
+                {/* Transaction history for business users (account tab only) */}
+                {authUser?.role === "business" && billingTab === 'account' && <TransactionHistory />}
               </div>
             )}
 
@@ -1026,13 +1085,20 @@ export function AccountSettings() {
       <DepositDialog
         open={depositDialogOpen}
         onOpenChange={setDepositDialogOpen}
-        onSuccess={() => setDepositDialogOpen(false)}
+        onSuccess={() => {}}
       />
       <WithdrawDialog
         open={withdrawDialogOpen}
         onOpenChange={setWithdrawDialogOpen}
-        onSuccess={() => setWithdrawDialogOpen(false)}
+        onSuccess={() => {}}
         currentBalance={accountBalance}
+      />
+      <WithdrawDialog
+        open={fundingWithdrawDialogOpen}
+        onOpenChange={setFundingWithdrawDialogOpen}
+        onSuccess={() => {}}
+        currentBalance={fundingBalance}
+        fundingOnly
       />
     </div>
   );

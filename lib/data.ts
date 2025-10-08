@@ -119,18 +119,19 @@ export async function createInvestment(investment: Omit<Investment, "id" | "inve
       .single();
     if (!businessUser || businessUserError) return null;
 
+    // fetchin funding_balance instead of account_balance
     const { data: userRow, error: userError } = await supabase
       .from("user")
-      .select("account_balance")
+      .select("funding_balance")
       .eq("id", businessUser.user_id)
       .single();
     if (!userRow || userError) return null;
 
-    const updatedBalance = (userRow.account_balance ?? 0) + newPool;
+    const updatedFundingBalance = (userRow.funding_balance ?? 0) + newPool;
 
     const { error: updateUserError } = await supabase
       .from("user")
-      .update({ account_balance: updatedBalance })
+      .update({ funding_balance: updatedFundingBalance })
       .eq("id", businessUser.user_id);
     if (updateUserError) return null;
 

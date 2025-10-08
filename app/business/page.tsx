@@ -21,6 +21,8 @@ export default function BusinessDashboardPage() {
   const { data: myPitchesData, isLoading: loadingPitches } = useMyPitches();
   const { data: accountBalance, isLoading: loadingBalance } = useBusinessAccountBalance();
   const { data: profitDistributions, isLoading: loadingDistributions } = useProfitDistributions();
+  
+  const fundingBalance = user?.funding_balance ?? 0;
 
   // Debug logging for account balance
   if (typeof window !== "undefined") {
@@ -119,7 +121,12 @@ export default function BusinessDashboardPage() {
               <CardTitle>Funding Balance</CardTitle>
             </CardHeader>
             <CardContent>
-              <span className="text-2xl font-bold text-blue-600">$0.00</span>
+              <span className="text-2xl font-bold text-blue-400">
+                ${fundingBalance.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
               <p className="text-xs text-muted-foreground mt-1">Funds raised from investors for your business.</p>
             </CardContent>
           </Card>
@@ -155,7 +162,7 @@ export default function BusinessDashboardPage() {
               </p>
             </div>
             <Link href="/business/my-pitches" className="mt-auto">
-              <Button className="w-full" variant="secondary">
+              <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md transition-colors duration-200" type="button">
                 Advertise Now
               </Button>
             </Link>
