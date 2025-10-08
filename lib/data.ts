@@ -275,12 +275,18 @@ export async function refundInvestorsIfPitchClosed(pitchId: string): Promise<voi
   }
 }
 
+
 export async function createAdCampaign(adCampaign: Omit<import("./types").AdCampaign, "id" | "created_at" | "updated_at" | "status"> & { status?: string }): Promise<import("./types").AdCampaign | null> {
   const supabase = createClient();
+  console.log("Attempting to insert ad_campaign:", adCampaign);
   const { data, error } = await supabase
     .from("ad_campaign")
     .insert([{ ...adCampaign }])
     .select()
     .single();
+  if (error) {
+    console.error("Supabase ad_campaign insert error:", error);
+    return null;
+  }
   return data ?? null;
 }

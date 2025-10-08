@@ -125,7 +125,7 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
 
     const uploadAdImageToSupabase = async (file: File): Promise<string | null> => {
       const supabase = createClient();
-      
+
       try {
         const fileExt = file.name.split(".").pop();
         const fileName = `ad-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
@@ -162,10 +162,14 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
           ad_description: formData.adDescription,
           target_audience: formData.targetAudience,
           budget: Number(formData.budget),
-          platform: formData.platform,
           ad_image_url: adImageUrl || null,
+          status: "active",
         };
         const result = await createAdCampaign(adData);
+        if (!result) {
+          toast.error("Failed to create ad campaign. Please check your data and try again.");
+          return;
+        }
         toast.success("Advertisement campaign created successfully!");
         if (onAdCreated) onAdCreated(result);
         setOpen(false);
