@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { CreatePitchDialog } from "@/components/business/create-pitch-dialog";
 import { PitchCard } from "@/components/business/pitch-card";
+import { useBusinessUser } from "@/hooks/useBusinessData";
+import { useBusinessAdCampaigns } from "@/hooks/useBusinessAdCampaigns";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
 import { useMyPitches } from "@/hooks/useBusinessData";
 import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
@@ -22,6 +24,11 @@ const PITCH_TABS = [
 ];
 
 export function MyPitches() {
+  
+
+
+  const { data: businessUser } = useBusinessUser();
+  const { campaigns: adCampaigns } = useBusinessAdCampaigns(businessUser?.id);
   const [selectedTab, setSelectedTab] = useState<string>("active");
   const { data: myPitchesData, isLoading: loading, error } = useMyPitches();
   const { deleteExistingPitch, updateExistingPitch } =
@@ -139,6 +146,10 @@ export function MyPitches() {
     }
   };
 
+  const pitchHasAdCampaign = (pitchId: string) => {
+    return (adCampaigns || []).some((c: any) => c.pitch_id === pitchId && c.status === "active");
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-12">
@@ -179,14 +190,20 @@ export function MyPitches() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
                 {pitchesByStatus.draft.map((pitch) => (
-                  <div key={pitch.id}>
+                  <div key={pitch.id} className="relative">
                     <PitchCard
                       pitch={pitch}
                       onEdit={handleEditPitch}
                       onDelete={handleDeletePitch}
                       onStatusToggle={() => {}}
                       isDeleting={deletingPitchId === pitch.id}
+                      hasAdCampaign={pitchHasAdCampaign(pitch.id)}
                     />
+                    {pitchHasAdCampaign(pitch.id) && (
+                      <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
+                        <div className="bg-green-400 text-white text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg]">Ad Campaign</div>
+                      </div>
+                    )}
                     <Button
                       className="mt-2 w-full"
                       onClick={() => handlePublishPitch(pitch.id)}
@@ -209,14 +226,22 @@ export function MyPitches() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
                 {pitchesByStatus.active.map((pitch) => (
-                  <PitchCard
-                    key={pitch.id}
-                    pitch={pitch}
-                    onEdit={handleEditPitch}
-                    onDelete={handleDeletePitch}
-                    onStatusToggle={handleStatusToggle}
-                    isDeleting={deletingPitchId === pitch.id}
-                  />
+                  <div key={pitch.id} className="relative">
+                    <PitchCard
+                    
+                      pitch={pitch}
+                      onEdit={handleEditPitch}
+                      onDelete={handleDeletePitch}
+                      onStatusToggle={handleStatusToggle}
+                      isDeleting={deletingPitchId === pitch.id}
+                      hasAdCampaign={pitchHasAdCampaign(pitch.id)}
+                    />
+                    {pitchHasAdCampaign(pitch.id) && (
+                      <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
+                        <div className="bg-green-400 text-white text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg]">Ad Campaign</div>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}

@@ -23,6 +23,7 @@ interface PitchCardProps {
   onDelete: (pitchId: string) => void;
   onStatusToggle: (pitchId: string, currentStatus: string) => void;
   isDeleting?: boolean;
+  hasAdCampaign?: boolean;
 }
 
 export function PitchCard({
