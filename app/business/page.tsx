@@ -10,7 +10,8 @@ import { useAuth } from "@/lib/auth";
 import {
   useMyPitches,
   useBusinessAccountBalance,
-  useProfitDistributions
+  useProfitDistributions,
+  useBusinessFundingBalance
 } from "@/hooks/useBusinessData";
 import LoadingScreen from "@/components/loading-screen";
 import { InvestorList } from "@/components/business/investor-list";
@@ -21,8 +22,7 @@ export default function BusinessDashboardPage() {
   const { data: myPitchesData, isLoading: loadingPitches } = useMyPitches();
   const { data: accountBalance, isLoading: loadingBalance } = useBusinessAccountBalance();
   const { data: profitDistributions, isLoading: loadingDistributions } = useProfitDistributions();
-  
-  const fundingBalance = user?.funding_balance ?? 0;
+  const { data: fundingBalance, isLoading: loadingFundingBalance } = useBusinessFundingBalance();
 
   // Debug logging for account balance
   if (typeof window !== "undefined") {
@@ -113,12 +113,16 @@ export default function BusinessDashboardPage() {
               <CardTitle>Funding Balance</CardTitle>
             </CardHeader>
             <CardContent>
-              <span className="text-2xl font-bold text-blue-400">
-                ${fundingBalance.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}
-              </span>
+              {loadingFundingBalance ? (
+                <LoadingScreen />
+              ) : (
+                <span className="text-2xl font-bold text-blue-400">
+                  ${fundingBalance?.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              )}
               <p className="text-xs text-muted-foreground mt-1">Funds raised from investors for your business.</p>
             </CardContent>
           </Card>

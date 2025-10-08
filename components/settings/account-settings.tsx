@@ -45,7 +45,7 @@ import { DepositDialog } from "@/components/settings/deposit-dialog";
 import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
 import { TransactionHistory } from "@/components/settings/transaction-history";
 import { useInvestorProfile, useInvestorPortfolio, useInvestorProfitPayouts, useInvestorTransactions } from "@/hooks/useInvestorData";
-import { useBusinessUser, useBusinessAccountBalance } from "@/hooks/useBusinessData";
+import { useBusinessUser, useBusinessAccountBalance, useBusinessFundingBalance } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
 
 export function AccountSettings() {
@@ -59,13 +59,16 @@ export function AccountSettings() {
   const { data: investorTransactions, isLoading: loadingTransactions } = useInvestorTransactions();
   const { data: businessUserData } = useBusinessUser();
   const { data: businessAccountBalance } = useBusinessAccountBalance();
+  const { data: businessFundingBalance } = useBusinessFundingBalance();
 
   // user and businessUser from SWR data
-  const user =
-    authUser?.role === "investor"
-      ? investorProfileData?.user
-      : null;
-  const businessUser = authUser?.role === "business" ? businessUserData : null;
+  let user: UserType | null = null;
+  let businessUser: BusinessUser | null = null;
+  if (authUser?.role === "investor") {
+    user = investorProfileData?.user ?? null;
+  } else if (authUser?.role === "business") {
+    businessUser = businessUserData ?? null;
+  }
   const loading = authUser?.role === "investor" ? loadingInvestorProfile : false;
   const [editingUser, setEditingUser] = useState(false);
   const [editingBusiness, setEditingBusiness] = useState(false);
@@ -223,7 +226,9 @@ export function AccountSettings() {
       ? (typeof businessAccountBalance === "number" ? businessAccountBalance : 0)
       : portfolio?.accountBalance ?? (user ? user.account_balance : 0) ?? 0;
 
-  const fundingBalance = user?.funding_balance ?? 0;
+  const fundingBalance = authUser?.role === "business"
+    ? (typeof businessFundingBalance === "number" ? businessFundingBalance : 0)
+    : (user?.funding_balance ?? 0);
 
   return (
     <div className="min-h-screen bg-background">
