@@ -749,11 +749,10 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                           className="border-gray-300 focus:border-black focus:ring-black"
                         />
                         <p className="text-xs text-gray-500">
-                          
                           {getTargetAmountError() && (
-                            <p className="text-xs text-red-600 font-medium mt-1">
+                            <span className="text-xs text-red-600 font-medium mt-1 block">
                               {getTargetAmountError()}
-                            </p>
+                            </span>
                           )}
                         </p>
                       </div>
