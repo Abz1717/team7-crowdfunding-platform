@@ -30,7 +30,7 @@ export function MyPitches() {
 
 
   const { data: businessUser } = useBusinessUser();
-  const { campaigns: adCampaigns } = useBusinessAdCampaigns(businessUser?.id);
+  const { campaigns: adCampaigns, mutate: mutateAdCampaigns } = useBusinessAdCampaigns(businessUser?.id);
   const [selectedTab, setSelectedTab] = useState<string>("active");
   const { data: myPitchesData, isLoading: loading, error } = useMyPitches();
   const { deleteExistingPitch, updateExistingPitch } =
@@ -150,11 +150,12 @@ export function MyPitches() {
     }
   };
 
+  // Allow manage dialog for both active and paused, but tag only for active
   const pitchHasAdCampaign = (pitchId: string) => {
-    return (adCampaigns || []).some((c: any) => c.pitch_id === pitchId && c.status === "active");
+    return (adCampaigns || []).some((c: any) => c.pitch_id === pitchId && (c.status === "active" || c.status === "paused"));
   };
   const getAdCampaignForPitch = (pitchId: string) => {
-    return (adCampaigns || []).find((c: any) => c.pitch_id === pitchId && c.status === "active");
+    return (adCampaigns || []).find((c: any) => c.pitch_id === pitchId && (c.status === "active" || c.status === "paused"));
   };
 
   const handleManageAdCampaign = (pitchId: string) => {
@@ -218,11 +219,12 @@ export function MyPitches() {
                         ? handleManageAdCampaign
                         : undefined}
                     />
-                    {pitchHasAdCampaign(pitch.id) && (
+                    {/* Show tag only if campaign is active (not paused) */}
+                    {(adCampaigns || []).some((c: any) => c.pitch_id === pitch.id && c.status === "active") ? (
                       <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
                         <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg] border border-yellow-300">Ad Campaign</div>
                       </div>
-                    )}
+                    ) : null}
                     <Button
                       className="mt-2 w-full"
                       onClick={() => handlePublishPitch(pitch.id)}
@@ -268,32 +270,21 @@ export function MyPitches() {
                                 const res = await extendAdCampaignBudget(selectedAdCampaign.id, amount);
                                 if (res.success) {
                                   toast.success(`Budget extended by £${amount}`);
-                                  // Optionally update local state/UI here
                                   setSelectedAdCampaign({ ...selectedAdCampaign, budget: res.newBudget });
+                                  if (mutateAdCampaigns) mutateAdCampaigns();
                                 } else {
                                   toast.error(res.error || "Failed to extend budget");
                                 }
-                                setManageAdDialogOpen(false);
                               }}
-                              onTurnOff={async () => {
-                                if (!selectedAdCampaign) return;
-                                const res = await turnOffAdCampaign(selectedAdCampaign.id);
-                                if (res.success) {
-                                  toast.success("Ad campaign turned off");
-                                  // Optionally update local state/UI here
-                                  setSelectedAdCampaign({ ...selectedAdCampaign, status: "inactive" });
-                                } else {
-                                  toast.error(res.error || "Failed to turn off ad campaign");
-                                }
-                                setManageAdDialogOpen(false);
-                              }}
+                              onRefresh={mutateAdCampaigns}
                             />
                           )}
-                    {pitchHasAdCampaign(pitch.id) && (
+                    {/* Show tag only if campaign is active (not paused) */}
+                    {(adCampaigns || []).some((c: any) => c.pitch_id === pitch.id && c.status === "active") ? (
                       <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
                         <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg] border border-yellow-300">Ad Campaign</div>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               </div>

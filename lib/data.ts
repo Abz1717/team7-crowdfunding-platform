@@ -405,3 +405,36 @@ export async function turnOffAdCampaign(adCampaignId: string): Promise<{ success
   if (error) return { success: false, error: "Failed to turn off ad campaign" };
   return { success: true };
 }
+
+
+
+
+export async function pauseAdCampaign(adCampaignId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("ad_campaign")
+    .update({ status: "paused" })
+    .eq("id", adCampaignId);
+  if (error) return { success: false, error: "Failed to pause ad campaign" };
+  return { success: true };
+}
+
+export async function resumeAdCampaign(adCampaignId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("ad_campaign")
+    .update({ status: "active" })
+    .eq("id", adCampaignId);
+  if (error) return { success: false, error: "Failed to resume ad campaign" };
+  return { success: true };
+}
+
+export async function endAdCampaign(adCampaignId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("ad_campaign")
+    .update({ status: "ended" })
+    .eq("id", adCampaignId);
+  if (error) return { success: false, error: "Failed to end ad campaign" };
+  return { success: true };
+}
