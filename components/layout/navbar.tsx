@@ -42,6 +42,9 @@ export function Navbar() {
                   </>
                 ) : (
                   <>
+                    <LinkWithLoader href="/investor" className="text-sm text-muted-foreground hover:text-foreground">
+                      Home
+                    </LinkWithLoader>
                     <LinkWithLoader href="/investor/browse-pitches" className="text-sm text-muted-foreground hover:text-foreground">
                       Browse Pitches
                     </LinkWithLoader>
@@ -84,6 +87,9 @@ export function Navbar() {
 
                   ) : (
                     <>
+                      <DropdownMenuItem asChild>
+                        <LinkWithLoader href="/investor">Home</LinkWithLoader>
+                      </DropdownMenuItem>
                       <DropdownMenuItem asChild>
                         <LinkWithLoader href="/investor/browse-pitches">Browse Pitches</LinkWithLoader>
                       </DropdownMenuItem>
