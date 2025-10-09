@@ -10,6 +10,7 @@ import { PitchCard } from "@/components/business/pitch-card";
 import { useBusinessUser } from "@/hooks/useBusinessData";
 import { useBusinessAdCampaigns } from "@/hooks/useBusinessAdCampaigns";
 import { ManageAdCampaignDialog } from "@/components/business/manage-ad-campaign-dialog";
+import { extendAdCampaignBudget, turnOffAdCampaign } from "@/lib/data";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
 import { useMyPitches } from "@/hooks/useBusinessData";
 import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
@@ -39,7 +40,7 @@ export function MyPitches() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [profitsDialogOpen, setProfitsDialogOpen] = useState(false);
   const [declaringProfitsPitch, setDeclaringProfitsPitch] = useState<Pitch | null>(null);
-  
+
   const [manageAdDialogOpen, setManageAdDialogOpen] = useState(false);
   const [selectedAdCampaign, setSelectedAdCampaign] = useState<any | null>(null);
 
@@ -262,14 +263,28 @@ export function MyPitches() {
                               onOpenChange={setManageAdDialogOpen}
                               campaign={selectedAdCampaign}
                               userId={businessUser.user_id}
-                              onExtendBudget={(amount) => {
-                                // TODO: Implement extend budget logic (API call)
-                                toast.success(`Budget extended by £${amount}`);
+                              onExtendBudget={async (amount) => {
+                                if (!selectedAdCampaign) return;
+                                const res = await extendAdCampaignBudget(selectedAdCampaign.id, amount);
+                                if (res.success) {
+                                  toast.success(`Budget extended by £${amount}`);
+                                  // Optionally update local state/UI here
+                                  setSelectedAdCampaign({ ...selectedAdCampaign, budget: res.newBudget });
+                                } else {
+                                  toast.error(res.error || "Failed to extend budget");
+                                }
                                 setManageAdDialogOpen(false);
                               }}
-                              onTurnOff={() => {
-                                // TODO: Implement turn off ad logic (API call)
-                                toast.success("Ad campaign turned off");
+                              onTurnOff={async () => {
+                                if (!selectedAdCampaign) return;
+                                const res = await turnOffAdCampaign(selectedAdCampaign.id);
+                                if (res.success) {
+                                  toast.success("Ad campaign turned off");
+                                  // Optionally update local state/UI here
+                                  setSelectedAdCampaign({ ...selectedAdCampaign, status: "inactive" });
+                                } else {
+                                  toast.error(res.error || "Failed to turn off ad campaign");
+                                }
                                 setManageAdDialogOpen(false);
                               }}
                             />

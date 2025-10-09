@@ -38,19 +38,19 @@ export function useInvestorAdverts() {
 
         if (advertsError) throw advertsError;
 
-        const mapped = (adverts || []).map((ad: any) => ({
-          id: ad.pitch?.id || ad.pitch_id,
-          title: ad.pitch?.title || ad.ad_title,
-          elevator_pitch: ad.pitch?.elevator_pitch || ad.ad_description,
-          current_amount: ad.pitch?.current_amount,
-          target_amount: ad.pitch?.target_amount,
-          isPromoted: true,
-          supporting_media: ad.pitch?.supporting_media || [],
-          imageUrl: ad.ad_image_url || (ad.pitch?.supporting_media?.[0] ?? ""),
-
-
-        
-        }));
+        const mapped = (adverts || [])
+          .filter((ad: any) => ad.status === "active")
+          .map((ad: any) => ({
+            id: ad.pitch?.id || ad.pitch_id,
+            title: ad.pitch?.title || ad.ad_title,
+            elevator_pitch: ad.pitch?.elevator_pitch || ad.ad_description,
+            current_amount: ad.pitch?.current_amount,
+            target_amount: ad.pitch?.target_amount,
+            isPromoted: true,
+            supporting_media: ad.pitch?.supporting_media || [],
+            imageUrl: ad.ad_image_url || (ad.pitch?.supporting_media?.[0] ?? ""),
+          }));
+        setData(mapped);
         setData(mapped);
       } catch (err) {
         setError(err);
