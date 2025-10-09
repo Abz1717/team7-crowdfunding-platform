@@ -1,4 +1,3 @@
-
 import { createClient } from "@/utils/supabase/client";
 
 import type { Pitch, Investment, InvestmentTier, ProfitDistribution, InvestorPayout } from "./types"
@@ -324,13 +323,14 @@ export async function updateAdCampaignClicksAndBalance({
   const supabase = createClient();
   const clickCost = 0.01;
 
-  // current campgain 
+  // current campaign
   const { data: campaign, error: campaignError } = await supabase
     .from("ad_campaign")
-    .select("id, clicks, budget")
+    .select("id, clicks, budget, status")
     .eq("id", adCampaignId)
     .single();
   if (!campaign || campaignError) return { success: false, error: "Ad campaign not found" };
+  if (campaign.status !== "active") return { success: false, error: "Ad campaign is not active" };
 
   const { data: businessUser, error: businessUserError } = await supabase
     .from("businessuser")
@@ -353,7 +353,12 @@ export async function updateAdCampaignClicksAndBalance({
   const newBudget = Math.max(0, (campaign.budget ?? 0) - totalClickCost);
   const newAccountBalance = Math.max(0, (user.account_balance ?? 0) - totalClickCost);
 
-  // udate ad campaign clicks and budget
+  if ((campaign.budget ?? 0) < totalClickCost) {
+    await supabase.from("ad_campaign").update({ status: "inactive" }).eq("id", adCampaignId);
+    return { success: false, error: "Ad campaign budget depleted. Campaign turned off." };
+  }
+
+  // update ad campaign clicks and budget
   const { error: updateCampaignError } = await supabase
     .from("ad_campaign")
     .update({ clicks: newClicks, budget: newBudget })
@@ -368,4 +373,35 @@ export async function updateAdCampaignClicksAndBalance({
   if (updateUserError) return { success: false, error: "Failed to update user account balance" };
 
   return { success: true, newClicks, newBudget, newAccountBalance };
+}
+
+
+
+export async function extendAdCampaignBudget(adCampaignId: string, amount: number): Promise<{ success: boolean; newBudget?: number; error?: string }> {
+  const supabase = createClient();
+  const { data: campaign, error: campaignError } = await supabase
+    .from("ad_campaign")
+    .select("budget")
+    .eq("id", adCampaignId)
+    .single();
+
+  if (!campaign || campaignError) return { success: false, error: "Ad campaign not found" };
+  const newBudget = (campaign.budget ?? 0) + amount;
+
+  const { error: updateError } = await supabase
+    .from("ad_campaign")
+    .update({ budget: newBudget })
+    .eq("id", adCampaignId);
+  if (updateError) return { success: false, error: "Failed to update budget" };
+  return { success: true, newBudget };
+}
+
+export async function turnOffAdCampaign(adCampaignId: string): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("ad_campaign")
+    .update({ status: "inactive" })
+    .eq("id", adCampaignId);
+  if (error) return { success: false, error: "Failed to turn off ad campaign" };
+  return { success: true };
 }
