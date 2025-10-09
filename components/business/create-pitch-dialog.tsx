@@ -849,7 +849,6 @@ export function CreatePitchDialog({ onCreated }: CreatePitchDialogProps) {
                         >
                           <option value="monthly">Monthly</option>
                           <option value="quarterly">Quarterly</option>
-                          <option value="semi-annually">Semi-Annually</option>
                           <option value="annually">Annually</option>
                         </select>
                         <p className="text-xs text-gray-500">
