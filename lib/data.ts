@@ -1,3 +1,4 @@
+
 import { createClient } from "@/utils/supabase/client";
 
 import type { Pitch, Investment, InvestmentTier, ProfitDistribution, InvestorPayout } from "./types"
@@ -289,4 +290,82 @@ export async function createAdCampaign(adCampaign: Omit<import("./types").AdCamp
     return null;
   }
   return data ?? null;
+}
+
+
+
+export async function getBusinessUserByPitchId(pitchId: string): Promise<{ id: string; user_id: string } | null> {
+  const supabase = createClient();
+  const { data: pitch } = await supabase.from("pitch").select("business_id").eq("id", pitchId).single();
+  if (!pitch) return null;
+  const { data: businessUser } = await supabase.from("businessuser").select("id, user_id").eq("id", pitch.business_id).single();
+  return businessUser;
+}
+
+//active ad campaign by pitch id
+export async function getActiveAdCampaignByPitchId(pitchId: string): Promise<{ id: string } | null> {
+  const supabase = createClient();
+  const { data: campaign } = await supabase.from("ad_campaign").select("id").eq("pitch_id", pitchId).eq("status", "active").single();
+  return campaign;
+}
+// + clicks for an ad campaign - cost from campaign budget and business account balance
+export async function updateAdCampaignClicksAndBalance({
+  adCampaignId,
+  businessUserId,
+  userId,
+  clickCount = 1,
+}: {
+  adCampaignId: string;
+  businessUserId: string;
+  userId: string;
+  clickCount?: number;
+
+}): Promise<{ success: boolean; newClicks?: number; newBudget?: number; newAccountBalance?: number; error?: string }> {
+  const supabase = createClient();
+  const clickCost = 0.01;
+
+  // current campgain 
+  const { data: campaign, error: campaignError } = await supabase
+    .from("ad_campaign")
+    .select("id, clicks, budget")
+    .eq("id", adCampaignId)
+    .single();
+  if (!campaign || campaignError) return { success: false, error: "Ad campaign not found" };
+
+  const { data: businessUser, error: businessUserError } = await supabase
+    .from("businessuser")
+    .select("user_id")
+    .eq("id", businessUserId)
+    .single();
+  if (!businessUser || businessUserError) return { success: false, error: "Business user not found" };
+
+  // fetch user to get account_balance
+  const { data: user, error: userError } = await supabase
+    .from("user")
+    .select("account_balance")
+    .eq("id", userId)
+    .single();
+  if (!user || userError) return { success: false, error: "User not found" };
+
+  const newClicks = (campaign.clicks ?? 0) + clickCount;
+  const totalClickCost = clickCount * clickCost;
+
+  const newBudget = Math.max(0, (campaign.budget ?? 0) - totalClickCost);
+  const newAccountBalance = Math.max(0, (user.account_balance ?? 0) - totalClickCost);
+
+  // udate ad campaign clicks and budget
+  const { error: updateCampaignError } = await supabase
+    .from("ad_campaign")
+    .update({ clicks: newClicks, budget: newBudget })
+    .eq("id", adCampaignId);
+  if (updateCampaignError) return { success: false, error: "Failed to update ad campaign" };
+
+    // account_balance
+  const { error: updateUserError } = await supabase
+    .from("user")
+    .update({ account_balance: newAccountBalance })
+    .eq("id", userId);
+  if (updateUserError) return { success: false, error: "Failed to update user account balance" };
+
+  return { success: true, newClicks, newBudget, newAccountBalance };
 }

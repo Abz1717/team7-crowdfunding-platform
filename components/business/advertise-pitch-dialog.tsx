@@ -38,6 +38,7 @@ import Image from "next/image"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { useMyPitches, useBusinessUser } from "@/hooks/useBusinessData"
+import { useBusinessAdCampaigns } from "@/hooks/useBusinessAdCampaigns"
 import { createAdCampaign } from "@/lib/data"
 import { createClient } from "@/utils/supabase/client"
 
@@ -80,9 +81,16 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
     const { data } = useMyPitches() as any
     allPitches = data?.pitches || []
   }
-  const activePitches = allPitches.filter((p) => p.status === "active")
-  const draftPitches = allPitches.filter((p) => p.status === "draft")
-  const displayedPitches = pitchCategory === "active" ? activePitches : draftPitches
+
+  const { campaigns: allCampaigns } = useBusinessAdCampaigns(businessUser?.id);
+  const pitchesWithActiveCampaigns = (allCampaigns || [])
+    .filter((c) => c.status === "active")
+    .map((c) => c.pitch_id);
+
+  const eligiblePitches = allPitches.filter((p) => !pitchesWithActiveCampaigns.includes(p.id));
+  const activePitches = eligiblePitches.filter((p) => p.status === "active");
+  const draftPitches = eligiblePitches.filter((p) => p.status === "draft");
+  const displayedPitches = pitchCategory === "active" ? activePitches : draftPitches;
 
   const [formData, setFormData] = useState<AdFormData>({
     selectedPitchId: null,
@@ -162,8 +170,9 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
           ad_description: formData.adDescription,
           target_audience: formData.targetAudience,
           budget: Number(formData.budget),
-          ad_image_url: adImageUrl || null,
+          ad_image_url: adImageUrl ?? null,
           status: "active",
+          clicks: 0,
         };
         const result = await createAdCampaign(adData);
         if (!result) {
@@ -228,11 +237,15 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
   <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl">
         
         <DialogHeader className="pb-6">
+
           <DialogTitle className="text-2xl font-bold text-gray-900">Create Advertisement Campaign</DialogTitle>
           <DialogDescription className="text-gray-600">
             Promote your pitch to reach more potential investors.
           </DialogDescription>
-
+          
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-300 rounded text-yellow-900 text-sm">
+            <strong>Note:</strong> This dialog is for creating the <b>first</b> ad campaign on a pitch. If you already have an ad campaign for this pitch, you must manage it from <b>My Pitches</b>.
+          </div>
         </DialogHeader>
 
         <div className="space-y-8">
@@ -244,15 +257,14 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                     className={cn(
                       "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-200",
                       s === currentStep
-                        ? "border-green-600 bg-green-600 text-white shadow-lg"
+                        ? "border-yellow-400 bg-yellow-400 text-yellow-900 shadow-lg"
                         : s < currentStep
-                          ? "border-green-600 bg-green-600 text-white"
+                          ? "border-yellow-400 bg-yellow-400 text-yellow-900"
                           : "border-gray-300 bg-white text-gray-400",
-
                     )}
                   >
                     {s < currentStep ? (
-                      <CheckCircle className="h-5 w-5 text-white" />
+                      <CheckCircle className="h-5 w-5 text-yellow-900" />
                     ) : (
                       <span className="text-sm font-medium">{s}</span>
                     )}
@@ -266,7 +278,7 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                     key={`line-${s}`}
                     className={cn(
                       "h-0.5 w-16 transition-colors duration-300 z-0",
-                      s < currentStep ? "bg-green-600" : "bg-gray-300",
+                      s < currentStep ? "bg-yellow-400" : "bg-gray-300",
                     )}
                     style={{ marginTop: 20 }}
                   />
@@ -287,25 +299,17 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
 
                 <div className="flex justify-center gap-4 mb-6">
                   <Button
-                    variant={pitchCategory === "active" ? "default" : "outline"}
+                    variant={pitchCategory === "active" ? "yellow" : "outline"}
                     onClick={() => setPitchCategory("active")}
-                    className={cn(
-                      pitchCategory === "active"
-                        ? "bg-green-600 text-white hover:bg-green-700 border-green-600"
-                        : "border-green-600 text-green-700 hover:bg-green-50",
-                    )}
+                    className="border-yellow-300"
                     style={{ borderWidth: 2 }}
                   >
                     Active Pitches ({activePitches.length})
                   </Button>
                   <Button
-                    variant={pitchCategory === "draft" ? "default" : "outline"}
+                    variant={pitchCategory === "draft" ? "yellow" : "outline"}
                     onClick={() => setPitchCategory("draft")}
-                    className={cn(
-                      pitchCategory === "draft"
-                        ? "bg-green-600 text-white hover:bg-green-700 border-green-600"
-                        : "border-green-600 text-green-700 hover:bg-green-50",
-                    )}
+                    className="border-yellow-300"
                     style={{ borderWidth: 2 }}
                   >
                     Draft Pitches ({draftPitches.length})
@@ -458,7 +462,8 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
                     <label htmlFor="ad-image-upload">
                       <Button
                         type="button"
-                        className="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-md"
+                        variant="yellow"
+                        className="cursor-pointer px-4 py-2 rounded-md"
                         asChild
                       >
                         <span>
@@ -658,10 +663,10 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
 
           <div className="flex justify-between items-center pt-6 border-t border-gray-200">
             <Button
-              variant="outline"
+              variant="yellow"
               onClick={prevStep}
               disabled={currentStep === 1}
-              className="border-green-600 text-green-700 hover:bg-green-50 bg-transparent"
+              className="bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200"
               style={{ borderWidth: 2 }}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -671,7 +676,7 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
               <Button
                 onClick={nextStep}
                 disabled={!isStepValid(currentStep)}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                variant="yellow"
               >
                 Next Step
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -680,7 +685,8 @@ export function AdvertisePitchDialog({ trigger, onAdCreated, pitches }: { trigge
               <Button
                 onClick={handleCreate}
                 disabled={!isStepValid(currentStep)}
-                className="bg-green-600 hover:bg-green-700 text-white min-w-[140px]"
+                variant="yellow"
+                className="min-w-[140px]"
               >
                 Launch Campaign
               </Button>

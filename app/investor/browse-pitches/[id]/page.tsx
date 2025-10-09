@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getPitchById } from "@/lib/data";
+import { useTrackAdClick } from "@/hooks/useTrackAdClick";
 import type { InvestmentTier } from "@/lib/types";
 import type { Pitch } from "@/lib/types";
 import {
@@ -57,6 +58,8 @@ export default function PitchDetailPage({ params }: { params: Promise<{ id: stri
     };
     fetchPitch();
   }, [user, isLoading, resolvedParams.id]);
+
+  useTrackAdClick(resolvedParams.id);
 
   const { mutate: refreshPortfolio } = useInvestorPortfolio(user?.id);
 

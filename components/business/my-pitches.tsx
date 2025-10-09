@@ -9,6 +9,7 @@ import { CreatePitchDialog } from "@/components/business/create-pitch-dialog";
 import { PitchCard } from "@/components/business/pitch-card";
 import { useBusinessUser } from "@/hooks/useBusinessData";
 import { useBusinessAdCampaigns } from "@/hooks/useBusinessAdCampaigns";
+import { ManageAdCampaignDialog } from "@/components/business/manage-ad-campaign-dialog";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
 import { useMyPitches } from "@/hooks/useBusinessData";
 import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
@@ -37,8 +38,10 @@ export function MyPitches() {
   const [editingPitch, setEditingPitch] = useState<Pitch | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [profitsDialogOpen, setProfitsDialogOpen] = useState(false);
-  const [declaringProfitsPitch, setDeclaringProfitsPitch] =
-    useState<Pitch | null>(null);
+  const [declaringProfitsPitch, setDeclaringProfitsPitch] = useState<Pitch | null>(null);
+  
+  const [manageAdDialogOpen, setManageAdDialogOpen] = useState(false);
+  const [selectedAdCampaign, setSelectedAdCampaign] = useState<any | null>(null);
 
   const handleDeclareProfits = (pitch: Pitch) => {
     setDeclaringProfitsPitch(pitch);
@@ -149,6 +152,18 @@ export function MyPitches() {
   const pitchHasAdCampaign = (pitchId: string) => {
     return (adCampaigns || []).some((c: any) => c.pitch_id === pitchId && c.status === "active");
   };
+  const getAdCampaignForPitch = (pitchId: string) => {
+    return (adCampaigns || []).find((c: any) => c.pitch_id === pitchId && c.status === "active");
+  };
+
+  const handleManageAdCampaign = (pitchId: string) => {
+    const campaign = getAdCampaignForPitch(pitchId);
+    
+    if (campaign) {
+      setSelectedAdCampaign(campaign);
+      setManageAdDialogOpen(true);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -199,7 +214,7 @@ export function MyPitches() {
                       isDeleting={deletingPitchId === pitch.id}
                       hasAdCampaign={pitchHasAdCampaign(pitch.id)}
                       onManageAdCampaign={pitchHasAdCampaign(pitch.id)
-                        ? (id) => toast.info('Manage Ad Campaign for pitch ' + id)
+                        ? handleManageAdCampaign
                         : undefined}
                     />
                     {pitchHasAdCampaign(pitch.id) && (
@@ -238,9 +253,27 @@ export function MyPitches() {
                       isDeleting={deletingPitchId === pitch.id}
                       hasAdCampaign={pitchHasAdCampaign(pitch.id)}
                       onManageAdCampaign={pitchHasAdCampaign(pitch.id)
-                        ? (id) => toast.info('Manage Ad Campaign for pitch ' + id)
+                        ? handleManageAdCampaign
                         : undefined}
                     />
+                          {selectedAdCampaign && businessUser?.user_id && (
+                            <ManageAdCampaignDialog
+                              open={manageAdDialogOpen}
+                              onOpenChange={setManageAdDialogOpen}
+                              campaign={selectedAdCampaign}
+                              userId={businessUser.user_id}
+                              onExtendBudget={(amount) => {
+                                // TODO: Implement extend budget logic (API call)
+                                toast.success(`Budget extended by £${amount}`);
+                                setManageAdDialogOpen(false);
+                              }}
+                              onTurnOff={() => {
+                                // TODO: Implement turn off ad logic (API call)
+                                toast.success("Ad campaign turned off");
+                                setManageAdDialogOpen(false);
+                              }}
+                            />
+                          )}
                     {pitchHasAdCampaign(pitch.id) && (
                       <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
                         <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg] border border-yellow-300">Ad Campaign</div>

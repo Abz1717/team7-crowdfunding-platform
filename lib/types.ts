@@ -99,4 +99,5 @@ export interface AdCampaign {
   status: string;
   created_at: string; 
   updated_at: string;
+  clicks: number;
 }
