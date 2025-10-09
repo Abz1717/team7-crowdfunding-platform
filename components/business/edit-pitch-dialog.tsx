@@ -183,24 +183,8 @@ export function EditPitchDialog({
       }
 
       if (result.success) {
-        if (businessUser?.id) {
-          await mutate([
-            "my-pitches",
-            businessUser.id,
-          ],
-          (current: any) => {
-            if (!current || !current.pitches) return current;
-            return {
-              ...current,
-              pitches: current.pitches.map((p: any) =>
-                p.id === pitch.id ? { ...p, ...updateData } : p
-              ),
-            };
-          },
-          false);
-        } else {
-          await mutate((key) => Array.isArray(key) && key[0] === "my-pitches");
-        }
+        // revalidate the my-pitches key to update the list immediately
+        await mutate("my-pitches");
         onOpenChange(false);
         toast.success("Pitch updated successfully!");
       }
