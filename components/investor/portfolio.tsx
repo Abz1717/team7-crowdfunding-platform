@@ -514,7 +514,10 @@ export function Portfolio() {
                               Returns Received
                             </div>
                             <div className="font-semibold text-green-600">
-                              ${investmentReturns.toLocaleString()}
+                              ${
+                                (Math.floor((investmentReturns ?? 0) * 100) / 100)
+                                  .toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                              }
                             </div>
                           </div>
                           <div>
