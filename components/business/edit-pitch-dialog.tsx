@@ -87,7 +87,8 @@ export function EditPitchDialog({
 
   const isFunded = formData.status === "funded";
   const isActive = formData.status === "active";
-  const isEditable = !isFunded && !isActive;
+  const isClosed = formData.status === "closed";
+  const isEditable = !isFunded && !isActive && !isClosed;
 
   // Populate form when pitch changes
   useEffect(() => {
@@ -394,8 +395,8 @@ export function EditPitchDialog({
                       }
                       placeholder="Enter pitch title"
                       className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      disabled={isFunded || isActive}
-                      readOnly={isFunded || isActive}
+                      disabled={isFunded || isActive || isClosed}
+                      readOnly={isFunded || isActive || isClosed}
                     />
                   </div>
 
@@ -462,8 +463,8 @@ export function EditPitchDialog({
                     rows={3}
                     placeholder="Brief description of your pitch"
                     className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    disabled={isFunded || isActive}
-                    readOnly={isFunded || isActive}
+                    disabled={isFunded || isActive || isClosed}
+                    readOnly={isFunded || isActive || isClosed}
                   />
                 </div>
 
@@ -486,8 +487,8 @@ export function EditPitchDialog({
                     rows={6}
                     placeholder="Detailed description of your business opportunity"
                     className="resize-none border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    disabled={isFunded || isActive}
-                    readOnly={isFunded || isActive}
+                    disabled={isFunded || isActive || isClosed}
+                    readOnly={isFunded || isActive || isClosed}
                   />
                 </div>
               </div>
@@ -522,8 +523,8 @@ export function EditPitchDialog({
                       }
                       placeholder="250000"
                       className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      disabled={isFunded || isActive}
-                      readOnly={isFunded || isActive}
+                      disabled={isFunded || isActive || isClosed}
+                      readOnly={isFunded || isActive || isClosed}
                     />
                   </div>
 
@@ -547,8 +548,8 @@ export function EditPitchDialog({
                       placeholder="25"
                       max="100"
                       className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      disabled={isFunded || isActive}
-                      readOnly={isFunded || isActive}
+                      disabled={isFunded || isActive || isClosed}
+                      readOnly={isFunded || isActive || isClosed}
                     />
                   </div>
 
@@ -564,7 +565,7 @@ export function EditPitchDialog({
                             "w-full justify-start text-left font-normal border-gray-300 hover:bg-gray-50",
                             !formData.end_date && "text-gray-500"
                           )}
-                          disabled={isFunded || isActive}
+                          disabled={isFunded || isActive || isClosed}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
                           {formData.end_date
@@ -657,8 +658,8 @@ export function EditPitchDialog({
                               )
                             }
                             placeholder="1000"
-                            disabled={isFunded || isActive}
-                            readOnly={isFunded || isActive}
+                            disabled={isFunded || isActive || isClosed}
+                            readOnly={isFunded || isActive || isClosed}
                           />
                         </div>
                         <div className="space-y-2">
@@ -674,8 +675,8 @@ export function EditPitchDialog({
                               )
                             }
                             placeholder="5000"
-                            disabled={isFunded || isActive}
-                            readOnly={isFunded || isActive}
+                            disabled={isFunded || isActive || isClosed}
+                            readOnly={isFunded || isActive || isClosed}
                           />
                         </div>
                         <div className="space-y-2">
@@ -692,8 +693,8 @@ export function EditPitchDialog({
                               )
                             }
                             placeholder="1.0"
-                            disabled={isFunded || isActive}
-                            readOnly={isFunded || isActive}
+                            disabled={isFunded || isActive || isClosed}
+                            readOnly={isFunded || isActive || isClosed}
                           />
                         </div>
                       </div>
@@ -735,13 +736,13 @@ export function EditPitchDialog({
                             onChange={handleFileSelect}
                             className="hidden"
                             id="media-upload"
-                            disabled={isUploadingMedia || isFunded || isActive}
+                            disabled={isUploadingMedia || isFunded || isActive || isClosed}
                           />
                           <label htmlFor="media-upload">
                             <Button
                               type="button"
                               disabled={
-                                isUploadingMedia || isFunded || isActive
+                                isUploadingMedia || isFunded || isActive || isClosed
                               }
                               className="cursor-pointer"
                               asChild
