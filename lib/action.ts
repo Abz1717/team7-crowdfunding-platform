@@ -870,10 +870,11 @@ export async function declareProfits(
       0
     );
     const payouts = weightedInvestments.map((w) => {
-      const payoutAmount =
+      let payoutAmount =
         totalWeighted > 0
           ? (w.weighted / totalWeighted) * profitShareAmount
           : 0;
+      payoutAmount = Math.floor(payoutAmount * 100) / 100;
 
       const payoutObj = {
         distribution_id: profitDist.id,
@@ -1047,10 +1048,12 @@ export async function previewProfitDistribution(
     );
     const investorPayouts = Object.entries(investorMap).map(
       ([investor_id, v]) => {
-        const payoutAmount =
+        let payoutAmount =
           totalWeighted > 0
             ? (v.weighted / totalWeighted) * profitShareAmount
             : 0;
+        // Round down to two decimal places
+        payoutAmount = Math.floor(payoutAmount * 100) / 100;
         return {
           investor_id,
           investment_amount: v.investment_amount,
