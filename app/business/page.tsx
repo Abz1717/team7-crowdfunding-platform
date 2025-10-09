@@ -161,7 +161,10 @@ export default function BusinessDashboardPage() {
             <div className="mt-auto">
               <AdvertisePitchDialog
                 trigger={
-                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold shadow-md transition-colors duration-200" type="button">
+                  <Button
+                    className="w-full bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200 font-semibold shadow-md transition-colors duration-200 border"
+                    type="button"
+                  >
                     Advertise Now
                   </Button>
                 }

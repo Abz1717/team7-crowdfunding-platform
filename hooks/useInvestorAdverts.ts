@@ -1,40 +1,69 @@
+import { useEffect, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
+
 export function useInvestorAdverts() {
-  // mock 
-  const mockData = [
-    {
-      id: "1",
-      title: "AI Pants",
-      elevator_pitch: "Transform your wardrobe with these AI-powered pants.",
-      current_amount: 200000,
-      target_amount: 250000,
-      isPromoted: true,
-      supporting_media: ["/file.svg"],
-      imageUrl: "",
-    },
-    {
-      id: "2",
-      title: "AI Table",
-      current_amount: 750000,
-      target_amount: 1200000,
-      isPromoted: true,
-      supporting_media: ["/globe.svg"],
-      imageUrl: "",
-    },
-    {
-      id: "3",
-      title: "AI Waterbottle",
-      elevator_pitch: "Revolutionizing hydration with AI-powered water bottles.",
-      current_amount: 80000,
-      target_amount: 500000,
-      isPromoted: true,
-      supporting_media: ["/window.svg"],
-      imageUrl: "",
-    },
-  ]
+  const [data, setData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchAdverts = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const supabase = createClient();
+        const { data: adverts, error: advertsError } = await supabase
+          .from("ad_campaign")
+          .select(`
+            id,
+            pitch_id,
+            ad_title,
+            ad_description,
+            target_audience,
+            budget,
+            ad_image_url,
+            status,
+            created_at,
+            pitch: pitch_id (
+              id,
+              title,
+              elevator_pitch,
+              current_amount,
+              target_amount,
+              supporting_media
+            )
+          `)
+          .eq("status", "active")
+          .order("created_at", { ascending: false });
+
+        if (advertsError) throw advertsError;
+
+        const mapped = (adverts || [])
+          .filter((ad: any) => ad.status === "active")
+          .map((ad: any) => ({
+            id: ad.pitch?.id || ad.pitch_id,
+            title: ad.pitch?.title || ad.ad_title,
+            elevator_pitch: ad.pitch?.elevator_pitch || ad.ad_description,
+            current_amount: ad.pitch?.current_amount,
+            target_amount: ad.pitch?.target_amount,
+            isPromoted: true,
+            supporting_media: ad.pitch?.supporting_media || [],
+            imageUrl: ad.ad_image_url || (ad.pitch?.supporting_media?.[0] ?? ""),
+          }));
+        setData(mapped);
+        setData(mapped);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchAdverts();
+  }, []);
 
   return {
-    data: mockData,
-    isLoading: false,
-    error: null,
-  }
+    data,
+    isLoading,
+    error,
+  };
 }

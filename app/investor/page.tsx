@@ -34,7 +34,7 @@ export default function InvestorHomePage() {
   }
   return (
 
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
+  <div className="container mx-auto py-8 px-4 max-w-7.5xl">
       <h1 className="text-2xl font-bold mb-4">Investor Home</h1>
   <p className="mb-8">Invest in the future. Grow with every opportunity.</p>
 
@@ -42,7 +42,7 @@ export default function InvestorHomePage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Promoted Adverts
+              Featured Opportunities
             </CardTitle>
           </CardHeader>
 
@@ -112,7 +112,7 @@ export default function InvestorHomePage() {
                           />
                         </div>
                         {adverts[currentSlide]?.id && (
-                          <Link href={`/investor/pitch/${adverts[currentSlide].id}`}>
+                          <Link href={`/investor/browse-pitches/${adverts[currentSlide].id}`}>
                             <Button size="lg" className="bg-white text-black hover:bg-white/90">
                               View Full Pitch
                             </Button>

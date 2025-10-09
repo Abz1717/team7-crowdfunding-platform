@@ -7,6 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { CreatePitchDialog } from "@/components/business/create-pitch-dialog";
 import { PitchCard } from "@/components/business/pitch-card";
+import { useBusinessUser } from "@/hooks/useBusinessData";
+import { useBusinessAdCampaigns } from "@/hooks/useBusinessAdCampaigns";
+import { ManageAdCampaignDialog } from "@/components/business/manage-ad-campaign-dialog";
+import { extendAdCampaignBudget, turnOffAdCampaign } from "@/lib/data";
 import { EditPitchDialog } from "@/components/business/edit-pitch-dialog";
 import { useMyPitches } from "@/hooks/useBusinessData";
 import { useBusinessPitchActions } from "@/hooks/useBusinessPitchActions";
@@ -22,6 +26,11 @@ const PITCH_TABS = [
 ];
 
 export function MyPitches() {
+  
+
+
+  const { data: businessUser } = useBusinessUser();
+  const { campaigns: adCampaigns, mutate: mutateAdCampaigns } = useBusinessAdCampaigns(businessUser?.id);
   const [selectedTab, setSelectedTab] = useState<string>("active");
   const { data: myPitchesData, isLoading: loading, error } = useMyPitches();
   const { deleteExistingPitch, updateExistingPitch } =
@@ -30,8 +39,10 @@ export function MyPitches() {
   const [editingPitch, setEditingPitch] = useState<Pitch | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [profitsDialogOpen, setProfitsDialogOpen] = useState(false);
-  const [declaringProfitsPitch, setDeclaringProfitsPitch] =
-    useState<Pitch | null>(null);
+  const [declaringProfitsPitch, setDeclaringProfitsPitch] = useState<Pitch | null>(null);
+
+  const [manageAdDialogOpen, setManageAdDialogOpen] = useState(false);
+  const [selectedAdCampaign, setSelectedAdCampaign] = useState<any | null>(null);
 
   const handleDeclareProfits = (pitch: Pitch) => {
     setDeclaringProfitsPitch(pitch);
@@ -139,6 +150,23 @@ export function MyPitches() {
     }
   };
 
+  // Allow manage dialog for both active and paused, but tag only for active
+  const pitchHasAdCampaign = (pitchId: string) => {
+    return (adCampaigns || []).some((c: any) => c.pitch_id === pitchId && (c.status === "active" || c.status === "paused"));
+  };
+  const getAdCampaignForPitch = (pitchId: string) => {
+    return (adCampaigns || []).find((c: any) => c.pitch_id === pitchId && (c.status === "active" || c.status === "paused"));
+  };
+
+  const handleManageAdCampaign = (pitchId: string) => {
+    const campaign = getAdCampaignForPitch(pitchId);
+    
+    if (campaign) {
+      setSelectedAdCampaign(campaign);
+      setManageAdDialogOpen(true);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
         <div className="flex items-center justify-between mb-12">
@@ -179,14 +207,24 @@ export function MyPitches() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
                 {pitchesByStatus.draft.map((pitch) => (
-                  <div key={pitch.id}>
+                  <div key={pitch.id} className="relative">
                     <PitchCard
                       pitch={pitch}
                       onEdit={handleEditPitch}
                       onDelete={handleDeletePitch}
                       onStatusToggle={() => {}}
                       isDeleting={deletingPitchId === pitch.id}
+                      hasAdCampaign={pitchHasAdCampaign(pitch.id)}
+                      onManageAdCampaign={pitchHasAdCampaign(pitch.id)
+                        ? handleManageAdCampaign
+                        : undefined}
                     />
+                    {/* Show tag only if campaign is active (not paused) */}
+                    {(adCampaigns || []).some((c: any) => c.pitch_id === pitch.id && c.status === "active") ? (
+                      <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
+                        <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg] border border-yellow-300">Ad Campaign</div>
+                      </div>
+                    ) : null}
                     <Button
                       className="mt-2 w-full"
                       onClick={() => handlePublishPitch(pitch.id)}
@@ -209,14 +247,45 @@ export function MyPitches() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
                 {pitchesByStatus.active.map((pitch) => (
-                  <PitchCard
-                    key={pitch.id}
-                    pitch={pitch}
-                    onEdit={handleEditPitch}
-                    onDelete={handleDeletePitch}
-                    onStatusToggle={handleStatusToggle}
-                    isDeleting={deletingPitchId === pitch.id}
-                  />
+                  <div key={pitch.id} className="relative">
+                    <PitchCard
+                      pitch={pitch}
+                      onEdit={handleEditPitch}
+                      onDelete={handleDeletePitch}
+                      onStatusToggle={handleStatusToggle}
+                      isDeleting={deletingPitchId === pitch.id}
+                      hasAdCampaign={pitchHasAdCampaign(pitch.id)}
+                      onManageAdCampaign={pitchHasAdCampaign(pitch.id)
+                        ? handleManageAdCampaign
+                        : undefined}
+                    />
+                          {selectedAdCampaign && businessUser?.user_id && (
+                            <ManageAdCampaignDialog
+                              open={manageAdDialogOpen}
+                              onOpenChange={setManageAdDialogOpen}
+                              campaign={selectedAdCampaign}
+                              userId={businessUser.user_id}
+                              onExtendBudget={async (amount) => {
+                                if (!selectedAdCampaign) return;
+                                const res = await extendAdCampaignBudget(selectedAdCampaign.id, amount);
+                                if (res.success) {
+                                  toast.success(`Budget extended by £${amount}`);
+                                  setSelectedAdCampaign({ ...selectedAdCampaign, budget: res.newBudget });
+                                  if (mutateAdCampaigns) mutateAdCampaigns();
+                                } else {
+                                  toast.error(res.error || "Failed to extend budget");
+                                }
+                              }}
+                              onRefresh={mutateAdCampaigns}
+                            />
+                          )}
+                    {/* Show tag only if campaign is active (not paused) */}
+                    {(adCampaigns || []).some((c: any) => c.pitch_id === pitch.id && c.status === "active") ? (
+                      <div className="absolute left-0 top-4 -translate-x-1/2 z-20">
+                        <div className="bg-yellow-400 text-yellow-900 text-xs font-bold px-3 py-1 rounded-r-full shadow-lg rotate-[-20deg] border border-yellow-300">Ad Campaign</div>
+                      </div>
+                    ) : null}
+                  </div>
                 ))}
               </div>
             )}
@@ -231,22 +300,15 @@ export function MyPitches() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 mb-12">
                 {pitchesByStatus.funded.map((pitch) => (
-                  <div key={pitch.id}>
-                    <PitchCard
-                      pitch={pitch}
-                      onEdit={handleEditPitch}
-                      onDelete={handleDeletePitch}
-                      onStatusToggle={() => {}}
-                      isDeleting={deletingPitchId === pitch.id}
-                    />
-                    <Button
-                      className="mt-2 w-full bg-green-600 hover:bg-green-700 text-white"
-                      onClick={() => handleDeclareProfits(pitch)}
-                      variant="default"
-                    >
-                      Declare Profits
-                    </Button>
-                  </div>
+                  <PitchCard
+                    key={pitch.id}
+                    pitch={pitch}
+                    onEdit={handleEditPitch}
+                    onDelete={handleDeletePitch}
+                    onStatusToggle={() => {}}
+                    isDeleting={deletingPitchId === pitch.id}
+                    onDeclareProfits={handleDeclareProfits}
+                  />
                 ))}
               </div>
             )}
