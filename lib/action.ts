@@ -1274,3 +1274,38 @@ export async function getTransactionHistory(): Promise<{
     return { success: false, error: "An unexpected error occurred" };
   }
 }
+
+
+export async function getTopAdCampaignPitch() {
+  const supabase = await createClient();
+  const { data: adPitch, error: adError } = await supabase
+    .from("ad_campaign")
+    .select("budget, pitch:pitch_id(*)")
+    .eq("status", "active")
+    .order("budget", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  let topPitch = null;
+  if (adPitch && adPitch.pitch) {
+    const pitchData = adPitch.pitch as any;
+    if (Array.isArray(pitchData)) {
+      topPitch = pitchData.find((p: any) => p.status === "active");
+    } else if (pitchData.status === "active") {
+      topPitch = pitchData;
+    }
+  }
+  if (topPitch) {
+    return { success: true, data: topPitch };
+  }
+  const { data: fallbackPitch, error: fallbackError } = await supabase
+    .from("pitch")
+    .select("*")
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+  if (fallbackPitch) {
+    return { success: true, data: fallbackPitch };
+  }
+  return { success: false, error: adError?.message || fallbackError?.message || "No pitch found" };
+}

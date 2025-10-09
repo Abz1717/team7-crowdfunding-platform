@@ -9,7 +9,7 @@ import Link from "next/link"
 import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, BarChart3, BadgePoundSterling, HeartHandshake } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import { useState, useEffect } from "react";
-import { getRandomPitch } from "@/lib/action";
+import { getTopAdCampaignPitch } from "@/lib/action";
 
 export default function HomePage() {
   const { user, isLoading } = useAuth();
@@ -55,7 +55,7 @@ useEffect(() => {
   async function fetchStats() {
     const action = await import("@/lib/action");
     const [pitchResult, liveCountResult, investorResult, fundedResult] = await Promise.all([
-      getRandomPitch(),
+      getTopAdCampaignPitch(),
       action.getActivePitchCount(),
       action.getActiveInvestorCount(),
       action.getTotalFunded()
@@ -102,7 +102,7 @@ useEffect(() => {
                   </Badge>
 
                   <h1 className="text-5xl lg:text-6xl font-bold text-white text-balance leading-tight">
-                    Earn up to <span className="text-white-600"> 25% </span> returns investing in UK businesses
+                    Earn returns investing in UK businesses
                   </h1>
 
                   <p className="text-xl text-white/90 text-pretty leading-relaxed">
@@ -114,18 +114,18 @@ useEffect(() => {
                 <div className="grid grid-cols-3 gap-6 py-6">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-white">
-                      {totalFunded !== null ? `£${totalFunded.toLocaleString()}` : '-'}
+                      {totalFunded !== null ? `£${totalFunded.toLocaleString()}` : ''}
                     </div>
                     <div className="text-sm text-white opacity-70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Total Funded</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-white">
-                      {activeInvestors !== null ? activeInvestors : '-'}
+                      {activeInvestors !== null ? activeInvestors : ''}
                     </div>
                     <div className="text-sm text-white/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Active Investors</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-white">5.11%</div>
+                    <div className="text-2xl font-bold text-white">2.9%</div>
                     <div className="text-sm text-white opacity-70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.25)]">Avg ROI</div>
                   </div>
                 </div>
@@ -165,7 +165,7 @@ useEffect(() => {
 
                       <div className="mb-2 pl-4">
                         <div className="text-4xl font-extrabold text-black-700 mb-1">
-                          {liveCount !== null ? liveCount : '-'}
+                          {liveCount !== null ? liveCount : ''}
                         </div>
                         <div className="text-lg text-green-600 font-semibold">
                           Investment Opportunities
@@ -183,12 +183,13 @@ useEffect(() => {
                           <Building2 className="w-15 h-7 text-white" />
                         </div>
                      <div>
-                          <h3 className="font-semibold text-gray-900">{randomPitch?.title || '-'}</h3>
-                          <p className="text-sm text-gray-500">{
-                            randomPitch?.elevator_pitch
-                              ? randomPitch.elevator_pitch.split('. ')[0] + (randomPitch.elevator_pitch.includes('.') ? '.' : '')
-                              : '-'
-                          }</p>
+                          <h3 className="font-semibold text-gray-900">{randomPitch?.title || ''}</h3>
+                          <p
+                            className="text-sm text-gray-500 leading-relaxed line-clamp-2"
+                            title={randomPitch?.elevator_pitch || ''}
+                          >
+                            {randomPitch?.elevator_pitch || ''}
+                          </p>
                     </div>
                       </div>
                       <Badge className="bg-green-100 text-green-700 border-green-200 text-xs px-3 py-1 rounded-full">
@@ -198,15 +199,15 @@ useEffect(() => {
 
                     <div className="mb-4 grid grid-cols-3 gap-4">
                       <div>
-                        <div className="text-2xl font-bold text-gray-900">  {randomPitch ? getProfitShareRemaining(randomPitch) : "-"}</div>
+                        <div className="text-2xl font-bold text-gray-900">  {randomPitch ? getProfitShareRemaining(randomPitch) : ""}</div>
                         <div className="text-xs text-gray-500">Share Remaining</div>
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">{randomPitch?.end_date ? `${getDaysLeft(randomPitch.end_date)} days left` : '-'}</div>
+                        <div className="text-sm font-semibold text-gray-900">{randomPitch?.end_date ? `${getDaysLeft(randomPitch.end_date)} days left` : ''}</div>
                         <div className="text-xs text-gray-500">Funding Period</div>
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-green-600">{randomPitch?.current_amount !== undefined && randomPitch?.target_amount ? `${Math.round((randomPitch.current_amount / randomPitch.target_amount) * 100)}%` : '-'}</div>
+                        <div className="text-sm font-semibold text-green-600">{randomPitch?.current_amount !== undefined && randomPitch?.target_amount ? `${Math.round((randomPitch.current_amount / randomPitch.target_amount) * 100)}%` : ''}</div>
                         <div className="text-xs text-gray-500">Funded</div>
                       </div>
                     </div>
