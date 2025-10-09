@@ -44,6 +44,7 @@ import type { User as UserType, BusinessUser } from "@/lib/types/user";
 import { DepositDialog } from "@/components/settings/deposit-dialog";
 import { WithdrawDialog } from "@/components/settings/withdraw-dialog";
 import { TransactionHistory } from "@/components/settings/transaction-history";
+import LoadingScreen from "@/components/loading-screen";
 import { useInvestorProfile, useInvestorPortfolio, useInvestorProfitPayouts, useInvestorTransactions } from "@/hooks/useInvestorData";
 import { useBusinessUser, useBusinessAccountBalance, useBusinessFundingBalance } from "@/hooks/useBusinessData";
 import { useAuth } from "@/lib/auth";
@@ -200,12 +201,12 @@ export function AccountSettings() {
   };
 
 
+  if (loadingInvestorProfile || (authUser?.role === "business" && !businessUserData)) {
+    return <LoadingScreen />;
+  }
+  
   if (!user && !businessUser) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-background">
-        <div className="text-sm text-destructive">Failed to load user data</div>
-      </div>
-    );
+    return;
   }
 
   const sidebarSections = [

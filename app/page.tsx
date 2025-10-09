@@ -19,7 +19,10 @@ export default function HomePage() {
       return "-";
     }
     const remaining = pitch.profit_share * (1 - (pitch.current_amount / pitch.target_amount));
-    return remaining > 0 ? `${remaining.toFixed(2)}%` : "0%";
+    if (remaining <= 0) return "0%";
+    return Number.isInteger(remaining)
+      ? `${remaining}%`
+      : `${remaining.toFixed(2).replace(/\.00$/, '')}%`;
   }
 
   let startInvestingHref = "/signin";
