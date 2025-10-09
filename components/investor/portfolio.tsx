@@ -201,7 +201,7 @@ export function Portfolio() {
             </div>
             <div className="flex gap-2 mt-2">
               <Button size="sm" variant="outline" onClick={handleWithdraw}>
-                Withdraw
+                Withdraw & Deposit
               </Button>
             </div>
           </CardContent>
