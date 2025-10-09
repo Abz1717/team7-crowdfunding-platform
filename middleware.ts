@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-
+ 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
   });
-
+ 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -28,21 +28,21 @@ export async function middleware(request: NextRequest) {
       },
     }
   );
-
+ 
   // Get the current user
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
+ 
   const path = request.nextUrl.pathname;
-
+ 
   // Define route types
   const isPublicRoute = path === "/";
   const isAuthRoute = path === "/signin" || path === "/signup";
   const isBusinessRoute =
     path.startsWith("/business") || path.startsWith("/business-setup");
   const isInvestorRoute = path.startsWith("/investor/portfolio");
-
+ 
   // If user is authenticated, get their role from the database
   let userRole: "business" | "investor" | null = null;
   if (user) {
@@ -52,7 +52,7 @@ export async function middleware(request: NextRequest) {
         .select("account_type")
         .eq("email", user.email)
         .single();
-
+ 
       if (!error && data) {
         userRole = data.account_type as "business" | "investor";
       }
@@ -60,16 +60,26 @@ export async function middleware(request: NextRequest) {
       console.error("Error fetching user role:", error);
     }
   }
-
+ 
+  // Fallback to role cookie set during signup/login to avoid race conditions
+  const userRoleCookie = request.cookies.get("user_role")?.value as
+    | "business"
+    | "investor"
+    | undefined;
+  const effectiveRole: "business" | "investor" | null = (userRole ||
+    userRoleCookie ||
+    null) as any;
+ 
   // Route protection logic
-  if (user && userRole) {
+  if (user) {
     // Authenticated users cannot access signin/signup pages
-    if (isAuthRoute) {
-      const redirectUrl = userRole === "business" ? "/business" : "/investor/portfolio";
+    if (isAuthRoute && effectiveRole) {
+      const redirectUrl =
+        effectiveRole === "business" ? "/business" : "/investor/portfolio";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
-
-    if (userRole === "business" && isInvestorRoute) {
+ 
+    if (effectiveRole === "business" && isInvestorRoute) {
       const allowedInvestorPaths = [
         "/investor/browse-pitches",
         "/investor/browse-pitches/",
@@ -84,21 +94,22 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/business", request.url));
       }
     }
-
+ 
     // Investor users cannot access business routes
-    if (userRole === "investor" && isBusinessRoute) {
+    if (effectiveRole === "investor" && isBusinessRoute) {
       return NextResponse.redirect(new URL("/investor/portfolio", request.url));
     }
+    // If role is unknown yet (race condition), allow the request through.
   } else {
     // Unauthenticated users cannot access protected routes
     if (isBusinessRoute || isInvestorRoute) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }
-
+ 
   return supabaseResponse;
 }
-
+ 
 export const config = {
   matcher: [
     /*
@@ -111,3 +122,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
+ 

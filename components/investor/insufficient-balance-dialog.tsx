@@ -41,7 +41,7 @@ export function InsufficientBalanceDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[400px]">
+  <DialogContent className="sm:max-w-[400px] rounded-2xl">
           <DialogHeader>
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />

@@ -363,8 +363,7 @@ export function InvestmentForm({
               isProcessing ||
               investmentAmount < getMinimumInvestmentAmount() ||
               investmentAmount > getMaximumInvestmentAmount() ||
-              (normalizedTiers.length > 0 && !selectedTier) ||
-              (fundingMethod === "balance" && investmentAmount > accountBalance)
+              (normalizedTiers.length > 0 && !selectedTier)
             }
             className="w-full"
             size="lg"
