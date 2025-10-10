@@ -10,8 +10,12 @@ import { ArrowRight, TrendingUp, Shield, Users, Building2, Play, CheckCircle, Ba
 import { useAuth } from "@/lib/auth"
 import { useState, useEffect } from "react";
 import { getTopAdCampaignPitch } from "@/lib/action";
+import { VideoModal } from "@/components/video-modal"
+
 
 export default function HomePage() {
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+
   const { user, isLoading } = useAuth();
 
   function getProfitShareRemaining(pitch: Pitch | null) {
@@ -82,6 +86,9 @@ useEffect(() => {
 
   return (
     <div className="flex flex-col min-h-screen">
+      <VideoModal open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen} />
+      <VideoModal open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen} />
+
       <section className="relative h-screen overflow-hidden">
         <div className="absolute inset-0">
           <img
@@ -146,7 +153,8 @@ useEffect(() => {
                   <Button
                     variant="outline"
                     size="lg"
-                    className="text-lg px-8 bg-black/20 text-white border-white/30 hover:bg-black/30"
+                    className="text-lg px-8 bg-black/20 border-white/30 text-white hover:bg-black/30"
+                    onClick={() => setIsVideoModalOpen(true)}
                   >
                     <Play className="mr-2 h-5 w-5" />
                     Watch How It Works
