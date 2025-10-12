@@ -17,10 +17,11 @@ export function Navbar() {
   };
 
   const isAuthPage = pathname === '/signin' || pathname === '/signup';
-  const shouldUseBlackNavbar = user || isAuthPage;
+  const isLandingPage = pathname === '/';
+  const shouldUseBlackNavbar = (user && !isLandingPage) || isAuthPage;
 
   return (
-    <nav className={`border-b backdrop-blur ${shouldUseBlackNavbar ? 'bg-black' : 'bg-white'}`}>
+    <nav className={`sticky top-0 z-50 backdrop-blur ${shouldUseBlackNavbar ? 'bg-black border-b border-gray-800' : 'bg-white border-b border-gray-200'}`}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <LinkWithLoader href="/" className={`flex items-center gap-2 text-xl font-bold ${shouldUseBlackNavbar ? 'text-white' : 'text-black'}`}>
           <img src="/logo_invex.ico" alt="Invex Logo" className="w-7 h-7" />
@@ -34,25 +35,25 @@ export function Navbar() {
               <div className="hidden md:flex items-center gap-4">
                 {user.role === "business" ? (
                   <>
-                    <LinkWithLoader href="/business" className="text-sm text-white font-bold hover:text-gray-200">
+                    <LinkWithLoader href="/business" className={`text-sm ${shouldUseBlackNavbar ? 'text-white hover:text-gray-200' : 'text-black hover:text-gray-700'}`}>
                       Dashboard
                     </LinkWithLoader>
-                    <LinkWithLoader href="/business/my-pitches" className="text-sm text-white font-bold hover:text-gray-200">
+                    <LinkWithLoader href="/business/my-pitches" className={`text-sm ${shouldUseBlackNavbar ? 'text-white hover:text-gray-200' : 'text-black hover:text-gray-700'}`}>
                       My pitches
                     </LinkWithLoader>
-                    <LinkWithLoader href="/business/other-pitches" className="text-sm text-white font-bold hover:text-gray-200">
+                    <LinkWithLoader href="/business/other-pitches" className={`text-sm ${shouldUseBlackNavbar ? 'text-white hover:text-gray-200' : 'text-black hover:text-gray-700'}`}>
                       Other pitches
                     </LinkWithLoader>
                   </>
                 ) : (
                   <>
-                    <LinkWithLoader href="/investor" className="text-sm text-white font-bold hover:text-gray-200">
+                    <LinkWithLoader href="/investor" className={`text-sm ${shouldUseBlackNavbar ? 'text-white hover:text-gray-200' : 'text-black hover:text-gray-700'}`}>
                       Home
                     </LinkWithLoader>
-                    <LinkWithLoader href="/investor/browse-pitches" className="text-sm text-white font-bold hover:text-gray-200">
+                    <LinkWithLoader href="/investor/browse-pitches" className={`text-sm ${shouldUseBlackNavbar ? 'text-white hover:text-gray-200' : 'text-black hover:text-gray-700'}`}>
                       Browse Pitches
                     </LinkWithLoader>
-                    <LinkWithLoader href="/investor/portfolio" className="text-sm text-white font-bold hover:text-gray-200">
+                    <LinkWithLoader href="/investor/portfolio" className={`text-sm ${shouldUseBlackNavbar ? 'text-white hover:text-gray-200' : 'text-black hover:text-gray-700'}`}>
                       Portfolio
                     </LinkWithLoader>
                   </>
@@ -61,7 +62,7 @@ export function Navbar() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
+                    <Avatar className={`h-8 w-8 ${!shouldUseBlackNavbar ? 'ring-2 ring-black' : ''}`}>
                       <AvatarFallback>{user.name ? user.name.charAt(0).toUpperCase() : ""}</AvatarFallback>
                     </Avatar>
                   </Button>
