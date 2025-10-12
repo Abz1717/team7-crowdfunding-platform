@@ -4,6 +4,7 @@ import { BusinessSetupForm } from "@/components/business-setup-form";
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import LoadingScreen from "@/components/loading-screen";
 
 export function BusinessSetupPageClient() {
   const { user, isLoading } = useAuth();
@@ -23,14 +24,7 @@ export function BusinessSetupPageClient() {
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   return (
