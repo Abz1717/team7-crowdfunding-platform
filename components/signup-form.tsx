@@ -1,7 +1,8 @@
 "use client";
 
 import type React from "react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import { TrendingUp, Building2 } from "lucide-react";
 import { signup } from "@/lib/action"; // server action
 
 export function SignUpForm() {
+  const searchParams = useSearchParams();
   const [accountType, setAccountType] = useState<"investor" | "business">(
     "investor"
   );
@@ -24,6 +26,13 @@ export function SignUpForm() {
   const [error, setError] = useState<string>("");
   const [emailFormatError, setEmailFormatError] = useState<string>("");
   const [passwordsMatchError, setPasswordsMatchError] = useState<string>("");
+
+  useEffect(() => {
+    const errorParam = searchParams.get("error");
+    if (errorParam === "email_exists") {
+      setError("An account with this email address already exists. Please use a different email or try signing in.");
+    }
+  }, [searchParams]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => {
@@ -81,21 +90,27 @@ export function SignUpForm() {
           }
           className="grid grid-cols-2 gap-4"
         >
-          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-accent cursor-pointer">
+          <div 
+            className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-accent cursor-pointer"
+            onClick={() => setAccountType("investor")}
+          >
             <RadioGroupItem value="investor" id="investor" />
             <Label
               htmlFor="investor"
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer flex-1"
             >
               <TrendingUp className="h-4 w-4" />
               <span>Investor</span>
             </Label>
           </div>
-          <div className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-accent cursor-pointer">
+          <div 
+            className="flex items-center space-x-2 border rounded-lg p-4 hover:bg-accent cursor-pointer"
+            onClick={() => setAccountType("business")}
+          >
             <RadioGroupItem value="business" id="business" />
             <Label
               htmlFor="business"
-              className="flex items-center gap-2 cursor-pointer"
+              className="flex items-center gap-2 cursor-pointer flex-1"
             >
               <Building2 className="h-4 w-4" />
               <span>Business</span>

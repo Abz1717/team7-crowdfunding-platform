@@ -31,7 +31,7 @@ export default function HomePage() {
 
   let startInvestingHref = "/signin";
   if (!isLoading && user) {
-    startInvestingHref = user.role === "business" ? "/business" : "/investor/portfolio";
+    startInvestingHref = user.role === "business" ? "/business" : "/investor";
   }
 
   const [randomPitch, setRandomPitch] = useState<Pitch | null>(null);

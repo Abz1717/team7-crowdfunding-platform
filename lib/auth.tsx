@@ -37,12 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser) => {
+  const fetchUserProfile = useCallback(async (supabaseUser: SupabaseUser, retryCount = 0) => {
     try {
       console.log(
         "[AuthProvider] Fetching user profile for:",
-        supabaseUser.email
+        supabaseUser.email,
+        "retry:",
+        retryCount
       );
+
+      // Always keep loading state true during fetch
+      setIsLoading(true);
+      
+      if (retryCount === 0) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
       // Use API route to fetch user details
       const response = await fetch("/api/user", {
@@ -51,6 +60,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
+        if (response.status === 404 && retryCount < 3) {
+          console.log(
+            "[AuthProvider] User not found in database, retrying in 500ms:",
+            supabaseUser.email,
+            "attempt:",
+            retryCount + 1
+          );
+          await new Promise(resolve => setTimeout(resolve, 500));
+          return fetchUserProfile(supabaseUser, retryCount + 1);
+        } else if (response.status === 404) {
+          console.warn(
+            "[AuthProvider] User not found in database after retries, signing out:",
+            supabaseUser.email
+          );
+          await supabase.auth.signOut();
+          setUser(null);
+          return;
+        }
+        
         console.error(
           "[AuthProvider] Error fetching user profile from API:",
           response.status,
@@ -98,8 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         supabaseUser.email
       );
       setUser(null);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   // Initial session and auth state changes
   useEffect(() => {
@@ -117,11 +147,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await fetchUserProfile(session.user);
         } else {
           console.log("[AuthProvider] No session user found");
+          setIsLoading(false);
         }
         console.log("[AuthProvider] Session fetched");
       } catch (err) {
         console.error("[AuthProvider] Error in getInitialSession", err);
-      } finally {
         setIsLoading(false);
       }
     };
@@ -137,13 +167,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       try {
         if (session?.user) {
+          setIsLoading(true);
           await fetchUserProfile(session.user);
         } else {
           setUser(null);
+          setIsLoading(false);
         }
       } catch (err) {
         console.error("[AuthProvider] Error in onAuthStateChange", err);
-      } finally {
         setIsLoading(false);
       }
     });
@@ -168,8 +199,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserProfile, supabase]);
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    try {
+      setUser(null);
+      
+      await supabase.auth.signOut();
+      
+      if (typeof window !== 'undefined') {
+        document.cookie = "user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                setTimeout(() => {
+          window.location.replace('/');
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      setUser(null);
+      if (typeof window !== 'undefined') {
+        window.location.replace('/');
+      }
+    }
   };
 
   const refreshUser = async () => {

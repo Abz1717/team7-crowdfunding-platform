@@ -50,7 +50,7 @@ export async function login(formData: FormData) {
   });
 
   if (userDetails.account_type === "investor") {
-    redirect("/investor/portfolio");
+    redirect("/investor");
   } else if (userDetails.account_type === "business") {
     redirect("/business");
   } else {
@@ -79,6 +79,9 @@ export async function signup(formData: FormData) {
 
   if (error) {
     console.error("Signup error:", error);
+    if (error.message.includes("User already registered")) {
+      redirect("/signup?error=email_exists");
+    }
     redirect("/error");
   }
 
@@ -89,25 +92,38 @@ export async function signup(formData: FormData) {
     redirect("/error");
   }
 
-  // Mess with this to test or set up default values.
-  const { error: tableError } = await supabase.from("user").insert([
+  // Insert user into database
+  console.log("Attempting to insert user into database:", {
+    id: userData.user?.id,
+    email: data.email,
+    supabaseEmail: userData.user?.email,
+    account_type: data.accountType,
+  });
+
+  const { data: insertedData, error: tableError } = await supabase.from("user").insert([
     {
       id: userData.user?.id,
       first_name: data.firstName,
       last_name: data.lastName,
-      email: data.email,
+      email: userData.user?.email || data.email.toLowerCase(), // Use Supabase's normalized email
       account_type: data.accountType,
       account_balance: 0,
       total_invested: 0,
       total_returns: 0,
       overall_roi: 0,
     },
-  ]);
+  ]).select();
 
   if (tableError) {
     console.error("Error inserting into user table:", tableError);
+    console.error("Table error details:", JSON.stringify(tableError, null, 2));
+    if (tableError.code === "23505") {
+      redirect("/signup?error=email_exists");
+    }
     redirect("/error");
   }
+
+  console.log("User successfully inserted into database:", insertedData);
 
   console.log("Signup success:", userData);
 
@@ -117,21 +133,21 @@ export async function signup(formData: FormData) {
     maxAge: 60 * 60 * 24 * 7, // 7 days
     path: "/",
   });
+  await new Promise(resolve => setTimeout(resolve, 100));
 
   revalidatePath("/", "layout");
 
-  if (!userData.session) {
-    redirect("/signin?confirm=1");
+
+  if (data.accountType === "business") {
+    redirect("/business-setup");
+  } else if (data.accountType === "investor") {
+    redirect("/investor");
   } else {
-    if (data.accountType === "business") {
-      redirect("/business-setup");
-    } else {
-      redirect("/investor/portfolio");
-    }
+    redirect("/signin?confirm=1");
   }
 }
 
-export async function createBusinessUser(formData: FormData) {
+export async function createBusinessUser(formData: FormData): Promise<{ success: boolean } | void> {
   const supabase = await createClient();
 
   // Get the current user
@@ -156,32 +172,59 @@ export async function createBusinessUser(formData: FormData) {
 
   console.log("Business user creation attempt:", data);
 
-  // Insert business user info into the 'businessuser' table
-  const { error: businessUserError } = await supabase
+  const { data: existingBusinessUser } = await supabase
     .from("businessuser")
-    .insert([
-      {
-        user_id: user.id,
+    .select("id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (existingBusinessUser) {
+    console.log("Business user already exists, updating instead");
+    // Update existing business user
+    const { error: updateError } = await supabase
+      .from("businessuser")
+      .update({
         business_name: data.businessName,
         description: data.description,
         website: data.website || null,
         logo_url: data.logoUrl || null,
         phone_number: data.phoneNumber || null,
         location: data.location,
-      },
-    ]);
+      })
+      .eq("user_id", user.id);
 
-  if (businessUserError) {
-    console.error(
-      "Error inserting into businessuser table:",
-      businessUserError
-    );
-    redirect("/error");
+    if (updateError) {
+      console.error("Error updating businessuser table:", updateError);
+      redirect("/error");
+    }
+  } else {
+    const { error: businessUserError } = await supabase
+      .from("businessuser")
+      .insert([
+        {
+          user_id: user.id,
+          business_name: data.businessName,
+          description: data.description,
+          website: data.website || null,
+          logo_url: data.logoUrl || null,
+          phone_number: data.phoneNumber || null,
+          location: data.location,
+        },
+      ]);
+
+    if (businessUserError) {
+      console.error(
+        "Error inserting into businessuser table:",
+        businessUserError
+      );
+      redirect("/error");
+    }
   }
 
   console.log("Business user creation success");
   revalidatePath("/", "layout");
-  redirect("/business");
+  
+  return { success: true };
 }
 
 // Pitch-related actions

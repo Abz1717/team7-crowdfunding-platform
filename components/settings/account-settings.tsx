@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   User,
   Building2,
@@ -55,12 +56,12 @@ export function AccountSettings() {
 
   // swr hooks for investor data
   const { data: investorProfileData, isLoading: loadingInvestorProfile } = useInvestorProfile();
-  const { data: investorPortfolioData, isLoading: loadingPortfolio } = useInvestorPortfolio(authUser?.id);
+  const { data: investorPortfolioData, isLoading: loadingPortfolio, mutate: mutatePortfolio } = useInvestorPortfolio(authUser?.id);
   const { data: investorProfitPayouts, isLoading: loadingPayouts } = useInvestorProfitPayouts(authUser?.id);
   const { data: investorTransactions, isLoading: loadingTransactions } = useInvestorTransactions();
   const { data: businessUserData } = useBusinessUser();
-  const { data: businessAccountBalance } = useBusinessAccountBalance();
-  const { data: businessFundingBalance } = useBusinessFundingBalance();
+  const { data: businessAccountBalance, mutate: mutateAccountBalance } = useBusinessAccountBalance();
+  const { data: businessFundingBalance, mutate: mutateFundingBalance } = useBusinessFundingBalance();
 
   // user and businessUser from SWR data
   let user: UserType | null = null;
@@ -98,6 +99,14 @@ export function AccountSettings() {
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [fundingWithdrawDialogOpen, setFundingWithdrawDialogOpen] = useState(false);
   const [billingTab, setBillingTab] = useState<'account' | 'funding'>('account');
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [passwordFormData, setPasswordFormData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordError, setPasswordError] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   const [userFormData, setUserFormData] = useState({
     first_name: "",
@@ -114,6 +123,34 @@ export function AccountSettings() {
     location: "",
   });
 
+  useEffect(() => {
+    if (user) {
+      setUserFormData({
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+      });
+    } else if (businessUser && authUser) {
+      setUserFormData({
+        first_name: "",
+        last_name: "",
+        email: authUser.email || "",
+      });
+    }
+  }, [user, businessUser, authUser]);
+
+  useEffect(() => {
+    if (businessUser) {
+      setBusinessFormData({
+        business_name: businessUser.business_name || "",
+        description: businessUser.description || "",
+        website: businessUser.website || "",
+        logo_url: businessUser.logo_url || "",
+        phone_number: businessUser.phone_number || "",
+        location: businessUser.location || "",
+      });
+    }
+  }, [businessUser]);
 
   const handleUserInputChange = (field: string, value: string) => {
     setUserFormData((prev) => ({ ...prev, [field]: value }));
@@ -166,6 +203,76 @@ export function AccountSettings() {
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  const handlePasswordChange = async () => {
+    setPasswordError("");
+    
+    if (!passwordFormData.currentPassword || !passwordFormData.newPassword || !passwordFormData.confirmPassword) {
+      setPasswordError("All fields are required");
+      return;
+    }
+    
+    if (passwordFormData.newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters long");
+      return;
+    }
+    
+    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+      setPasswordError("New password and confirmation do not match");
+      return;
+    }
+    
+    if (passwordFormData.currentPassword === passwordFormData.newPassword) {
+      setPasswordError("New password must be different from current password");
+      return;
+    }
+
+    setChangingPassword(true);
+    
+    try {
+      const { createClient } = await import("@/utils/supabase/client");
+      const supabase = createClient();
+      
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || authUser?.email || "",
+        password: passwordFormData.currentPassword,
+      });
+      
+      if (signInError) {
+        setPasswordError("Current password is incorrect");
+        return;
+      }
+      
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordFormData.newPassword
+      });
+      
+      if (updateError) {
+        setPasswordError(updateError.message);
+        return;
+      }
+      
+      setChangePasswordOpen(false);
+      setPasswordFormData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      
+      alert("Password changed successfully!");
+      
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setPasswordError("An unexpected error occurred. Please try again.");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const handlePasswordInputChange = (field: string, value: string) => {
+setPasswordFormData((prev) => ({ ...prev, [field]: value }));
+    setPasswordError(""); 
   };
 
   const cancelUserEdit = () => {
@@ -706,7 +813,12 @@ export function AccountSettings() {
                           Last changed 3 months ago
                         </p>
                       </div>
-                      <Button variant="outline">Change Password</Button>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setChangePasswordOpen(true)}
+                      >
+                        Change Password
+                      </Button>
                     </div>
 
                     <Separator />
@@ -766,7 +878,7 @@ export function AccountSettings() {
                     Notifications
                   </h2>
                   <p className="text-muted-foreground">
-                    Choose what notifications you want to receive
+                    Choose what notifications you want to receive [not implemented]
                   </p>
                 </div>
 
@@ -1091,21 +1203,106 @@ export function AccountSettings() {
       <DepositDialog
         open={depositDialogOpen}
         onOpenChange={setDepositDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          if (authUser?.role === "business") {
+            mutateAccountBalance();
+          } else {
+            mutatePortfolio();
+          }
+        }}
       />
       <WithdrawDialog
         open={withdrawDialogOpen}
         onOpenChange={setWithdrawDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          if (authUser?.role === "business") {
+            mutateAccountBalance();
+          } else {
+            mutatePortfolio();
+          }
+        }}
         currentBalance={accountBalance}
       />
       <WithdrawDialog
         open={fundingWithdrawDialogOpen}
         onOpenChange={setFundingWithdrawDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          if (authUser?.role === "business") {
+            mutateFundingBalance();
+          }
+        }}
         currentBalance={fundingBalance}
         fundingOnly
       />
+
+      <Dialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen}>
+        <DialogContent className="sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" />
+              Change Password
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="currentPassword">Current Password</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={passwordFormData.currentPassword}
+                onChange={(e) => handlePasswordInputChange("currentPassword", e.target.value)}
+                className="bg-input border-border"
+                placeholder="Enter your current password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={passwordFormData.newPassword}
+                onChange={(e) => handlePasswordInputChange("newPassword", e.target.value)}
+                className="bg-input border-border"
+                placeholder="Enter your new password (min 6 characters)"
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm New Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={passwordFormData.confirmPassword}
+                onChange={(e) => handlePasswordInputChange("confirmPassword", e.target.value)}
+                className="bg-input border-border"
+                placeholder="Confirm your new password"
+              />
+            </div>
+            
+            {passwordError && (
+              <div className="text-red-500 text-sm mt-2">
+                {passwordError}
+              </div>
+            )}
+            
+            <div className="flex gap-2 pt-4">
+              <Button 
+                onClick={handlePasswordChange} 
+                disabled={changingPassword}
+                className="flex-1"
+              >
+                {changingPassword ? "Changing..." : "Change Password"}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setChangePasswordOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

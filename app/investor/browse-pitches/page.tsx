@@ -4,23 +4,28 @@ import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { PitchBrowser } from "@/components/investor/pitch-browser";
+import LoadingScreen from "@/components/loading-screen";
 
 export default function InvestorDashboard() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "investor")) {
-      router.push("/signin");
-    }
+    const timer = setTimeout(() => {
+      if (!isLoading && (!user || user.role !== "investor")) {
+        router.push("/signin");
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen />;
   }
 
   if (!user || user.role !== "investor") {
-    return null;
+    return <LoadingScreen />;
   }
 
   return (

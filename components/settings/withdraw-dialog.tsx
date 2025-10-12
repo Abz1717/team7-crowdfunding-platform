@@ -44,6 +44,16 @@ export function WithdrawDialog({
     e.preventDefault();
     setLoading(true);
 
+    // Add timeout protection to prevent button from getting stuck
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+      toast({
+        title: "Request Timeout",
+        description: "The withdrawal request timed out. Please try again.",
+        variant: "destructive",
+      });
+    }, 30000); // 30 second timeout
+
     try {
       const amount = parseFloat(formData.amount);
 
@@ -53,6 +63,7 @@ export function WithdrawDialog({
           description: "Please enter a valid amount greater than £0",
           variant: "destructive",
         });
+        clearTimeout(timeoutId);
         setLoading(false);
         return;
       }
@@ -63,6 +74,7 @@ export function WithdrawDialog({
           description: "You don't have enough funds to withdraw this amount",
           variant: "destructive",
         });
+        clearTimeout(timeoutId);
         setLoading(false);
         return;
       }
@@ -73,6 +85,7 @@ export function WithdrawDialog({
           description: "Sort code must be 6 digits",
           variant: "destructive",
         });
+        clearTimeout(timeoutId);
         setLoading(false);
         return;
       }
@@ -83,6 +96,7 @@ export function WithdrawDialog({
           description: "Account number must be 8 digits",
           variant: "destructive",
         });
+        clearTimeout(timeoutId);
         setLoading(false);
         return;
       }
@@ -92,6 +106,8 @@ export function WithdrawDialog({
         sortCode: formData.sortCode.replace(/-/g, ""),
         accountName: formData.accountName,
       });
+
+      clearTimeout(timeoutId); // Clear timeout on successful response
 
       if (result.success) {
         toast({
@@ -114,10 +130,11 @@ export function WithdrawDialog({
         });
       }
     } catch (error) {
+      clearTimeout(timeoutId); // Clear timeout on error
       console.error("Error withdrawing funds:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {

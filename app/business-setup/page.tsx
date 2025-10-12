@@ -5,9 +5,9 @@ export default function BusinessSetupPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-2xl space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Tell us about your business</h1>
+          <h1 className="text-3xl font-bold">Complete Your Business Setup</h1>
           <p className="text-muted-foreground">
-            Help investors learn more about your company
+            You must complete these fields to proceed and access all business features
           </p>
         </div>
 
