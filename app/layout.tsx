@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth";
 import { Navbar } from "@/components/layout/navbar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ChunkErrorHandler } from "@/components/ChunkErrorHandler";
+import { BusinessSetupProvider } from "@/context/BusinessSetupContext";
 
 import { RouteChangeLoader } from "@/components/route-change-loader";
 import { LoaderProvider } from "@/components/loader-context";
@@ -35,12 +38,17 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <LoaderProvider>
-          <AuthProvider>
-            <Navbar />
-            <RouteChangeLoader>{children}</RouteChangeLoader>
-          </AuthProvider>
-        </LoaderProvider>
+        <ErrorBoundary>
+          <ChunkErrorHandler />
+          <LoaderProvider>
+            <AuthProvider>
+              <BusinessSetupProvider>
+                <Navbar />
+                <RouteChangeLoader>{children}</RouteChangeLoader>
+              </BusinessSetupProvider>
+            </AuthProvider>
+          </LoaderProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

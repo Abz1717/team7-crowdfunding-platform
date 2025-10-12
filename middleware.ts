@@ -39,8 +39,8 @@ export async function middleware(request: NextRequest) {
   // Define route types
   const isPublicRoute = path === "/";
   const isAuthRoute = path === "/signin" || path === "/signup";
-  const isBusinessRoute =
-    path.startsWith("/business") || path.startsWith("/business-setup");
+  const isBusinessSetupRoute = path === "/business-setup";
+  const isBusinessRoute = path.startsWith("/business") && !isBusinessSetupRoute;
   const isInvestorRoute = path.startsWith("/investor");
  
   // If user is authenticated, get their role from the database
@@ -73,20 +73,42 @@ export async function middleware(request: NextRequest) {
   const effectiveRole: "business" | "investor" | null = (userRole ||
     userRoleCookie ||
     null) as any;
- 
   // Route protection logic
   if (user) {
     // If user exists in Supabase but not in database, treat as unauthenticated
     if (!userExistsInDatabase) {
-      console.log("User authenticated in Supabase but not found in database, treating as unauthenticated");
       
-      // Clear the stale authentication by redirecting to signin with a logout action
-      if (isBusinessRoute || isInvestorRoute) {
-        return NextResponse.redirect(new URL("/signin?error=session_expired", request.url));
+      if (userRoleCookie) {
+        console.log("Using role cookie as fallback:", userRoleCookie);
+        if (userRoleCookie === "investor" && isInvestorRoute) {
+          console.log("Allowing investor access with cookie fallback");
+          return supabaseResponse;
+        }
+      } else {
+        if (isBusinessRoute || isInvestorRoute) {
+          return NextResponse.redirect(new URL("/signin?error=session_expired", request.url));
+        }
+                return supabaseResponse;
       }
-      
-      // For other routes, let them through but they won't have user data
-      return supabaseResponse;
+    }
+
+    if (effectiveRole === "business" && isBusinessRoute) {
+      try {
+        const { data: businessUser, error: businessError } = await supabase
+          .from("businessuser")
+          .select("business_name, description, location")
+          .eq("user_id", user.id)
+          .single();
+
+        if (businessError || !businessUser || 
+            !businessUser.business_name || 
+            !businessUser.description || 
+            !businessUser.location) {
+          return NextResponse.redirect(new URL("/business-setup", request.url));
+        }
+      } catch (error) {
+        return NextResponse.redirect(new URL("/business-setup", request.url));
+      }
     }
 
     // Authenticated users cannot access signin/signup pages
@@ -114,11 +136,33 @@ export async function middleware(request: NextRequest) {
 
     // Investor users cannot access business routes
     if (effectiveRole === "investor" && isBusinessRoute) {
-      return NextResponse.redirect(new URL("/investor/", request.url));
+      return NextResponse.redirect(new URL("/investor", request.url));
     }
+    
+    if (effectiveRole === "investor" && isInvestorRoute) {
+      return supabaseResponse;
+    }
+    
+    if (isInvestorRoute && !effectiveRole) {
+      console.log("Investor route accessed with no effective role:", {
+        path,
+        userRole,
+        userRoleCookie,
+        userExistsInDatabase
+      });
+    }
+    
     // If role is unknown yet (race condition), allow the request through.
   } else {
-    // Unauthenticated users cannot access protected routes
+    if (isBusinessSetupRoute) {
+      const userRoleCookie = request.cookies.get("user_role")?.value;
+      if (userRoleCookie === "business") {
+        return supabaseResponse;
+      } else {
+        return NextResponse.redirect(new URL("/", request.url));
+      }
+    }
+    
     if (isBusinessRoute || isInvestorRoute) {
       return NextResponse.redirect(new URL("/", request.url));
     }

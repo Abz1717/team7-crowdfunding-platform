@@ -9,8 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Globe, Phone, MapPin } from "lucide-react";
 import { createBusinessUser } from "@/lib/action";
+import { useBusinessSetup } from "@/hooks/useBusinessSetup";
+import { useRouter } from "next/navigation";
 
 export function BusinessSetupForm() {
+  const { checkBusinessSetup, markSetupComplete } = useBusinessSetup();
+  const router = useRouter();
   const [formData, setFormData] = useState({
     businessName: "",
     description: "",
@@ -21,6 +25,7 @@ export function BusinessSetupForm() {
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [phoneError, setPhoneError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,25 +75,45 @@ export function BusinessSetupForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    if (isSubmitting) return;
+
     const isPhoneValid = validatePhone(formData.phoneNumber);
     if (!isPhoneValid) return;
-    let logoUrl = formData.logoUrl;
-    if (logoFile) {
-      setIsUploading(true);
-      const uploadedUrl = await uploadLogoToSupabase(logoFile);
-      setIsUploading(false);
-      if (uploadedUrl) {
-        logoUrl = uploadedUrl;
+
+    setIsSubmitting(true);
+
+    try {
+      let logoUrl = formData.logoUrl;
+      if (logoFile) {
+        setIsUploading(true);
+        const uploadedUrl = await uploadLogoToSupabase(logoFile);
+        setIsUploading(false);
+        if (uploadedUrl) {
+          logoUrl = uploadedUrl;
+        }
       }
+      
+      const submitData = new FormData();
+      submitData.set("businessName", formData.businessName);
+      submitData.set("description", formData.description);
+      submitData.set("website", formData.website);
+      submitData.set("logoUrl", logoUrl);
+      submitData.set("phoneNumber", formData.phoneNumber);
+      submitData.set("location", formData.location);
+      
+      const result = await createBusinessUser(submitData);
+      
+      if (result?.success) {
+        markSetupComplete();
+                await checkBusinessSetup();
+        
+        router.push("/business");
+      }
+    } catch (error) {
+      console.error("Error creating business user:", error);
+    } finally {
+      setIsSubmitting(false);
     }
-    const submitData = new FormData();
-    submitData.set("businessName", formData.businessName);
-    submitData.set("description", formData.description);
-    submitData.set("website", formData.website);
-    submitData.set("logoUrl", logoUrl);
-    submitData.set("phoneNumber", formData.phoneNumber);
-    submitData.set("location", formData.location);
-    await createBusinessUser(submitData);
   };
 
   const countryList = [
@@ -240,8 +265,13 @@ export function BusinessSetupForm() {
             </select>
           </div>
 
-          <Button type="submit" className="w-full" size="lg">
-            Complete Business Setup
+          <Button 
+            type="submit" 
+            className="w-full" 
+            size="lg"
+            disabled={isSubmitting || isUploading}
+          >
+            {isSubmitting ? "Processing..." : isUploading ? "Uploading Logo..." : "Complete Business Setup"}
           </Button>
         </form>
       </CardContent>

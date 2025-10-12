@@ -46,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         retryCount
       );
 
+      // Always keep loading state true during fetch
+      setIsLoading(true);
+      
       if (retryCount === 0) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -196,8 +199,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchUserProfile, supabase]);
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    try {
+      setUser(null);
+      
+      await supabase.auth.signOut();
+      
+      if (typeof window !== 'undefined') {
+        document.cookie = "user_role=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                setTimeout(() => {
+          window.location.replace('/');
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      setUser(null);
+      if (typeof window !== 'undefined') {
+        window.location.replace('/');
+      }
+    }
   };
 
   const refreshUser = async () => {

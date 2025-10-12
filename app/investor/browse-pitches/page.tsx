@@ -10,17 +10,17 @@ export default function InvestorDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "investor")) {
+    if (!isLoading && !user) {
       router.push("/signin");
     }
   }, [user, isLoading, router]);
 
   if (isLoading) {
-    return null;
+    return <div className="container mx-auto py-8 px-4">Loading...</div>;
   }
 
-  if (!user || user.role !== "investor") {
-    return null;
+  if (!user) {
+    return <div className="container mx-auto py-8 px-4">Loading user...</div>;
   }
 
   return (

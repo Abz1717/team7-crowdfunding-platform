@@ -11,7 +11,7 @@ export default function PortfolioPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading && (!user || user.role !== "investor")) {
+    if (!isLoading && !user) {
       router.push("/signin");
     }
   }, [user, isLoading, router]);
@@ -20,8 +20,8 @@ export default function PortfolioPage() {
     return <LoadingScreen />;
   }
 
-  if (!user || user.role !== "investor") {
-    return null;
+  if (!user) {
+    return <LoadingScreen />;
   }
 
   return (
