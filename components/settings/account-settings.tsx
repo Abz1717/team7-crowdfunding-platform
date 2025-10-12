@@ -56,12 +56,12 @@ export function AccountSettings() {
 
   // swr hooks for investor data
   const { data: investorProfileData, isLoading: loadingInvestorProfile } = useInvestorProfile();
-  const { data: investorPortfolioData, isLoading: loadingPortfolio } = useInvestorPortfolio(authUser?.id);
+  const { data: investorPortfolioData, isLoading: loadingPortfolio, mutate: mutatePortfolio } = useInvestorPortfolio(authUser?.id);
   const { data: investorProfitPayouts, isLoading: loadingPayouts } = useInvestorProfitPayouts(authUser?.id);
   const { data: investorTransactions, isLoading: loadingTransactions } = useInvestorTransactions();
   const { data: businessUserData } = useBusinessUser();
-  const { data: businessAccountBalance } = useBusinessAccountBalance();
-  const { data: businessFundingBalance } = useBusinessFundingBalance();
+  const { data: businessAccountBalance, mutate: mutateAccountBalance } = useBusinessAccountBalance();
+  const { data: businessFundingBalance, mutate: mutateFundingBalance } = useBusinessFundingBalance();
 
   // user and businessUser from SWR data
   let user: UserType | null = null;
@@ -878,7 +878,7 @@ setPasswordFormData((prev) => ({ ...prev, [field]: value }));
                     Notifications
                   </h2>
                   <p className="text-muted-foreground">
-                    Choose what notifications you want to receive
+                    Choose what notifications you want to receive [not implemented]
                   </p>
                 </div>
 
@@ -1203,18 +1203,34 @@ setPasswordFormData((prev) => ({ ...prev, [field]: value }));
       <DepositDialog
         open={depositDialogOpen}
         onOpenChange={setDepositDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          if (authUser?.role === "business") {
+            mutateAccountBalance();
+          } else {
+            mutatePortfolio();
+          }
+        }}
       />
       <WithdrawDialog
         open={withdrawDialogOpen}
         onOpenChange={setWithdrawDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          if (authUser?.role === "business") {
+            mutateAccountBalance();
+          } else {
+            mutatePortfolio();
+          }
+        }}
         currentBalance={accountBalance}
       />
       <WithdrawDialog
         open={fundingWithdrawDialogOpen}
         onOpenChange={setFundingWithdrawDialogOpen}
-        onSuccess={() => {}}
+        onSuccess={() => {
+          if (authUser?.role === "business") {
+            mutateFundingBalance();
+          }
+        }}
         currentBalance={fundingBalance}
         fundingOnly
       />
