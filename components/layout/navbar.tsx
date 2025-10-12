@@ -4,51 +4,55 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdownmenu";
 import { LinkWithLoader } from "@/components/link-with-loader";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 export function Navbar() {
   const { user, logout, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await logout();
     router.push("/");
   };
 
+  const isAuthPage = pathname === '/signin' || pathname === '/signup';
+  const shouldUseBlackNavbar = user || isAuthPage;
+
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className={`border-b backdrop-blur ${shouldUseBlackNavbar ? 'bg-black' : 'bg-white'}`}>
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <LinkWithLoader href="/" className="flex items-center gap-2 text-xl font-bold text-primary">
+        <LinkWithLoader href="/" className={`flex items-center gap-2 text-xl font-bold ${shouldUseBlackNavbar ? 'text-white' : 'text-black'}`}>
           <img src="/logo_invex.ico" alt="Invex Logo" className="w-7 h-7" />
           invex
         </LinkWithLoader>
         <div className="flex items-center gap-4">
           {isLoading ? (
-            <div className="w-24 h-6 flex items-center justify-center animate-pulse text-muted-foreground"></div>
+            <div className={`w-24 h-6 flex items-center justify-center animate-pulse ${shouldUseBlackNavbar ? 'text-white' : 'text-black'}`}></div>
           ) : user ? (
             <>
               <div className="hidden md:flex items-center gap-4">
                 {user.role === "business" ? (
                   <>
-                    <LinkWithLoader href="/business" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/business" className="text-sm text-white font-bold hover:text-gray-200">
                       Dashboard
                     </LinkWithLoader>
-                    <LinkWithLoader href="/business/my-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/business/my-pitches" className="text-sm text-white font-bold hover:text-gray-200">
                       My pitches
                     </LinkWithLoader>
-                    <LinkWithLoader href="/business/other-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/business/other-pitches" className="text-sm text-white font-bold hover:text-gray-200">
                       Other pitches
                     </LinkWithLoader>
                   </>
                 ) : (
                   <>
-                    <LinkWithLoader href="/investor" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/investor" className="text-sm text-white font-bold hover:text-gray-200">
                       Home
                     </LinkWithLoader>
-                    <LinkWithLoader href="/investor/browse-pitches" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/investor/browse-pitches" className="text-sm text-white font-bold hover:text-gray-200">
                       Browse Pitches
                     </LinkWithLoader>
-                    <LinkWithLoader href="/investor/portfolio" className="text-sm text-muted-foreground hover:text-foreground">
+                    <LinkWithLoader href="/investor/portfolio" className="text-sm text-white font-bold hover:text-gray-200">
                       Portfolio
                     </LinkWithLoader>
                   </>
@@ -107,7 +111,7 @@ export function Navbar() {
             </>
           ) : (
             <LinkWithLoader href="/signin">
-              <Button>Get Started</Button>
+              <Button className={shouldUseBlackNavbar ? "bg-white text-black hover:bg-gray-100" : ""}>Get Started</Button>
             </LinkWithLoader>
           )}
         </div>

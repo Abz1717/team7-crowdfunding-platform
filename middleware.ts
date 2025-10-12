@@ -41,10 +41,11 @@ export async function middleware(request: NextRequest) {
   const isAuthRoute = path === "/signin" || path === "/signup";
   const isBusinessRoute =
     path.startsWith("/business") || path.startsWith("/business-setup");
-  const isInvestorRoute = path.startsWith("/investor/portfolio");
+  const isInvestorRoute = path.startsWith("/investor");
  
   // If user is authenticated, get their role from the database
   let userRole: "business" | "investor" | null = null;
+  let userExistsInDatabase = false;
   if (user) {
     try {
       const { data, error } = await supabase
@@ -52,16 +53,19 @@ export async function middleware(request: NextRequest) {
         .select("account_type")
         .eq("email", user.email)
         .single();
- 
+
       if (!error && data) {
         userRole = data.account_type as "business" | "investor";
+        userExistsInDatabase = true;
+      } else {
+        console.log("User exists in Supabase auth but not in database:", user.email);
+        userExistsInDatabase = false;
       }
     } catch (error) {
       console.error("Error fetching user role:", error);
+      userExistsInDatabase = false;
     }
-  }
- 
-  // Fallback to role cookie set during signup/login to avoid race conditions
+  }  // Fallback to role cookie set during signup/login to avoid race conditions
   const userRoleCookie = request.cookies.get("user_role")?.value as
     | "business"
     | "investor"
@@ -72,13 +76,26 @@ export async function middleware(request: NextRequest) {
  
   // Route protection logic
   if (user) {
+    // If user exists in Supabase but not in database, treat as unauthenticated
+    if (!userExistsInDatabase) {
+      console.log("User authenticated in Supabase but not found in database, treating as unauthenticated");
+      
+      // Clear the stale authentication by redirecting to signin with a logout action
+      if (isBusinessRoute || isInvestorRoute) {
+        return NextResponse.redirect(new URL("/signin?error=session_expired", request.url));
+      }
+      
+      // For other routes, let them through but they won't have user data
+      return supabaseResponse;
+    }
+
     // Authenticated users cannot access signin/signup pages
     if (isAuthRoute && effectiveRole) {
       const redirectUrl =
-        effectiveRole === "business" ? "/business" : "/investor/portfolio";
+        effectiveRole === "business" ? "/business" : "/investor";
       return NextResponse.redirect(new URL(redirectUrl, request.url));
     }
- 
+
     if (effectiveRole === "business" && isInvestorRoute) {
       const allowedInvestorPaths = [
         "/investor/browse-pitches",
@@ -94,10 +111,10 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL("/business", request.url));
       }
     }
- 
+
     // Investor users cannot access business routes
     if (effectiveRole === "investor" && isBusinessRoute) {
-      return NextResponse.redirect(new URL("/investor/portfolio", request.url));
+      return NextResponse.redirect(new URL("/investor/", request.url));
     }
     // If role is unknown yet (race condition), allow the request through.
   } else {
@@ -105,9 +122,7 @@ export async function middleware(request: NextRequest) {
     if (isBusinessRoute || isInvestorRoute) {
       return NextResponse.redirect(new URL("/", request.url));
     }
-  }
- 
-  return supabaseResponse;
+  }  return supabaseResponse;
 }
  
 export const config = {

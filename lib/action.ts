@@ -50,7 +50,7 @@ export async function login(formData: FormData) {
   });
 
   if (userDetails.account_type === "investor") {
-    redirect("/investor/portfolio");
+    redirect("/investor");
   } else if (userDetails.account_type === "business") {
     redirect("/business");
   } else {
@@ -79,6 +79,9 @@ export async function signup(formData: FormData) {
 
   if (error) {
     console.error("Signup error:", error);
+    if (error.message.includes("User already registered")) {
+      redirect("/signup?error=email_exists");
+    }
     redirect("/error");
   }
 
@@ -106,6 +109,9 @@ export async function signup(formData: FormData) {
 
   if (tableError) {
     console.error("Error inserting into user table:", tableError);
+    if (tableError.code === "23505") {
+      redirect("/signup?error=email_exists");
+    }
     redirect("/error");
   }
 
@@ -126,7 +132,7 @@ export async function signup(formData: FormData) {
     if (data.accountType === "business") {
       redirect("/business-setup");
     } else {
-      redirect("/investor/portfolio");
+      redirect("/investor");
     }
   }
 }
